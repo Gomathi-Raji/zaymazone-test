@@ -1,18 +1,28 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-interface User {
+interface Profile {
   id: string;
-  email: string;
-  name: string;
-  avatar?: string;
+  user_id: string;
+  display_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  profile: Profile | null;
+  session: Session | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
   signUp: (email: string, password: string, name: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -31,53 +41,97 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user profile
+          setTimeout(async () => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
+            setProfile(profile);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signIn = async (email: string, password: string): Promise<void> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     
-    // Simple validation for demo
-    if (email && password.length >= 6) {
-      const mockUser: User = {
-        id: '1',
-        email: email,
-        name: email.split('@')[0],
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`
-      };
-      setUser(mockUser);
-    } else {
-      throw new Error('Invalid credentials');
-    }
+    if (error) throw error;
   };
 
   const signUp = async (email: string, password: string, name: string): Promise<void> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const redirectUrl = `${window.location.origin}/`;
     
-    // Simple validation for demo
-    if (email && password.length >= 6 && name) {
-      const mockUser: User = {
-        id: '1',
-        email: email,
-        name: name,
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`
-      };
-      setUser(mockUser);
-    } else {
-      throw new Error('Invalid registration data');
-    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name: name,
+          full_name: name
+        }
+      }
+    });
+    
+    if (error) throw error;
   };
 
-  const signOut = (): void => {
-    setUser(null);
+  const signInWithGoogle = async (): Promise<void> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    });
+    
+    if (error) throw error;
+  };
+
+  const signOut = async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    profile,
+    session,
+    isAuthenticated: !!session,
+    isLoading,
     signIn,
     signOut,
     signUp,
+    signInWithGoogle,
   };
 
   return (
