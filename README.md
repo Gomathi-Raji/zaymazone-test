@@ -1,73 +1,137 @@
-# Welcome to your Lovable project
+# Zaymazone
 
-## Project info
+Zaymazone is a **modern artisan e-commerce platform** connecting buyers with local artisans, empowering creators to showcase and sell their handcrafted products online.  
+The project focuses on **cultural authenticity**, **user-friendly design**, and **seamless shopping and selling experiences**.
 
-**URL**: https://lovable.dev/projects/56a8bc91-642d-4103-8b1d-7e6034ffd544
+---
 
-## How can I edit this code?
+## 🌟 Features
 
-There are several ways of editing your application.
+### For Shoppers:
+- Browse **handcrafted collections** (pottery, textiles, toys, etc.)
+- **Filter & sort products** by category, price, material, and region
+- **View artisan profiles** with bios, stories, and product galleries
+- **Quick-view and hover previews** for products
+- Smooth **cart and checkout** flow with COD, UPI, and Razorpay support
 
-**Use Lovable**
+### For Artisans:
+- **Easy seller onboarding** with ID/bank verification
+- **Upload and manage products** from a personal dashboard
+- Track **sales, orders, reviews, and payments**
+- Personal **profile page** to share their story and products
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/56a8bc91-642d-4103-8b1d-7e6034ffd544) and start prompting.
+### General:
+- Fully **responsive design** for desktop and mobile
+- **Search with filters & suggestions**
+- **Social sharing** and SEO-friendly pages
+- Optimized for **speed and accessibility (WCAG 2.1)**
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🖼️ Branding
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+The logo represents **diversity and creativity** through three shapes:
+- **Square** – stability and craftsmanship
+- **Circle** – unity and community
+- **Triangle** – growth and aspiration
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Colors:  
+- **Terracotta** – warmth and earthiness  
+- **Forest Green** – trust and nature  
+- **Beige** – simplicity and balance  
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📂 Project Structure
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Zaymazone/
+│
+├── public/               # Static assets (logo, images, favicon)
+├── src/
+│   ├── components/       # Reusable UI components (buttons, cards, etc.)
+│   ├── pages/            # Page-level components (Home, Shop, Product, etc.)
+│   ├── layouts/          # Shared layouts and navigation
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # API calls and data handling
+│   └── styles/           # Global and modular styles (CSS/SASS)
+│
+├── package.json
+├── README.md
+└── .gitignore
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+````
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🚀 Getting Started
 
-## What technologies are used for this project?
+### Prerequisites
+- Node.js (v16+)
+- npm or yarn
+- Git
 
-This project is built with:
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/zaymazone.git
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Navigate into the project
+cd zaymazone
 
-## How can I deploy this project?
+# Install dependencies
+npm install
+# or
+yarn install
+````
 
-Simply open [Lovable](https://lovable.dev/projects/56a8bc91-642d-4103-8b1d-7e6034ffd544) and click on Share -> Publish.
+### Running Locally
 
-## Can I connect a custom domain to my Lovable project?
+```bash
+# Start the development server
+npm start
+# or
+yarn start
+```
 
-Yes, you can!
+Visit `http://localhost:3000` in your browser.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Build for Production
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```bash
+npm run build
+# or
+yarn build
+```
+
+---
+
+## 🛠️ Tech Stack
+
+* **Frontend**: React, TypeScript (optional), Tailwind CSS / SCSS
+* **State Management**: Redux Toolkit or Context API
+* **Backend (Optional)**: Node.js + Express (or Firebase for serverless)
+* **Database (Optional)**: MongoDB or PostgreSQL
+* **Payments**: Razorpay, UPI, COD
+* **Deployment**: Vercel / Netlify (frontend), Render / AWS (backend)
+
+---
+
+## 📌 Roadmap
+
+1. **Phase 1**: UI & Frontend Development
+2. **Phase 2**: Backend APIs (authentication, product, artisan management)
+3. **Phase 3**: Payment gateway integration
+4. **Phase 4**: Performance optimizations and SEO
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+2. Create a new branch (`feature/new-feature`)
+3. Commit changes and push
+4. Submit a Pull Request
