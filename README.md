@@ -1,6 +1,6 @@
 # Zaymazone
 
-![public/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png]
+![Zaymazone Logo](public/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png)
 
 Zaymazone is a **modern artisan e-commerce platform** connecting buyers with local artisans, empowering creators to showcase and sell their handcrafted products online.  
 The project focuses on **cultural authenticity**, **user-friendly design**, and **seamless shopping and selling experiences**.
