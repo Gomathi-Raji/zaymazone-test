@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 export const UserMenu = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleSignOut = () => {
     signOut();
@@ -35,9 +35,9 @@ export const UserMenu = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={profile?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}`} alt={profile?.display_name || user?.email} />
+            <AvatarImage src={user?.avatar} alt={user?.name} />
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {profile?.display_name ? getInitials(profile.display_name) : user?.email ? getInitials(user.email.split('@')[0]) : <User className="h-4 w-4" />}
+              {user ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -45,7 +45,7 @@ export const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{profile?.display_name || user?.email?.split('@')[0]}</p>
+            <p className="text-sm font-medium leading-none">{user?.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>

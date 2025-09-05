@@ -71,7 +71,7 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold">Call Us</h3>
                       <p className="text-sm text-muted-foreground">
-                        +91 6380456410<br />
+                        +91 98765 43210<br />
                         Mon-Fri 9AM-6PM IST
                       </p>
                     </div>

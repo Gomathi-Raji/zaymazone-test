@@ -12,12 +12,9 @@ import { ProductComparison } from "@/components/ProductComparison";
 import { ArtisanSpotlight } from "@/components/ArtisanSpotlight";
 import { InteractiveStats } from "@/components/InteractiveStats";
 import { SkillShowcase } from "@/components/SkillShowcase";
-import { PostManager } from "@/components/PostManager";
 import { useProductComparison } from "@/hooks/useProductComparison";
-import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { isAuthenticated } = useAuth();
   const {
     comparisonProducts,
     isComparisonOpen,
@@ -37,13 +34,6 @@ const Index = () => {
       <FeaturedProducts />
       <SkillShowcase />
       <ArtisanSpotlight />
-      {isAuthenticated && (
-        <section className="py-16 px-4">
-          <div className="max-w-6xl mx-auto">
-            <PostManager />
-          </div>
-        </section>
-      )}
       <ValuesSection />
       <TestimonialSection />
       <NewsletterSection />
