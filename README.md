@@ -1,46 +1,3 @@
-## Security Hardening
-
-Client-side measures added:
-- HTTPS enforcement in production via `enforceHttpsInProduction()` in `src/lib/security.ts`.
-- Input validation and sanitization using Zod schemas and `sanitizeObject()` for auth and forms.
-- Basic client-side rate limiting for sensitive actions (`ClientRateLimiter`).
-- Optional client-side request logging using `logEvent()` with `VITE_LOG_ENDPOINT`.
-- Dev CORS tightened in `vite.config.ts` to localhost origins only.
-
-Server-side requirements (implement on your API/backend):
-- Rate limiting: Apply IP/user-based throttling (e.g., 5/min for auth) using Redis token bucket or sliding window.
-- Input validation: Re-validate all inputs server-side with the same schemas.
-- CORS: Restrict `Access-Control-Allow-Origin` to your production domains, disallow `*` with credentials.
-- Password hashing: Use bcrypt (work factor 10-12) or Argon2. Never store plaintext passwords.
-- HTTPS: Terminate TLS at CDN/load balancer and redirect HTTP→HTTPS.
-- API keys: Store in a secrets manager, rotate at least quarterly. Support overlapping validity during rotation.
-- Logging/monitoring: Centralize request logs (status, latency, user/IP), add alerting for spikes and auth failures.
-
-Environment variables:
-- `VITE_LOG_ENDPOINT` (optional) — endpoint that accepts JSON logs via Beacon.
-- `VITE_API_URL` — backend API base URL (e.g., `http://localhost:4000`).
-
-## Backend API (Express + MongoDB)
-
-Run locally:
-- Install deps: `npm install --prefix server`
-- Create `server/.env` (see variables below)
-- Start API: `npm run dev --prefix server` (default `http://localhost:4000`)
-
-Env vars (`server/.env`):
-- `PORT=4000`
-- `MONGODB_URI=mongodb://127.0.0.1:27017/zaymazone`
-- `JWT_SECRET=change-me`
-- `CORS_ORIGIN=http://localhost:8080`
-
-Endpoints:
-- Auth: `POST /api/auth/signup`, `POST /api/auth/signin`
-- Products: `GET /api/products`, `GET /api/products/:id`, `POST|PUT|DELETE` (auth required)
-- Artisans: `GET /api/artisans`, `GET /api/artisans/:id`, `POST|PUT|DELETE` (auth required)
-
-Notes:
-- Server applies Helmet, CORS, rate limiting, and logging.
-- Ensure MongoDB is running locally or update `MONGODB_URI`.
 # Zaymazone
 
 ![Zaymazone Logo](public/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png)
@@ -169,6 +126,51 @@ yarn build
 2. **Phase 2**: Backend APIs (authentication, product, artisan management)
 3. **Phase 3**: Payment gateway integration
 4. **Phase 4**: Performance optimizations and SEO
+
+---
+## Security Hardening
+
+Client-side measures added:
+- HTTPS enforcement in production via `enforceHttpsInProduction()` in `src/lib/security.ts`.
+- Input validation and sanitization using Zod schemas and `sanitizeObject()` for auth and forms.
+- Basic client-side rate limiting for sensitive actions (`ClientRateLimiter`).
+- Optional client-side request logging using `logEvent()` with `VITE_LOG_ENDPOINT`.
+- Dev CORS tightened in `vite.config.ts` to localhost origins only.
+
+Server-side requirements (implement on your API/backend):
+- Rate limiting: Apply IP/user-based throttling (e.g., 5/min for auth) using Redis token bucket or sliding window.
+- Input validation: Re-validate all inputs server-side with the same schemas.
+- CORS: Restrict `Access-Control-Allow-Origin` to your production domains, disallow `*` with credentials.
+- Password hashing: Use bcrypt (work factor 10-12) or Argon2. Never store plaintext passwords.
+- HTTPS: Terminate TLS at CDN/load balancer and redirect HTTP→HTTPS.
+- API keys: Store in a secrets manager, rotate at least quarterly. Support overlapping validity during rotation.
+- Logging/monitoring: Centralize request logs (status, latency, user/IP), add alerting for spikes and auth failures.
+
+Environment variables:
+- `VITE_LOG_ENDPOINT` (optional) — endpoint that accepts JSON logs via Beacon.
+- `VITE_API_URL` — backend API base URL (e.g., `http://localhost:4000`).
+
+## Backend API (Express + MongoDB)
+
+Run locally:
+- Install deps: `npm install --prefix server`
+- Create `server/.env` (see variables below)
+- Start API: `npm run dev --prefix server` (default `http://localhost:4000`)
+
+Env vars (`server/.env`):
+- `PORT=4000`
+- `MONGODB_URI=mongodb://127.0.0.1:27017/zaymazone`
+- `JWT_SECRET=change-me`
+- `CORS_ORIGIN=http://localhost:8080`
+
+Endpoints:
+- Auth: `POST /api/auth/signup`, `POST /api/auth/signin`
+- Products: `GET /api/products`, `GET /api/products/:id`, `POST|PUT|DELETE` (auth required)
+- Artisans: `GET /api/artisans`, `GET /api/artisans/:id`, `POST|PUT|DELETE` (auth required)
+
+Notes:
+- Server applies Helmet, CORS, rate limiting, and logging.
+- Ensure MongoDB is running locally or update `MONGODB_URI`.
 
 ---
 

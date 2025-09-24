@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import Artisans from "./pages/Artisans";
@@ -21,9 +22,11 @@ import ProductDetail from "./pages/ProductDetail";
 import StartSelling from "./pages/StartSelling";
 import SellerDashboard from "./pages/SellerDashboard";
 import SellerSuccess from "./pages/SellerSuccess";
+import UserDashboard from "./pages/UserDashboard";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import SellerOnboarding from "./pages/SellerOnboarding";
+import ArtisanDetail from "./pages/ArtisanDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 
@@ -32,15 +35,17 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/shop" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/artisans" element={<Artisans />} />
+            <Route path="/artisan/:id" element={<ArtisanDetail />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/profile" element={<Profile />} />
@@ -54,6 +59,8 @@ const App = () => (
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/seller-success" element={<SellerSuccess />} />
             <Route path="/seller-onboarding" element={<SellerOnboarding />} />
+            <Route path="/account" element={<UserDashboard />} />
+            <Route path="/account/orders" element={<UserDashboard />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/product/:id" element={<ProductDetail />} />
@@ -62,7 +69,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

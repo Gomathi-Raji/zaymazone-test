@@ -53,22 +53,28 @@ export const UserMenu = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" asChild>
-          <Link to="/profile">
+          <Link to="/account">
             <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>My Account</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Package className="mr-2 h-4 w-4" />
-          <span>My Orders</span>
+        <DropdownMenuItem className="cursor-pointer" asChild>
+          <Link to="/account/orders">
+            <Package className="mr-2 h-4 w-4" />
+            <span>My Orders</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Heart className="mr-2 h-4 w-4" />
-          <span>Wishlist</span>
+        <DropdownMenuItem className="cursor-pointer" asChild>
+          <Link to="/account">
+            <Heart className="mr-2 h-4 w-4" />
+            <span>Wishlist</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        <DropdownMenuItem className="cursor-pointer" asChild>
+          <Link to="/account">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
