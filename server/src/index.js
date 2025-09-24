@@ -1,0 +1,64 @@
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
+import rateLimit from 'express-rate-limit'
+import mongoose from 'mongoose'
+
+import authRouter from './routes/auth.js'
+import productsRouter from './routes/products.js'
+import artisansRouter from './routes/artisans.js'
+
+const app = express()
+
+// Security & parsing
+app.use(helmet({ contentSecurityPolicy: false }))
+app.use(cors({
+	origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:8080'],
+	credentials: true,
+}))
+app.use(express.json({ limit: '1mb' }))
+app.use(morgan('combined'))
+
+// Global rate limit
+app.use(rateLimit({
+	windowMs: 60 * 1000,
+	max: 120,
+}))
+
+// Health
+app.get('/', (_req, res) => res.json({
+	name: 'Zaymazone API',
+	status: 'ok',
+	endpoints: {
+		health: 'GET /health',
+		auth: ['POST /api/auth/signup', 'POST /api/auth/signin'],
+		products: ['GET /api/products', 'GET /api/products/:id', 'POST /api/products', 'PUT /api/products/:id', 'DELETE /api/products/:id'],
+		artisans: ['GET /api/artisans', 'GET /api/artisans/:id', 'POST /api/artisans', 'PUT /api/artisans/:id', 'DELETE /api/artisans/:id']
+	}
+}))
+app.get('/health', (_req, res) => res.json({ ok: true }))
+
+// Routes
+app.use('/api/auth', authRouter)
+app.use('/api/products', productsRouter)
+app.use('/api/artisans', artisansRouter)
+
+// DB and server
+const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zaymazone'
+const port = process.env.PORT || 4000
+
+async function start() {
+	await mongoose.connect(mongoUri)
+	app.listen(port, () => {
+		console.log(`API listening on http://localhost:${port}`)
+	})
+}
+
+start().catch((err) => {
+	console.error('Failed to start server', err)
+	process.exit(1)
+})
+
+

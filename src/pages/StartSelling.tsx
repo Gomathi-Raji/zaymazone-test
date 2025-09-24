@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Star, Users, Globe, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeObject, startSellingSchema, ClientRateLimiter, logEvent } from "@/lib/security";
 
 export default function StartSelling() {
   const [formData, setFormData] = useState({
@@ -23,9 +24,21 @@ export default function StartSelling() {
   });
   const { toast } = useToast();
   const navigate = useNavigate();
+  const limiter = new ClientRateLimiter(3, 60_000);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!limiter.allow("form:startSelling")) {
+      toast({ title: "Too many submissions", description: "Please wait a minute and try again." });
+      return;
+    }
+    const cleaned = sanitizeObject(formData);
+    const parsed = startSellingSchema.safeParse(cleaned);
+    if (!parsed.success) {
+      toast({ title: "Please fix the form", description: parsed.error.errors[0]?.message ?? "Invalid input" });
+      return;
+    }
+    logEvent({ level: "info", message: "StartSelling submitted" });
     toast({
       title: "Application Submitted!",
       description: "Redirecting to confirmation page...",

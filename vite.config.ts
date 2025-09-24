@@ -8,6 +8,16 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    cors: {
+      origin: [
+        /^(http:\/\/)?localhost:\d+$/,
+        /^(http:\/\/)?127\.0\.0\.1:\d+$/
+      ],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      credentials: true,
+      maxAge: 600,
+    },
   },
   plugins: [
     react(),

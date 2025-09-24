@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Lock, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { authSchemas, sanitizeObject, logEvent, ClientRateLimiter } from "@/lib/security";
 
 interface AuthDialogProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+  const limiter = new ClientRateLimiter(5, 60_000);
 
   const [signInData, setSignInData] = useState({
     email: "",
@@ -31,14 +33,24 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!limiter.allow("auth:signin")) {
+      toast.error("Too many attempts. Please wait a minute.");
+      return;
+    }
     setIsLoading(true);
 
     try {
-      await signIn(signInData.email, signInData.password);
+      const parsed = authSchemas.signIn.safeParse(sanitizeObject(signInData));
+      if (!parsed.success) {
+        toast.error("Please check your email and password.");
+        return;
+      }
+      await signIn(parsed.data.email, parsed.data.password);
       toast.success("Welcome back!");
       setIsOpen(false);
       setSignInData({ email: "", password: "" });
     } catch (error) {
+      logEvent({ level: "warn", message: "Sign-in failed", context: { error: String(error) } });
       toast.error("Invalid credentials. Please try again.");
     } finally {
       setIsLoading(false);
@@ -47,25 +59,25 @@ export const AuthDialog = ({ children }: AuthDialogProps) => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (signUpData.password !== signUpData.confirmPassword) {
-      toast.error("Passwords don't match");
-      return;
-    }
-
-    if (signUpData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!limiter.allow("auth:signup")) {
+      toast.error("Too many attempts. Please wait a minute.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.name);
+      const parsed = authSchemas.signUp.safeParse(sanitizeObject(signUpData));
+      if (!parsed.success) {
+        toast.error(parsed.error.errors[0]?.message ?? "Please fix the highlighted fields.");
+        return;
+      }
+      await signUp(parsed.data.email, parsed.data.password, parsed.data.name);
       toast.success("Account created successfully!");
       setIsOpen(false);
       setSignUpData({ name: "", email: "", password: "", confirmPassword: "" });
     } catch (error) {
+      logEvent({ level: "error", message: "Sign-up failed", context: { error: String(error) } });
       toast.error("Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
