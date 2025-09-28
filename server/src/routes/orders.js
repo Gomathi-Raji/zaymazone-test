@@ -166,8 +166,12 @@ router.post('/',
 			const tax = Math.round(subtotal * 0.05) // 5% tax
 			const total = subtotal + shippingCost + tax
 			
+			// Generate unique order number
+			const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+			
 			// Create order
 			const order = new Order({
+				orderNumber,
 				userId,
 				items: orderItems,
 				subtotal,
