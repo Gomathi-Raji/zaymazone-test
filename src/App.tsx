@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
+import ShopWithBackend from "./pages/ShopWithBackend";
 import Artisans from "./pages/Artisans";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -29,6 +30,7 @@ import SellerOnboarding from "./pages/SellerOnboarding";
 import ArtisanDetail from "./pages/ArtisanDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import APITestPage from "./pages/APITestPage";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +44,8 @@ const App = () => (
           <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/shop" element={<Shop />} />
+            <Route path="/shop" element={<ShopWithBackend />} />
+            <Route path="/shop-mock" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/artisans" element={<Artisans />} />
             <Route path="/artisan/:id" element={<ArtisanDetail />} />
@@ -65,6 +68,7 @@ const App = () => (
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/api-test" element={<APITestPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

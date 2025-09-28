@@ -1,6 +1,6 @@
 import { logEvent } from "./security";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:5000";
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:4000";
 const TOKEN_KEY = "auth_token";
 
 export function getAuthToken(): string | null {
@@ -39,9 +39,16 @@ export async function apiRequest<T>(path: string, options: {
 		body: options.body ? JSON.stringify(options.body) : undefined,
 	});
 	if (!res.ok) {
-		const text = await res.text().catch(() => "");
-		logEvent({ level: "warn", message: "API error", context: { url, status: res.status, body: text } });
-		throw new Error(text || `Request failed: ${res.status}`);
+		let errorMessage = `Request failed: ${res.status}`;
+		try {
+			const errorData = await res.json();
+			errorMessage = errorData.error || errorData.message || errorMessage;
+		} catch {
+			const text = await res.text().catch(() => "");
+			errorMessage = text || errorMessage;
+		}
+		logEvent({ level: "warn", message: "API error", context: { url, status: res.status, body: errorMessage } });
+		throw new Error(errorMessage);
 	}
 	const contentType = res.headers.get("content-type") || "";
 	if (contentType.includes("application/json")) return (await res.json()) as T;
@@ -193,7 +200,7 @@ export const productsApi = {
 			});
 		}
 		const queryString = searchParams.toString();
-		return apiRequest<Product[]>(`/api/products${queryString ? `?${queryString}` : ''}`);
+		return apiRequest<{ products: Product[]; pagination: any }>(`/api/products${queryString ? `?${queryString}` : ''}`);
 	},
 	
 	getById: (id: string) =>
