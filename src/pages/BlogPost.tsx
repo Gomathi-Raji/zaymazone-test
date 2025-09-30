@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   Calendar, 
   Clock, 
@@ -16,146 +17,91 @@ import {
   BookmarkPlus,
   Twitter,
   Facebook,
-  Linkedin
+  Linkedin,
+  Loader2,
+  Eye
 } from "lucide-react";
-
-// Blog images
-import blogBluePottery from "@/assets/blog-blue-pottery.jpg";
-import blogHandloom from "@/assets/blog-handloom.jpg";
-import blogDhokra from "@/assets/blog-dhokra.jpg";
-import blogSustainability from "@/assets/blog-sustainability.jpg";
-import blogEconomics from "@/assets/blog-economics.jpg";
-import blogInnovation from "@/assets/blog-innovation.jpg";
-
-// Author avatars
-import authorPriya from "@/assets/author-priya.jpg";
-import authorRajesh from "@/assets/author-rajesh.jpg";
-import authorMeera from "@/assets/author-meera.jpg";
+import { useBlogPost, likeBlogPost, getRelatedPosts, type BlogPost as BlogPostType } from "@/hooks/useBlog";
 
 const BlogPost = () => {
-  const { id } = useParams();
+  const { slug } = useParams<{ slug: string }>();
+  const [relatedPosts, setRelatedPosts] = useState<BlogPostType[]>([]);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
-  // Create blog data mapping
-  const blogData = {
-    1: {
-      id: 1,
-      title: "The Art of Blue Pottery: A Journey Through Rajasthan's Most Prized Craft",
-      content: `
-        <p>Blue pottery, with its distinctive cobalt blue and white aesthetic, has been a cornerstone of Rajasthani craftsmanship for over 400 years. This unique art form, which finds its origins in Persian traditions, has evolved into one of India's most recognizable and cherished crafts.</p>
+  // Fetch blog post data from backend
+  const { post, loading, error } = useBlogPost(slug || '');
 
-        <h2>Origins and History</h2>
-        <p>The technique was introduced to India during the Mughal period, around the 14th century, by Persian artisans who settled in various parts of the Indian subcontinent. Jaipur, in particular, became a thriving center for this craft due to the patronage of the royal family and the availability of skilled artisans.</p>
+  // Fetch related posts when post is loaded
+  useEffect(() => {
+    if (post?._id) {
+      setLikeCount(post.likes);
+      getRelatedPosts(post._id).then(setRelatedPosts);
+    }
+  }, [post]);
 
-        <p>What makes blue pottery truly unique is its composition. Unlike traditional pottery, blue pottery is made from a mixture of quartz powder, fuller's earth, borax, gum, and water. This combination creates a non-porous material that doesn't require a bisque firing, making it distinct from conventional ceramic techniques.</p>
-
-        <h2>The Making Process</h2>
-        <p>The creation of blue pottery is a meticulous process that requires years of training and exceptional skill. The process begins with preparing the clay mixture, which is kneaded thoroughly to achieve the right consistency. The artisan then shapes the piece on a potter's wheel or by hand, depending on the intended design.</p>
-
-        <p>Once shaped, the piece is left to dry completely before the intricate painting begins. Using natural pigments, artisans paint delicate patterns that often include floral motifs, geometric designs, and sometimes animal figures. The most traditional colors are cobalt blue and copper green on a white base.</p>
-
-        <h2>Modern Revival</h2>
-        <p>In recent decades, blue pottery has experienced a remarkable revival. Contemporary artisans are experimenting with new forms while maintaining traditional techniques. From traditional vases and plates to modern lamp bases and bathroom fittings, blue pottery has found its way into contemporary homes worldwide.</p>
-
-        <p>This revival has also brought much-needed economic support to artisan communities in Rajasthan. Government initiatives and private organizations have established training centers and provided market access, helping preserve this ancient craft for future generations.</p>
-
-        <h2>Supporting the Craft</h2>
-        <p>When you purchase authentic blue pottery, you're not just acquiring a beautiful piece of art – you're supporting a community of skilled artisans who have dedicated their lives to preserving this traditional craft. Each piece represents hours of careful work and generations of inherited knowledge.</p>
-
-        <p>As consumers become more conscious of the origin and impact of their purchases, traditional crafts like blue pottery offer a meaningful alternative to mass-produced goods. They represent sustainability, cultural preservation, and direct support for artisan communities.</p>
-      `,
-      author: {
-        name: "Priya Sharma",
-        avatar: authorPriya,
-        role: "Craft Historian",
-        bio: "Priya is a cultural researcher and craft historian with over 15 years of experience documenting traditional Indian arts. She has authored several books on Indian craftsmanship and regularly contributes to cultural publications."
-      },
-      category: "Traditional Crafts",
-      date: "Jan 15, 2024",
-      readTime: "8 min read",
-      image: blogBluePottery,
-      likes: 247,
-      comments: 18,
-      tags: ["blue pottery", "rajasthan", "traditional crafts", "ceramics", "artisans"]
-    },
-    2: {
-      id: 2,
-      title: "Preserving Handloom Traditions: The Weavers of Bengal",
-      content: `
-        <p>In the villages of West Bengal, the rhythmic sound of handlooms continues to echo through narrow lanes, carrying forward a tradition that spans centuries. The master weavers of Bengal represent one of India's most treasured textile traditions.</p>
-
-        <h2>The Heritage of Bengali Handloom</h2>
-        <p>Bengali handloom weaving has deep historical roots, with references dating back to ancient texts. The region has been renowned for producing some of the finest cotton and silk textiles, including the legendary muslin that was once prized across the world.</p>
-
-        <h2>Traditional Techniques</h2>
-        <p>The weaving process remains unchanged from generations past. Using traditional pit looms and throw shuttles, weavers create intricate patterns through careful manipulation of warp and weft threads. Each piece tells a story through its motifs and color combinations.</p>
-
-        <h2>Challenges and Revival</h2>
-        <p>While facing competition from power looms, Bengali handloom weavers are finding new markets through direct connections with conscious consumers and designers who value authentic craftsmanship.</p>
-      `,
-      author: {
-        name: "Rajesh Kumar",
-        avatar: authorRajesh,
-        role: "Cultural Researcher",
-        bio: "Rajesh is a cultural anthropologist specializing in Indian textile traditions. He has spent over a decade documenting weaving communities across Bengal and eastern India."
-      },
-      category: "Textiles",
-      date: "Jan 12, 2024",
-      readTime: "6 min read",
-      image: blogHandloom,
-      likes: 189,
-      comments: 12,
-      tags: ["handloom", "bengal", "textiles", "weaving", "heritage"]
-    },
-    3: {
-      id: 3,
-      title: "The Revival of Dhokra Art: Metal Casting in Modern Times",
-      content: `
-        <p>Dhokra, the ancient art of metal casting using the lost-wax technique, has been practiced in India for over 4000 years. This non-ferrous metal casting technique produces beautiful brass sculptures that are finding new appreciation in contemporary times.</p>
-
-        <h2>Ancient Techniques, Timeless Appeal</h2>
-        <p>The Dhokra technique involves creating a clay model, covering it with wax, and then applying another layer of clay. When heated, the wax melts away, leaving a hollow space for molten brass to be poured.</p>
-
-        <h2>Modern Renaissance</h2>
-        <p>Contemporary artists and collectors are rediscovering Dhokra art, leading to a renaissance of this ancient craft. Modern pieces combine traditional techniques with contemporary aesthetics.</p>
-      `,
-      author: {
-        name: "Meera Devi",
-        avatar: authorMeera,
-        role: "Art Curator",
-        bio: "Meera is a contemporary art curator with expertise in traditional Indian metal crafts. She has curated several exhibitions on tribal and folk art forms."
-      },
-      category: "Metal Crafts",
-      date: "Jan 10, 2024",
-      readTime: "5 min read",
-      image: blogDhokra,
-      likes: 156,
-      comments: 9,
-      tags: ["dhokra", "metal casting", "brass", "sculpture", "tribal art"]
+  const handleLike = async () => {
+    if (!post?._id) return;
+    
+    const result = await likeBlogPost(post._id);
+    if (result.success) {
+      setLiked(!liked);
+      setLikeCount(result.likes);
     }
   };
 
-  const post = blogData[parseInt(id || '1')] || blogData[1];
-
-  const relatedPosts = [
-    {
-      id: 2,
-      title: "Preserving Handloom Traditions: The Weavers of Bengal",
-      image: blogHandloom,
-      category: "Textiles"
-    },
-    {
-      id: 3,
-      title: "The Revival of Dhokra Art: Metal Casting in Modern Times",
-      image: blogDhokra, 
-      category: "Metal Crafts"
-    },
-    {
-      id: 4,
-      title: "Sustainable Crafting: How Traditional Arts Support Environmental Conservation",
-      image: blogSustainability,
-      category: "Sustainability"
+  const handleShare = (platform: string) => {
+    if (!post) return;
+    
+    const url = window.location.href;
+    const text = `Check out this article: ${post.title}`;
+    
+    const shareUrls = {
+      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+    };
+    
+    const shareUrl = shareUrls[platform as keyof typeof shareUrls];
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
     }
-  ].filter(relatedPost => relatedPost.id !== post.id);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading article...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Article not found</h2>
+            <p className="text-muted-foreground mb-4">{error || 'The requested article could not be found.'}</p>
+            <Button asChild>
+              <Link to="/blog">Browse Articles</Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,166 +109,222 @@ const BlogPost = () => {
       
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <Button variant="ghost" className="mb-6" asChild>
-          <Link to="/blog">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Blog
-          </Link>
-        </Button>
+        <div className="mb-6">
+          <Button variant="ghost" asChild className="hover:bg-accent">
+            <Link to="/blog">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Articles
+            </Link>
+          </Button>
+        </div>
 
         {/* Article Header */}
-        <article className="space-y-8">
-          <header className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary">{post.category}</Badge>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>{post.date}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{post.readTime}</span>
-                </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Badge variant="secondary">{post.category}</Badge>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                <span>{new Date(post.publishedAt).toLocaleDateString('en-US', { 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>{post.readTime}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Eye className="w-4 h-4" />
+                <span>{post.views} views</span>
               </div>
             </div>
+          </div>
+          
+          <h1 className="text-4xl font-bold text-foreground mb-6 leading-tight">
+            {post.title}
+          </h1>
+          
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            {post.excerpt}
+          </p>
 
-            <h1 className="text-4xl font-bold text-foreground leading-tight">
-              {post.title}
-            </h1>
-
-            {/* Author Info */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={post.author.avatar} />
-                  <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium text-foreground">{post.author.name}</p>
-                  <p className="text-sm text-muted-foreground">{post.author.role}</p>
-                </div>
-              </div>
-
-              {/* Social Actions */}
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Heart className="w-4 h-4 mr-2" />
-                  {post.likes}
-                </Button>
-                <Button variant="outline" size="sm">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  {post.comments}
-                </Button>
-                <Button variant="outline" size="sm">
-                  <BookmarkPlus className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Share2 className="w-4 h-4" />
-                </Button>
+          {/* Author Info */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={post.author.avatar} />
+                <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold text-foreground">{post.author.name}</p>
+                <p className="text-sm text-muted-foreground">{post.author.role}</p>
+                {post.author.bio && (
+                  <p className="text-sm text-muted-foreground mt-1">{post.author.bio}</p>
+                )}
               </div>
             </div>
-          </header>
-
-          {/* Featured Image */}
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-            <img 
-              src={post.image} 
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          {/* Article Content */}
-          <div className="prose prose-lg max-w-none">
-            <div 
-              dangerouslySetInnerHTML={{ __html: post.content }}
-              className="space-y-6 text-foreground [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:text-foreground [&>h2]:mt-8 [&>h2]:mb-4 [&>p]:text-muted-foreground [&>p]:leading-relaxed"
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 pt-6">
-            {post.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-
-          <Separator />
-
-          {/* Share Section */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">Share this article</h3>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Twitter className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Facebook className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Linkedin className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground mb-2">Enjoying this article?</p>
-              <Button size="sm">
-                <Heart className="w-4 h-4 mr-2" />
-                Like this post
+            
+            {/* Social Actions */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLike}
+                className={liked ? "text-red-500 border-red-200" : ""}
+              >
+                <Heart className={`w-4 h-4 mr-1 ${liked ? "fill-current" : ""}`} />
+                {likeCount}
+              </Button>
+              <Button variant="outline" size="sm">
+                <MessageSquare className="w-4 h-4 mr-1" />
+                {post.comments}
+              </Button>
+              <Button variant="outline" size="sm">
+                <BookmarkPlus className="w-4 h-4" />
               </Button>
             </div>
           </div>
+        </div>
 
-          <Separator />
+        {/* Featured Image */}
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-8">
+          <img 
+            src={post.featuredImage} 
+            alt={post.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
 
-          {/* Author Bio */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-start gap-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarImage src={post.author.avatar} />
-                  <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">{post.author.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-2">{post.author.role}</p>
-                  <p className="text-sm text-muted-foreground">{post.author.bio}</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Follow
-                </Button>
-              </div>
-            </CardHeader>
-          </Card>
-        </article>
+        {/* Article Content */}
+        <div className="prose prose-lg max-w-none mb-12">
+          <div 
+            dangerouslySetInnerHTML={{ __html: post.content }}
+            className="text-foreground [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-4 [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mt-6 [&>h3]:mb-3 [&>p]:mb-4 [&>p]:leading-relaxed"
+          />
+        </div>
+
+        {/* Tags */}
+        {post.tags && post.tags.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-3">Tags</h3>
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <Badge key={tag} variant="outline">
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Separator className="my-8" />
+
+        {/* Share Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4">Share this article</h3>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleShare('twitter')}
+              className="flex items-center gap-2"
+            >
+              <Twitter className="w-4 h-4" />
+              Twitter
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleShare('facebook')}
+              className="flex items-center gap-2"
+            >
+              <Facebook className="w-4 h-4" />
+              Facebook
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleShare('linkedin')}
+              className="flex items-center gap-2"
+            >
+              <Linkedin className="w-4 h-4" />
+              LinkedIn
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigator.clipboard.writeText(window.location.href)}
+              className="flex items-center gap-2"
+            >
+              <Share2 className="w-4 h-4" />
+              Copy Link
+            </Button>
+          </div>
+        </div>
 
         {/* Related Posts */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold text-foreground mb-8">Related Articles</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {relatedPosts.map((relatedPost) => (
-              <Card key={relatedPost.id} className="hover:shadow-md transition-shadow">
-                <div className="aspect-video bg-muted">
-                  <img 
-                    src={relatedPost.image} 
-                    alt={relatedPost.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <Badge variant="outline" className="text-xs mb-2">{relatedPost.category}</Badge>
-                  <h3 className="font-medium text-foreground hover:text-primary transition-colors">
-                    <Link to={`/blog/${relatedPost.id}`}>{relatedPost.title}</Link>
-                  </h3>
-                </CardContent>
-              </Card>
-            ))}
+        {relatedPosts.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-2xl font-semibold mb-6">Related Articles</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedPosts.slice(0, 3).map((relatedPost) => (
+                <Card key={relatedPost._id} className="hover:shadow-md transition-shadow">
+                  <div className="aspect-video bg-muted overflow-hidden">
+                    <img 
+                      src={relatedPost.featuredImage} 
+                      alt={relatedPost.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardHeader>
+                    <Badge variant="outline" className="w-fit mb-2">{relatedPost.category}</Badge>
+                    <h4 className="text-lg font-semibold leading-tight hover:text-primary transition-colors">
+                      <Link to={`/blog/${relatedPost.slug}`}>{relatedPost.title}</Link>
+                    </h4>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {relatedPost.excerpt}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={relatedPost.author.avatar} />
+                          <AvatarFallback>{relatedPost.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-muted-foreground">{relatedPost.author.name}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(relatedPost.publishedAt).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </section>
+        )}
+
+        {/* Newsletter Signup */}
+        <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-lg p-8 text-center">
+          <h3 className="text-2xl font-semibold mb-4">Stay Updated</h3>
+          <p className="text-muted-foreground mb-6">
+            Get the latest stories about traditional crafts and artisan communities delivered to your inbox.
+          </p>
+          <div className="flex max-w-md mx-auto gap-2">
+            <input 
+              type="email" 
+              placeholder="Enter your email"
+              className="flex-1 px-4 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <Button>Subscribe</Button>
+          </div>
+        </div>
       </main>
 
       <Footer />

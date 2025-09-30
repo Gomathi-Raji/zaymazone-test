@@ -13,6 +13,7 @@ import ordersRouter from './routes/orders.js'
 import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
 import wishlistRouter from './routes/wishlist.js'
+import blogRouter from './routes/blog.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
 
@@ -51,7 +52,8 @@ app.get('/', (_req, res) => res.json({
 		orders: ['GET /api/orders/my-orders', 'GET /api/orders/:id', 'POST /api/orders', 'PATCH /api/orders/:id/cancel'],
 		cart: ['GET /api/cart', 'POST /api/cart/add', 'PATCH /api/cart/item/:productId', 'DELETE /api/cart/item/:productId'],
 		reviews: ['GET /api/reviews/product/:productId', 'GET /api/reviews/my-reviews', 'POST /api/reviews', 'PATCH /api/reviews/:id'],
-		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear']
+		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear'],
+		blog: ['GET /api/blog', 'GET /api/blog/:id', 'GET /api/blog/featured', 'GET /api/blog/categories', 'POST /api/blog', 'PUT /api/blog/:id', 'PATCH /api/blog/:id/like']
 	}
 }))
 app.get('/health', (_req, res) => res.json({ ok: true }))
@@ -64,6 +66,7 @@ app.use('/api/orders', ordersRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)
+app.use('/api/blog', blogRouter)
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler)
