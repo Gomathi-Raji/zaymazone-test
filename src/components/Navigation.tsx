@@ -3,11 +3,18 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Menu, User, Heart } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Menu, User, Heart, Palette } from "lucide-react";
 import { CartDrawer } from "./CartDrawer";
 import { SearchDialog } from "./SearchDialog";
 import { WishlistDrawer } from "./WishlistDrawer";
-import { AuthDialog } from "./AuthDialog";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 // Using the uploaded logo directly
@@ -77,11 +84,35 @@ export const Navigation = () => {
             {isAuthenticated ? (
               <UserMenu />
             ) : (
-              <AuthDialog>
-                <Button variant="ghost" size="sm" className="relative">
-                  <User className="h-5 w-5" />
-                </Button>
-              </AuthDialog>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuLabel>Sign In</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/sign-in" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Sign in as Customer</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/sign-in-artisan" className="cursor-pointer">
+                      <Palette className="mr-2 h-4 w-4" />
+                      <span>Sign in as Artisan</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/sign-up" className="cursor-pointer">
+                      <span>Create Account</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             {/* Mobile Menu */}

@@ -31,6 +31,12 @@ import ArtisanDetail from "./pages/ArtisanDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import APITestPage from "./pages/APITestPage";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
+import SignInArtisan from "./pages/SignInArtisan";
+import SignUpArtisan from "./pages/SignUpArtisan";
+import Dashboard from "./pages/Dashboard";
+import ArtisanDashboard from "./pages/ArtisanDashboard";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +75,18 @@ const App = () => (
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/api-test" element={<APITestPage />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/sign-in-artisan" element={<SignInArtisan />} />
+            <Route path="/sign-up-artisan" element={<SignUpArtisan />} />
+            <Route path="/sign-up-artisan" element={<SignUpArtisan />} />
+            
+            {/* Dashboard Routes */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Settings, Package, LogOut, Heart } from "lucide-react";
+import { User, Settings, Package, LogOut, Heart, Palette, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -16,9 +16,8 @@ import { Link } from "react-router-dom";
 export const UserMenu = () => {
   const { user, signOut } = useAuth();
 
-  const handleSignOut = () => {
-    signOut();
-    toast.success("Signed out successfully");
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   const getInitials = (name: string) => {
@@ -30,13 +29,17 @@ export const UserMenu = () => {
       .slice(0, 2);
   };
 
+  const getDashboardLink = () => {
+    return user?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.avatar} alt={user?.name} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
+            <AvatarFallback className={user?.role === 'artisan' ? 'bg-orange-600 text-white' : 'bg-primary text-primary-foreground'}>
               {user ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>
           </Avatar>
@@ -49,29 +52,58 @@ export const UserMenu = () => {
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
+            <p className="text-xs leading-none text-orange-600 capitalize">
+              {user?.role}
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
         <DropdownMenuItem className="cursor-pointer" asChild>
-          <Link to="/account">
-            <User className="mr-2 h-4 w-4" />
-            <span>My Account</span>
+          <Link to={getDashboardLink()}>
+            {user?.role === 'artisan' ? (
+              <Palette className="mr-2 h-4 w-4" />
+            ) : (
+              <User className="mr-2 h-4 w-4" />
+            )}
+            <span>Dashboard</span>
           </Link>
         </DropdownMenuItem>
+
+        {user?.role === 'artisan' ? (
+          <>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/artisan/products">
+                <Package className="mr-2 h-4 w-4" />
+                <span>My Products</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/artisan/orders">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                <span>Orders</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/orders">
+                <Package className="mr-2 h-4 w-4" />
+                <span>My Orders</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/wishlist">
+                <Heart className="mr-2 h-4 w-4" />
+                <span>Wishlist</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
+
         <DropdownMenuItem className="cursor-pointer" asChild>
-          <Link to="/account/orders">
-            <Package className="mr-2 h-4 w-4" />
-            <span>My Orders</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" asChild>
-          <Link to="/account">
-            <Heart className="mr-2 h-4 w-4" />
-            <span>Wishlist</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" asChild>
-          <Link to="/account">
+          <Link to="/profile">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>
