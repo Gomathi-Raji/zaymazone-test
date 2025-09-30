@@ -13,12 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductComparison } from "@/hooks/useProductComparison";
 import { api, Product } from "@/lib/api";
+import { mockProducts } from "@/data/products";
 import { toast } from "sonner";
 
 const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
@@ -34,25 +35,42 @@ const ShopWithBackend = () => {
     comparisonCount
   } = useProductComparison();
 
-  // Fetch products from backend
-  const { data: productsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['products', { page, limit, category: categoryFilter, q: searchQuery, ...priceRange }],
-    queryFn: () => api.getProducts({
-      page,
-      limit,
-      category: categoryFilter || undefined,
-      q: searchQuery || undefined,
-      minPrice: priceRange.min,
-      maxPrice: priceRange.max
-    }),
-    keepPreviousData: true,
-  });
+  // Use mock data instead of backend
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const productsData = useMemo(() => {
+    let filtered = mockProducts;
+    if (categoryFilter && categoryFilter !== 'all') {
+      filtered = filtered.filter(p => p.category === categoryFilter);
+    }
+    if (searchQuery) {
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    if (priceRange.min !== undefined) {
+      filtered = filtered.filter(p => p.price >= priceRange.min!);
+    }
+    if (priceRange.max !== undefined) {
+      filtered = filtered.filter(p => p.price <= priceRange.max!);
+    }
+    // Pagination
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginated = filtered.slice(start, end);
+    return {
+      products: paginated,
+      pagination: {
+        total: filtered.length,
+        totalPages: Math.ceil(filtered.length / limit),
+        hasPrev: page > 1,
+        hasNext: end < filtered.length
+      }
+    };
+  }, [categoryFilter, searchQuery, priceRange, page, limit]);
 
-  // Fetch artisans for filtering
-  const { data: artisansData } = useQuery({
-    queryKey: ['artisans'],
-    queryFn: () => fetch('http://localhost:4000/api/artisans').then(res => res.json()),
-  });
+  // Remove backend artisan fetch for now
 
   const categories = [
     "pottery", "textiles", "jewelry", "woodwork", 
@@ -79,7 +97,7 @@ const ShopWithBackend = () => {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setCategoryFilter("");
+    setCategoryFilter("all");
     setPriceRange({});
     setPage(1);
   };
@@ -142,7 +160,7 @@ const ShopWithBackend = () => {
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -189,8 +207,8 @@ const ShopWithBackend = () => {
 
           {/* Active Filters */}
           <div className="flex gap-2">
-            {categoryFilter && (
-              <Badge variant="secondary" className="cursor-pointer" onClick={() => setCategoryFilter("")}>
+            {categoryFilter && categoryFilter !== 'all' && (
+              <Badge variant="secondary" className="cursor-pointer" onClick={() => setCategoryFilter("all")}>
                 Category: {categoryFilter} ✕
               </Badge>
             )}
@@ -216,27 +234,37 @@ const ShopWithBackend = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {productsData.products.map((product) => (
                 <ProductCard
-                  key={product._id}
+                  key={product.id}
                   product={{
-                    id: product._id,
+                    id: product.id,
                     name: product.name,
                     description: product.description,
                     price: product.price,
                     originalPrice: product.originalPrice,
                     images: product.images,
                     category: product.category,
+                    subcategory: product.subcategory,
                     rating: product.rating,
                     reviewCount: product.reviewCount,
                     artisan: {
-                      id: product.artisanId._id,
-                      name: product.artisanId.name,
-                      location: product.artisanId.location
+                      id: product.artisan.id,
+                      name: product.artisan.name,
+                      location: product.artisan.location,
+                      bio: product.artisan.bio,
+                      avatar: product.artisan.avatar,
+                      rating: product.artisan.rating,
+                      totalProducts: product.artisan.totalProducts
                     },
-                    stockCount: product.stock,
+                    stockCount: product.stockCount,
                     isHandmade: product.isHandmade,
-                    featured: product.isFeatured,
+                    featured: product.featured,
                     materials: product.materials || [],
-                    tags: product.tags || []
+                    tags: product.tags || [],
+                    colors: product.colors || [],
+                    dimensions: product.dimensions || '',
+                    weight: product.weight || '',
+                    inStock: product.inStock,
+                    shippingTime: product.shippingTime || '3-5 days'
                   }}
                   onAddToComparison={addToComparison}
                 />
