@@ -148,7 +148,7 @@ const Terms = () => {
               <div className="text-muted-foreground">
                 <p>Email: legal@zaymazone.com</p>
                 <p>Phone: +91 98765 43210</p>
-                <p>Address: 123 Craft Street, Delhi, India 110001</p>
+                <p>Address: 123 Craft Street, Porur, Chennai 600116</p>
               </div>
             </CardContent>
           </Card>
