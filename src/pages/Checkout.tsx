@@ -50,7 +50,8 @@ export default function Checkout() {
 
   const subtotal = cart?.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0) || 0;
   const shipping = subtotal > 2000 ? 0 : 200; // Free shipping above ₹2000
-  const total = subtotal + shipping;
+  const codFee = paymentMethod === 'cod' ? 25 : 0; // COD handling fee
+  const total = subtotal + shipping + codFee;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -84,33 +85,65 @@ export default function Checkout() {
         })),
         shippingAddress: {
           fullName: `${formData.firstName} ${formData.lastName}`,
-          street: formData.address,
+          phone: formData.phone,
+          email: formData.email || user?.email || '',
+          addressLine1: formData.address,
           city: formData.city,
           state: formData.state,
           zipCode: formData.pincode,
           country: 'India',
-          phone: formData.phone,
+          addressType: 'home',
         },
-        paymentMethod: paymentMethod as 'cod' | 'razorpay' | 'upi',
+        billingAddress: {
+          fullName: `${formData.firstName} ${formData.lastName}`,
+          phone: formData.phone,
+          email: formData.email || user?.email || '',
+          addressLine1: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.pincode,
+          country: 'India',
+          addressType: 'home',
+        },
+        useShippingAsBilling: true,
+        paymentMethod: paymentMethod as 'cod' | 'zoho_card' | 'zoho_upi' | 'zoho_netbanking' | 'zoho_wallet',
       };
 
       const order = await api.createOrder(orderData);
       
-      // Clear cart after successful order
-      await clearCart();
-      
-      toast({
-        title: "Order Placed Successfully!",
-        description: `Order ID: ${order.id}`,
-      });
-      
-      // Redirect to order success page
-      navigate('/order-success', { 
-        state: { 
-          orderId: order.id,
-          totalAmount: total 
+      // Handle payment based on method
+      if (paymentMethod === 'cod') {
+        // COD orders go directly to success
+        await clearCart();
+        
+        toast({
+          title: "Order Placed Successfully!",
+          description: `Order ID: ${order.orderNumber}`,
+        });
+        
+        navigate('/order-success', { 
+          state: { 
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            totalAmount: total,
+            paymentMethod: 'cod'
+          }
+        });
+      } else {
+        // For online payments, create payment order
+        const paymentOrder = await api.createPaymentOrder({ orderId: order._id });
+        
+        // Redirect to Zoho payment page
+        if (paymentOrder.paymentUrl) {
+          window.location.href = paymentOrder.paymentUrl;
+        } else {
+          toast({
+            title: "Payment Error",
+            description: "Unable to initiate payment. Please try again.",
+            variant: "destructive",
+          });
         }
-      });
+      }
     } catch (error) {
       console.error('Error placing order:', error);
       toast({
@@ -287,13 +320,13 @@ export default function Checkout() {
                             <div className="font-medium">Cash on Delivery</div>
                             <div className="text-sm text-muted-foreground">Pay when you receive your order</div>
                           </div>
-                          <Badge variant="secondary">Free</Badge>
+                          <Badge variant="secondary">₹25 handling fee</Badge>
                         </div>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="upi" id="upi" />
-                      <Label htmlFor="upi" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="zoho_upi" id="zoho_upi" />
+                      <Label htmlFor="zoho_upi" className="flex-1 cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-medium">UPI Payment</div>
@@ -304,14 +337,38 @@ export default function Checkout() {
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="razorpay" id="razorpay" />
-                      <Label htmlFor="razorpay" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="zoho_card" id="zoho_card" />
+                      <Label htmlFor="zoho_card" className="flex-1 cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-medium">Credit/Debit Card</div>
                             <div className="text-sm text-muted-foreground">Visa, Mastercard, American Express</div>
                           </div>
                           <Badge variant="outline">Secure</Badge>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                      <RadioGroupItem value="zoho_netbanking" id="zoho_netbanking" />
+                      <Label htmlFor="zoho_netbanking" className="flex-1 cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">Net Banking</div>
+                            <div className="text-sm text-muted-foreground">All major banks supported</div>
+                          </div>
+                          <Badge variant="outline">Secure</Badge>
+                        </div>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                      <RadioGroupItem value="zoho_wallet" id="zoho_wallet" />
+                      <Label htmlFor="zoho_wallet" className="flex-1 cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">Digital Wallet</div>
+                            <div className="text-sm text-muted-foreground">Amazon Pay, Mobikwik, Freecharge</div>
+                          </div>
+                          <Badge variant="outline">Quick</Badge>
                         </div>
                       </Label>
                     </div>
@@ -361,6 +418,12 @@ export default function Checkout() {
                       </span>
                       <span>₹{shipping}</span>
                     </div>
+                    {codFee > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>COD Handling Fee</span>
+                        <span>₹{codFee}</span>
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>

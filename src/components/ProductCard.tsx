@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Heart, Star, MapPin, BarChart3, ShoppingCart } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Heart, Star, MapPin, BarChart3, ShoppingCart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/lib/api";
 import { QuickViewDialog } from "./QuickViewDialog";
 import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -18,9 +19,24 @@ interface ProductCardProps {
 export const ProductCard = ({ product, onQuickView, onAddToComparison }: ProductCardProps) => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const { addToCart, isLoading: cartLoading } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist, isLoading: wishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // Safely check if product is in wishlist with error handling
+  const inWishlist = useMemo(() => {
+    try {
+      return isInWishlist(product.id);
+    } catch (error) {
+      console.error('Error checking wishlist status:', error);
+      return false;
+    }
+  }, [isInWishlist, product.id]);
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!isAuthenticated) {
       toast.error('Please sign in to add items to cart');
       return;
@@ -35,6 +51,48 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
       await addToCart(product.id, 1);
     } catch (error) {
       // Error is already handled in the cart context
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to purchase');
+      navigate('/sign-in');
+      return;
+    }
+    
+    if (product.stockCount === 0) {
+      toast.error('This item is out of stock');
+      return;
+    }
+
+    // Navigate directly to checkout with product info (bypass cart)
+    navigate('/checkout', { 
+      state: { 
+        directPurchase: true, 
+        product: product, 
+        quantity: 1 
+      } 
+    });
+  };
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      toast.error('Please sign in to manage wishlist');
+      return;
+    }
+    
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(product.id);
+      } else {
+        await addToWishlist(product.id);
+      }
+    } catch (error) {
+      // Error is already handled in the wishlist context
     }
   };
   
@@ -90,14 +148,34 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
           )}
         </div>
 
-        {/* Wishlist button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-3 right-3 bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        >
-          <Heart className="w-4 h-4" />
-        </Button>
+        {/* Top right action buttons */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
+          {/* Wishlist button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
+              inWishlist ? 'text-red-500' : ''
+            }`}
+            title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+            disabled={wishlistLoading}
+            onClick={handleWishlistToggle}
+          >
+            <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
+          </Button>
+          
+          {/* Add to cart icon button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
+            disabled={!product.inStock || cartLoading || product.stockCount === 0}
+            onClick={handleAddToCart}
+            title="Add to Cart"
+          >
+            <ShoppingCart className={`w-4 h-4 ${cartLoading ? 'animate-pulse' : ''}`} />
+          </Button>
+        </div>
       </div>
 
       {/* Product Info */}
@@ -139,16 +217,28 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <Button 
-          className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300"
-          disabled={!product.inStock || cartLoading || product.stockCount === 0}
-          onClick={handleAddToCart}
-        >
-          <ShoppingCart className="w-4 h-4 mr-2" />
-          {cartLoading ? 'Adding...' : 
-           !product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
-        </Button>
+        {/* Primary Action Button - Changes based on wishlist status */}
+        {inWishlist ? (
+          <Button 
+            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 hover:scale-[1.02]"
+            disabled={!product.inStock || cartLoading || product.stockCount === 0}
+            onClick={handleAddToCart}
+            size="lg"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
+          </Button>
+        ) : (
+          <Button 
+            className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 hover:scale-[1.02]"
+            disabled={!product.inStock || cartLoading || product.stockCount === 0}
+            onClick={handleBuyNow}
+            size="lg"
+          >
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
+          </Button>
+        )}
 
         {/* Stock info */}
         {product.inStock && product.stockCount <= 5 && product.stockCount > 0 && (

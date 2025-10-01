@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Heart, Share2, Star, MapPin, Truck, Shield, RotateCcw, ArrowLeft } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Heart, Share2, Star, MapPin, Truck, Shield, RotateCcw, ArrowLeft, ShoppingCart, ShoppingBag } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,58 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProduct } from "@/hooks/useProducts";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
   const { data: product, isLoading, error } = useProduct(id || '');
+  const { addToCart, isLoading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuth();
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to add items to cart');
+      return;
+    }
+    
+    if (!product?.inStock || product?.stockCount === 0) {
+      toast.error('This item is out of stock');
+      return;
+    }
+
+    try {
+      await addToCart(product.id, quantity);
+    } catch (error) {
+      // Error is already handled in the cart context
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to purchase');
+      navigate('/sign-in');
+      return;
+    }
+    
+    if (!product?.inStock || product?.stockCount === 0) {
+      toast.error('This item is out of stock');
+      return;
+    }
+
+    // Add to cart first, then redirect to checkout
+    try {
+      await addToCart(product.id, quantity);
+      navigate('/checkout');
+    } catch (error) {
+      // Error is already handled in the cart context
+    }
+  };
 
   if (isLoading) {
     return (
@@ -179,37 +224,56 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* Quantity and Add to Cart */}
-            <div className="flex gap-4 mb-8">
-              <div className="flex items-center border border-input rounded-lg">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-3 py-2 hover:bg-accent"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <span className="px-4 py-2 border-x border-input">{quantity}</span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-3 py-2 hover:bg-accent"
-                  disabled={quantity >= product.stockCount}
-                >
-                  +
-                </button>
+            {/* Quantity and Purchase Actions */}
+            <div className="space-y-4 mb-8">
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">Quantity:</span>
+                <div className="flex items-center border border-input rounded-lg">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-3 py-2 hover:bg-accent"
+                    disabled={quantity <= 1}
+                  >
+                    -
+                  </button>
+                  <span className="px-4 py-2 border-x border-input">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="px-3 py-2 hover:bg-accent"
+                    disabled={quantity >= product.stockCount}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <Button 
-                className="flex-1 bg-gradient-primary hover:shadow-glow transition-all duration-300"
-                disabled={!product.inStock}
-              >
-                Add to Cart
-              </Button>
-              <Button variant="outline" size="icon">
-                <Heart className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Share2 className="w-4 h-4" />
-              </Button>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  className="flex-1 bg-gradient-primary hover:shadow-glow transition-all duration-300"
+                  disabled={!product.inStock || cartLoading}
+                  onClick={handleBuyNow}
+                >
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  {!product.inStock ? 'Out of Stock' : 'Buy Now'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  disabled={!product.inStock || cartLoading}
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  {cartLoading ? 'Adding...' : 'Add to Cart'}
+                </Button>
+                <Button variant="outline" size="icon">
+                  <Heart className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon">
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Artisan Info */}

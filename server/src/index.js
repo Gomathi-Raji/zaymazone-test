@@ -12,6 +12,7 @@ import productsRouter from './routes/products.js'
 import artisansRouter from './routes/artisans.js'
 import blogRouter from './routes/blog.js'
 import ordersRouter from './routes/orders.js'
+import paymentsRouter from './routes/payments.js'
 import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
 import wishlistRouter from './routes/wishlist.js'
@@ -40,7 +41,7 @@ app.use(helmet({
 app.use(cors({
 	origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:5173'],
 	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
 }))
 
@@ -66,6 +67,7 @@ app.get('/', (_req, res) => res.json({
 		products: ['GET /api/products', 'GET /api/products/:id', 'POST /api/products', 'PUT /api/products/:id', 'DELETE /api/products/:id'],
 		artisans: ['GET /api/artisans', 'GET /api/artisans/:id', 'POST /api/artisans', 'PUT /api/artisans/:id', 'DELETE /api/artisans/:id'],
 		orders: ['GET /api/orders/my-orders', 'GET /api/orders/:id', 'POST /api/orders', 'PATCH /api/orders/:id/cancel'],
+		payments: ['POST /api/payments/create-order', 'POST /api/payments/verify', 'POST /api/payments/webhook', 'POST /api/payments/refund', 'GET /api/payments/methods'],
 		cart: ['GET /api/cart', 'POST /api/cart/add', 'PATCH /api/cart/item/:productId', 'DELETE /api/cart/item/:productId'],
 		reviews: ['GET /api/reviews/product/:productId', 'GET /api/reviews/my-reviews', 'POST /api/reviews', 'PATCH /api/reviews/:id'],
 		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear'],
@@ -81,6 +83,7 @@ app.use('/api/products', productsRouter)
 app.use('/api/artisans', artisansRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/orders', ordersRouter)
+app.use('/api/payments', paymentsRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)

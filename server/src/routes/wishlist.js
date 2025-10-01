@@ -2,12 +2,12 @@ import { Router } from 'express'
 import { z } from 'zod'
 import Wishlist from '../models/Wishlist.js'
 import Product from '../models/Product.js'
-import { requireAuth, requireActiveUser } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/firebase-auth.js'
 
 const router = Router()
 
 // All wishlist routes require authentication
-router.use(requireAuth, requireActiveUser)
+router.use(authenticateToken)
 
 const addItemSchema = z.object({
 	productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product ID')
@@ -16,7 +16,7 @@ const addItemSchema = z.object({
 // Get user's wishlist
 router.get('/', async (req, res) => {
 	try {
-		let wishlist = await Wishlist.findOne({ userId: req.user.sub })
+		let wishlist = await Wishlist.findOne({ userId: req.user._id })
 			.populate({
 				path: 'products.productId',
 				select: 'name price images category artisanId rating reviewCount isActive'
@@ -59,11 +59,11 @@ router.post('/add', async (req, res) => {
 		}
 		
 		// Find or create wishlist
-		let wishlist = await Wishlist.findOne({ userId: req.user.sub })
+		let wishlist = await Wishlist.findOne({ userId: req.user._id })
 		
 		if (!wishlist) {
 			wishlist = new Wishlist({
-				userId: req.user.sub,
+				userId: req.user._id,
 				products: [{ productId }]
 			})
 		} else {
@@ -83,7 +83,7 @@ router.post('/add', async (req, res) => {
 		await wishlist.save()
 		
 		// Return the updated wishlist with populated product data
-		const populated = await Wishlist.findOne({ userId: req.user.sub })
+		const populated = await Wishlist.findOne({ userId: req.user._id })
 			.populate({
 				path: 'products.productId',
 				select: 'name price images category artisanId rating reviewCount isActive'
@@ -107,7 +107,7 @@ router.delete('/item/:productId', async (req, res) => {
 			return res.status(400).json({ error: 'Invalid product ID format' })
 		}
 		
-		const wishlist = await Wishlist.findOne({ userId: req.user.sub })
+		const wishlist = await Wishlist.findOne({ userId: req.user._id })
 		if (!wishlist) {
 			return res.status(404).json({ error: 'Wishlist not found' })
 		}
@@ -126,7 +126,7 @@ router.delete('/item/:productId', async (req, res) => {
 		await wishlist.save()
 		
 		// Return updated wishlist
-		const populated = await Wishlist.findOne({ userId: req.user.sub })
+		const populated = await Wishlist.findOne({ userId: req.user._id })
 			.populate({
 				path: 'products.productId',
 				select: 'name price images category artisanId rating reviewCount isActive'
@@ -144,7 +144,7 @@ router.delete('/item/:productId', async (req, res) => {
 router.delete('/clear', async (req, res) => {
 	try {
 		await Wishlist.findOneAndUpdate(
-			{ userId: req.user.sub },
+			{ userId: req.user._id },
 			{ products: [] },
 			{ new: true }
 		)

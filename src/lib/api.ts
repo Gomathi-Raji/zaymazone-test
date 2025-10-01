@@ -149,6 +149,7 @@ export interface Cart {
 }
 
 export interface Order {
+	_id: string;
 	id: string;
 	orderNumber: string;
 	items: Array<{
@@ -165,21 +166,40 @@ export interface Order {
 	total: number;
 	shippingAddress: {
 		fullName: string;
-		street: string;
+		street?: string;
+		addressLine1?: string;
+		addressLine2?: string;
 		city: string;
 		state: string;
 		zipCode: string;
 		country: string;
 		phone: string;
+		email?: string;
 	};
-	paymentMethod: 'cod' | 'razorpay' | 'upi';
-	paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-	status: 'placed' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+	billingAddress?: {
+		fullName: string;
+		street?: string;
+		addressLine1?: string;
+		addressLine2?: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+		phone: string;
+		email?: string;
+	};
+	paymentMethod: 'cod' | 'zoho_card' | 'zoho_upi' | 'zoho_netbanking' | 'zoho_wallet' | 'razorpay' | 'upi';
+	paymentStatus: 'pending' | 'processing' | 'paid' | 'failed' | 'refunded';
+	status: 'placed' | 'confirmed' | 'processing' | 'packed' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned' | 'refunded';
 	statusHistory: Array<{
 		status: string;
 		timestamp: string;
 		note?: string;
 	}>;
+	trackingNumber?: string;
+	courierService?: string;
+	zohoOrderId?: string;
+	zohoPaymentId?: string;
 	createdAt: string;
 }
 
@@ -341,8 +361,12 @@ export const ordersApi = {
 	create: (data: {
 		items: Array<{ productId: string; quantity: number }>;
 		shippingAddress: Order['shippingAddress'];
+		billingAddress?: Order['billingAddress'];
+		useShippingAsBilling?: boolean;
 		paymentMethod: Order['paymentMethod'];
 		paymentId?: string;
+		zohoPaymentId?: string;
+		zohoOrderId?: string;
 		notes?: string;
 		isGift?: boolean;
 		giftMessage?: string;
@@ -356,6 +380,84 @@ export const ordersApi = {
 	cancel: (id: string) =>
 		apiRequest<{ message: string; order: Order }>(`/api/orders/${id}/cancel`, {
 			method: "PATCH",
+			auth: true
+		}),
+};
+
+export const paymentsApi = {
+	createPaymentOrder: (data: { orderId: string }) =>
+		apiRequest<{
+			success: boolean;
+			paymentOrder: {
+				zohoOrderId: string;
+				amount: number;
+				currency: string;
+				paymentUrl: string;
+				orderNumber: string;
+			};
+		}>("/api/payments/create-order", {
+			method: "POST",
+			body: data,
+			auth: true
+		}),
+	
+	verifyPayment: (data: { 
+		zohoPaymentId: string;
+		zohoOrderId: string;
+		paymentStatus: string;
+	}) =>
+		apiRequest<{
+			success: boolean;
+			paymentStatus: string;
+			orderStatus: string;
+			message: string;
+		}>("/api/payments/verify", {
+			method: "POST",
+			body: data,
+			auth: true
+		}),
+	
+	getPaymentMethods: () =>
+		apiRequest<{
+			success: boolean;
+			paymentMethods: Array<{
+				id: string;
+				name: string;
+				description: string;
+				fees?: string;
+			}>;
+		}>("/api/payments/methods"),
+	
+	getPaymentStatus: (orderId: string) =>
+		apiRequest<{
+			success: boolean;
+			payment: {
+				paymentStatus: string;
+				paymentMethod: string;
+				zohoPaymentId?: string;
+				zohoOrderId?: string;
+				paidAt?: string;
+				refundedAt?: string;
+				refundAmount?: number;
+			};
+		}>(`/api/payments/order/${orderId}/status`, { auth: true }),
+	
+	processRefund: (data: {
+		orderId: string;
+		refundAmount?: number;
+		reason?: string;
+	}) =>
+		apiRequest<{
+			success: boolean;
+			refund: {
+				refundId: string;
+				amount: number;
+				status: string;
+			};
+			message: string;
+		}>("/api/payments/refund", {
+			method: "POST",
+			body: data,
 			auth: true
 		}),
 };
@@ -456,6 +558,13 @@ export const api = {
 	createOrder: ordersApi.create,
 	cancelOrder: ordersApi.cancel,
 	
+	// Payments
+	createPaymentOrder: paymentsApi.createPaymentOrder,
+	verifyPayment: paymentsApi.verifyPayment,
+	getPaymentMethods: paymentsApi.getPaymentMethods,
+	getPaymentStatus: paymentsApi.getPaymentStatus,
+	processRefund: paymentsApi.processRefund,
+	
 	// Reviews
 	getProductReviews: reviewsApi.getForProduct,
 	createReview: reviewsApi.create,
@@ -468,6 +577,16 @@ export const api = {
 		apiRequest<{ message: string }>('/api/wishlist/add', {
 			method: 'POST',
 			body: { productId },
+			auth: true
+		}),
+	removeFromWishlist: (productId: string) => 
+		apiRequest<{ message: string }>(`/api/wishlist/item/${productId}`, {
+			method: 'DELETE',
+			auth: true
+		}),
+	clearWishlist: () => 
+		apiRequest<{ message: string }>('/api/wishlist/clear', {
+			method: 'DELETE',
 			auth: true
 		}),
 };

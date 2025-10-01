@@ -8,7 +8,7 @@ const initializeFirebaseAdmin = () => {
     if (!admin.apps.length) {
       // For development, you can use the Firebase project ID from environment
       // In production, use a service account key file
-      const projectId = process.env.FIREBASE_PROJECT_ID || 'your-firebase-project-id';
+      const projectId = process.env.FIREBASE_PROJECT_ID || 'tic-tac-toe-ff1c7';
       
       if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         // Production: Use service account key

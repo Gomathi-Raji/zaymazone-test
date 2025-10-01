@@ -3,7 +3,7 @@ import { z } from 'zod'
 import Order from '../models/Order.js'
 import Product from '../models/Product.js'
 import Cart from '../models/Cart.js'
-import { requireAuth, requireActiveUser, requireAdmin } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/firebase-auth.js'
 import { validate, idSchema, paginationSchema } from '../middleware/validation.js'
 import { apiLimiter } from '../middleware/rateLimiter.js'
 
@@ -12,12 +12,16 @@ const router = Router()
 // Validation schemas
 const shippingAddressSchema = z.object({
 	fullName: z.string().min(1).max(100),
-	street: z.string().min(1).max(200),
+	phone: z.string().min(10).max(15),
+	email: z.string().email().min(1).max(100),
+	addressLine1: z.string().min(1).max(200),
+	addressLine2: z.string().optional(),
 	city: z.string().min(1).max(100),
 	state: z.string().min(1).max(100),
 	zipCode: z.string().min(1).max(20),
 	country: z.string().default('India'),
-	phone: z.string().min(10).max(15)
+	landmark: z.string().optional(),
+	addressType: z.enum(['home', 'office', 'other']).default('home')
 })
 
 const orderItemSchema = z.object({
@@ -28,17 +32,22 @@ const orderItemSchema = z.object({
 const createOrderSchema = z.object({
 	items: z.array(orderItemSchema).min(1).max(20),
 	shippingAddress: shippingAddressSchema,
-	paymentMethod: z.enum(['cod', 'razorpay', 'upi']),
+	billingAddress: shippingAddressSchema.optional(), // Add billing address support
+	paymentMethod: z.enum(['cod', 'zoho_card', 'zoho_upi', 'zoho_netbanking', 'zoho_wallet', 'razorpay', 'upi']),
 	paymentId: z.string().optional(),
+	zohoPaymentId: z.string().optional(), // Zoho specific payment ID
+	zohoOrderId: z.string().optional(), // Zoho order reference
 	notes: z.string().max(500).optional(),
 	isGift: z.boolean().default(false),
-	giftMessage: z.string().max(200).optional()
+	giftMessage: z.string().max(200).optional(),
+	useShippingAsBilling: z.boolean().default(false) // Use shipping address as billing
 })
 
 const updateOrderStatusSchema = z.object({
-	status: z.enum(['placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']),
+	status: z.enum(['placed', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned', 'refunded']),
 	note: z.string().max(200).optional(),
-	trackingNumber: z.string().optional()
+	trackingNumber: z.string().optional(),
+	courierService: z.string().max(100).optional() // Add courier service support
 })
 
 // Apply rate limiting to all order routes
@@ -46,8 +55,7 @@ router.use(apiLimiter)
 
 // Get user's orders
 router.get('/my-orders', 
-	requireAuth, 
-	requireActiveUser,
+	authenticateToken,
 	validate(paginationSchema, 'query'),
 	async (req, res) => {
 		try {
@@ -61,7 +69,7 @@ router.get('/my-orders',
 				sortObj.createdAt = -1
 			}
 			
-			const orders = await Order.find({ userId: req.user.sub })
+			const orders = await Order.find({ userId: req.user._id })
 				.sort(sortObj)
 				.skip(skip)
 				.limit(limit)
@@ -69,7 +77,7 @@ router.get('/my-orders',
 				.select('-__v')
 				.lean()
 			
-			const total = await Order.countDocuments({ userId: req.user.sub })
+			const total = await Order.countDocuments({ userId: req.user._id })
 			
 			res.json({
 				orders,
@@ -89,14 +97,13 @@ router.get('/my-orders',
 
 // Get single order
 router.get('/:id',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(z.object({ id: idSchema }), 'params'),
 	async (req, res) => {
 		try {
 			const order = await Order.findOne({ 
 				_id: req.validatedParams.id,
-				userId: req.user.sub 
+				userId: req.user._id 
 			})
 				.populate('items.productId', 'name images category')
 				.populate('items.artisanId', 'name location')
@@ -116,13 +123,12 @@ router.get('/:id',
 
 // Create new order
 router.post('/',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(createOrderSchema),
 	async (req, res) => {
 		try {
 			const orderData = req.validatedBody
-			const userId = req.user.sub
+			const userId = req.user._id
 			
 			// Validate products and calculate totals
 			const productIds = orderData.items.map(item => item.productId)
@@ -145,6 +151,13 @@ router.post('/',
 				if (product.stock < orderItem.quantity) {
 					return res.status(400).json({ 
 						error: `Insufficient stock for ${product.name}. Available: ${product.stock}` 
+					})
+				}
+				
+				// Check if product has artisan information
+				if (!product.artisanId) {
+					return res.status(400).json({ 
+						error: `Product ${product.name} is missing artisan information. Please contact support.` 
 					})
 				}
 				
@@ -179,8 +192,12 @@ router.post('/',
 				tax,
 				total,
 				shippingAddress: orderData.shippingAddress,
+				billingAddress: orderData.useShippingAsBilling ? orderData.shippingAddress : orderData.billingAddress,
 				paymentMethod: orderData.paymentMethod,
 				paymentId: orderData.paymentId,
+				zohoPaymentId: orderData.zohoPaymentId,
+				zohoOrderId: orderData.zohoOrderId,
+				paymentStatus: orderData.paymentMethod === 'cod' ? 'pending' : 'pending',
 				notes: orderData.notes,
 				isGift: orderData.isGift,
 				giftMessage: orderData.giftMessage,
@@ -227,14 +244,13 @@ router.post('/',
 
 // Cancel order (user can only cancel if status is 'placed' or 'confirmed')
 router.patch('/:id/cancel',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(z.object({ id: idSchema }), 'params'),
 	async (req, res) => {
 		try {
 			const order = await Order.findOne({
 				_id: req.validatedParams.id,
-				userId: req.user.sub
+				userId: req.user._id
 			})
 			
 			if (!order) {
@@ -281,9 +297,7 @@ router.patch('/:id/cancel',
 
 // Admin routes for order management
 router.get('/admin/all',
-	requireAuth,
-	requireActiveUser,
-	requireAdmin,
+	authenticateToken,
 	validate(paginationSchema, 'query'),
 	async (req, res) => {
 		try {
@@ -326,9 +340,7 @@ router.get('/admin/all',
 
 // Admin update order status
 router.patch('/:id/status',
-	requireAuth,
-	requireActiveUser,
-	requireAdmin,
+	authenticateToken,
 	validate(z.object({ id: idSchema }), 'params'),
 	validate(updateOrderStatusSchema),
 	async (req, res) => {
