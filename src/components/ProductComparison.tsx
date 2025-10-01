@@ -79,9 +79,11 @@ export const ProductComparison = ({
                           className="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
                         />
                         <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          by {product.artisan.name}
-                        </p>
+                        {product.artisan && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            by {product.artisan.name}
+                          </p>
+                        )}
                         
                         <div className="flex gap-2 mt-3">
                           <Button

@@ -213,32 +213,34 @@ const ProductDetail = () => {
             </div>
 
             {/* Artisan Info */}
-            <div className="bg-card rounded-xl p-6 mb-8">
-              <h3 className="font-semibold mb-4">Meet the Artisan</h3>
-              <div className="flex items-start gap-4">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={product.artisan.avatar} />
-                  <AvatarFallback>{product.artisan.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h4 className="font-medium">{product.artisan.name}</h4>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                    <MapPin className="w-3 h-3" />
-                    {product.artisan.location}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">{product.artisan.bio}</p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span>{product.artisan.rating}</span>
+            {product.artisan && (
+              <div className="bg-card rounded-xl p-6 mb-8">
+                <h3 className="font-semibold mb-4">Meet the Artisan</h3>
+                <div className="flex items-start gap-4">
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={product.artisan.avatar} />
+                    <AvatarFallback>{product.artisan.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h4 className="font-medium">{product.artisan.name}</h4>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                      <MapPin className="w-3 h-3" />
+                      {product.artisan.location}
                     </div>
-                    <span className="text-muted-foreground">
-                      {product.artisan.totalProducts} products
-                    </span>
+                    <p className="text-sm text-muted-foreground mb-3">{product.artisan.bio}</p>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span>{product.artisan.rating}</span>
+                      </div>
+                      <span className="text-muted-foreground">
+                        {product.artisan.totalProducts} products
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Shipping Info */}
             <div className="space-y-3 text-sm">

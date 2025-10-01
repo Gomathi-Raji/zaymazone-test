@@ -117,12 +117,14 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
               <h1 className="text-2xl font-bold text-foreground mb-2">{product.name}</h1>
               
               {/* Artisan Info */}
-              <div className="flex items-center gap-2 text-muted-foreground mb-4">
-                <MapPin className="w-4 h-4" />
-                <span className="font-medium">{product.artisan.name}</span>
-                <span>•</span>
-                <span>{product.artisan.location}</span>
-              </div>
+              {product.artisan && (
+                <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">{product.artisan.name}</span>
+                  <span>•</span>
+                  <span>{product.artisan.location}</span>
+                </div>
+              )}
 
               {/* Rating */}
               <div className="flex items-center gap-2 mb-4">

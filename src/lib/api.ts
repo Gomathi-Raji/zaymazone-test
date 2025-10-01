@@ -1,6 +1,6 @@
 import { logEvent } from "./security";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:4000";
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string)?.replace('/api', '') || "http://localhost:4000";
 const TOKEN_KEY = "auth_token";
 
 export function getAuthToken(): string | null {
@@ -95,7 +95,7 @@ export interface Product {
 		avatar: string;
 		rating: number;
 		totalProducts: number;
-	};
+	} | null;
 	rating: number;
 	reviewCount: number;
 	tags: string[];

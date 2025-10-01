@@ -43,7 +43,7 @@ const Shop = () => {
       // Search query
       if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !product.description.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !product.artisan.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+          !(product.artisan?.name.toLowerCase().includes(searchQuery.toLowerCase()))) {
         return false;
       }
       

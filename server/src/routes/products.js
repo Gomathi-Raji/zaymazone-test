@@ -117,7 +117,7 @@ router.get('/',
 				colors: Array.isArray(product.colors) ? product.colors : [],
 				inStock: product.inStock,
 				stockCount: product.stockCount,
-				artisan: {
+				artisan: product.artisanId ? {
 					id: product.artisanId._id.toString(), 
 					name: product.artisanId.name,
 					location: `${product.artisanId.location.city}, ${product.artisanId.location.state}`,
@@ -125,7 +125,7 @@ router.get('/',
 					avatar: product.artisanId.avatar,
 					rating: product.artisanId.rating,
 					totalProducts: product.artisanId.totalProducts
-				},
+				} : null,
 				rating: product.rating,
 				reviewCount: product.reviewCount,
 				tags: Array.isArray(product.tags) ? product.tags : [],
@@ -181,7 +181,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 			colors: Array.isArray(product.colors) ? product.colors : [],
 			inStock: product.inStock,
 			stockCount: product.stockCount,
-			artisan: {
+			artisan: product.artisanId ? {
 				id: product.artisanId._id.toString(),
 				name: product.artisanId.name,
 				location: `${product.artisanId.location.city}, ${product.artisanId.location.state}`,
@@ -189,7 +189,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 				avatar: product.artisanId.avatar,
 				rating: product.artisanId.rating,
 				totalProducts: product.artisanId.totalProducts
-			},
+			} : null,
 			rating: product.rating,
 			reviewCount: product.reviewCount,
 			tags: Array.isArray(product.tags) ? product.tags : [],
@@ -232,5 +232,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 })
 
 export default router
+
+
 
 

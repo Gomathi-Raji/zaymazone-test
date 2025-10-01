@@ -39,8 +39,8 @@ export const useProducts = (params: UseProductsParams = {}) => {
   if (params.inStock !== undefined) queryParams.append('inStock', params.inStock.toString());
 
   const queryString = queryParams.toString();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-  const url = `${apiUrl}/api/products${queryString ? `?${queryString}` : ''}`;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const url = `${apiUrl}/products${queryString ? `?${queryString}` : ''}`;
 
   return useQuery<ProductsResponse>({
     queryKey: ['products', params],
@@ -55,12 +55,12 @@ export const useProducts = (params: UseProductsParams = {}) => {
 };
 
 export const useProduct = (id: string) => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
   
   return useQuery<Product>({
     queryKey: ['product', id],
     queryFn: async () => {
-      const response = await fetch(`${apiUrl}/api/products/${id}`);
+      const response = await fetch(`${apiUrl}/products/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch product');
       }

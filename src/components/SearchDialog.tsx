@@ -16,7 +16,7 @@ export const SearchDialog = () => {
     product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    product.artisan.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (product.artisan?.name.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   const recentSearches = ["pottery", "handwoven textiles", "brass items", "wooden toys"];
@@ -96,10 +96,12 @@ export const SearchDialog = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground line-clamp-1">{product.name}</h4>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{product.artisan.name}</span>
-                        </div>
+                        {product.artisan && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{product.artisan.name}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-foreground">₹{product.price.toLocaleString()}</span>
                           <div className="flex items-center gap-1">

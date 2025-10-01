@@ -9,6 +9,7 @@ import mongoose from 'mongoose'
 import authRouter from './routes/auth.js'
 import productsRouter from './routes/products.js'
 import artisansRouter from './routes/artisans.js'
+import blogRouter from './routes/blog.js'
 import ordersRouter from './routes/orders.js'
 import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
@@ -75,6 +76,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/artisans', artisansRouter)
+app.use('/api/blog', blogRouter)
 app.use('/api/orders', ordersRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)

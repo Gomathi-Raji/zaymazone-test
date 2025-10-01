@@ -111,12 +111,14 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         </div>
 
         {/* Artisan Info */}
-        <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
-          <MapPin className="w-3 h-3" />
-          <span>{product.artisan.name}</span>
-          <span>•</span>
-          <span>{product.artisan.location}</span>
-        </div>
+        {product.artisan && (
+          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+            <MapPin className="w-3 h-3" />
+            <span>{product.artisan.name}</span>
+            <span>•</span>
+            <span>{product.artisan.location}</span>
+          </div>
+        )}
 
         {/* Rating */}
         <div className="flex items-center gap-2 mb-3">

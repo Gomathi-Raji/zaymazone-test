@@ -17,7 +17,7 @@ interface Product {
   artisan: {
     name: string;
     location: string;
-  };
+  } | null;
   featured?: boolean;
   badge?: string;
 }
@@ -153,9 +153,11 @@ export const EnhancedProductShowcase = ({
                         {product.title}
                       </Link>
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      by {product.artisan.name} • {product.artisan.location}
-                    </p>
+                    {product.artisan && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        by {product.artisan.name} • {product.artisan.location}
+                      </p>
+                    )}
                   </div>
 
                   {/* Rating and Price */}

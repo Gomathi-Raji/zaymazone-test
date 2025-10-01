@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export interface Author {
   name: string;
@@ -53,6 +53,18 @@ export interface BlogFilters {
   featured?: boolean;
 }
 
+// Helper function to transform blog post image URLs
+const transformBlogPost = (post: any): BlogPost => {
+  return {
+    ...post,
+    featuredImage: `${API_BASE_URL}/images/${post.featuredImage}`,
+    author: {
+      ...post.author,
+      avatar: `${API_BASE_URL}/images/${post.author.avatar}`
+    }
+  };
+};
+
 export const useBlogPosts = (filters: BlogFilters = {}) => {
   const [data, setData] = useState<BlogResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +93,13 @@ export const useBlogPosts = (filters: BlogFilters = {}) => {
         }
 
         const result = await response.json();
-        setData(result);
+        
+        // Transform image URLs for all posts
+        const transformedPosts = result.posts.map(transformBlogPost);
+        setData({
+          ...result,
+          posts: transformedPosts
+        });
       } catch (err) {
         console.error('Error fetching blog posts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch blog posts');
@@ -116,7 +134,7 @@ export const useBlogPost = (slug: string) => {
         }
 
         const result = await response.json();
-        setPost(result);
+        setPost(transformBlogPost(result));
       } catch (err) {
         console.error('Error fetching blog post:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch blog post');
@@ -149,7 +167,7 @@ export const useFeaturedBlogPosts = () => {
         }
 
         const result = await response.json();
-        setPosts(result);
+        setPosts(result.map(transformBlogPost));
       } catch (err) {
         console.error('Error fetching featured posts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch featured posts');
@@ -261,7 +279,7 @@ export const getRelatedPosts = async (postId: string): Promise<BlogPost[]> => {
     }
 
     const result = await response.json();
-    return result;
+    return result.map(transformBlogPost);
   } catch (error) {
     console.error('Error fetching related posts:', error);
     return [];
