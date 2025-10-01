@@ -2,6 +2,7 @@ import { logEvent } from "./security";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string)?.replace('/api', '') || "http://localhost:4000";
 const TOKEN_KEY = "auth_token";
+const FIREBASE_TOKEN_KEY = "firebase_id_token";
 
 export function getAuthToken(): string | null {
 	try {
@@ -20,6 +21,23 @@ export function setAuthToken(token: string | null): void {
 	}
 }
 
+export function getFirebaseToken(): string | null {
+	try {
+		return localStorage.getItem(FIREBASE_TOKEN_KEY);
+	} catch {
+		return null;
+	}
+}
+
+export function setFirebaseToken(token: string | null): void {
+	try {
+		if (token) localStorage.setItem(FIREBASE_TOKEN_KEY, token);
+		else localStorage.removeItem(FIREBASE_TOKEN_KEY);
+	} catch {
+		// ignore
+	}
+}
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export async function apiRequest<T>(path: string, options: {
@@ -30,7 +48,10 @@ export async function apiRequest<T>(path: string, options: {
 	const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
 	const headers: Record<string, string> = { "Content-Type": "application/json" };
 	if (options.auth) {
-		const token = getAuthToken();
+		// Prefer Firebase token over JWT token
+		const firebaseToken = getFirebaseToken();
+		const jwtToken = getAuthToken();
+		const token = firebaseToken || jwtToken;
 		if (token) headers["Authorization"] = `Bearer ${token}`;
 	}
 	const res = await fetch(url, {
@@ -70,6 +91,16 @@ export interface User {
 		zipCode: string;
 		country: string;
 	};
+	preferences?: {
+		newsletter: boolean;
+		notifications: boolean;
+		language: string;
+	};
+	isEmailVerified?: boolean;
+	authProvider?: 'firebase' | 'local';
+	firebaseUid?: string;
+	lastLogin?: string;
+	createdAt?: string;
 }
 
 export interface Product {
@@ -181,6 +212,35 @@ export const authApi = {
 		apiRequest<{ token: string; user: User }>(
 			"/api/auth/signin",
 			{ method: "POST", body: data }
+		),
+};
+
+// Firebase Auth API Functions
+export const firebaseAuthApi = {
+	syncUser: (data: { idToken: string; role?: 'user' | 'artisan' }) =>
+		apiRequest<{ message: string; user: User }>(
+			"/api/firebase-auth/sync",
+			{ method: "POST", body: data }
+		),
+	getCurrentUser: (idToken: string) =>
+		apiRequest<{ user: User }>(
+			"/api/firebase-auth/me",
+			{ method: "GET", auth: true }
+		),
+	updateProfile: (data: { 
+		name?: string; 
+		phone?: string; 
+		address?: Partial<User['address']>; 
+		preferences?: Partial<User['preferences']>; 
+	}, idToken: string) =>
+		apiRequest<{ message: string; user: User }>(
+			"/api/firebase-auth/profile",
+			{ method: "PATCH", body: data, auth: true }
+		),
+	deleteAccount: (idToken: string) =>
+		apiRequest<{ message: string }>(
+			"/api/firebase-auth/account",
+			{ method: "DELETE", auth: true }
 		),
 };
 

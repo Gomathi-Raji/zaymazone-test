@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
 
 import authRouter from './routes/auth.js'
+import firebaseAuthRouter from './routes/firebase-auth.js'
 import productsRouter from './routes/products.js'
 import artisansRouter from './routes/artisans.js'
 import blogRouter from './routes/blog.js'
@@ -15,6 +16,7 @@ import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
 import wishlistRouter from './routes/wishlist.js'
 import imagesRouter from './routes/images.js'
+import usersRouter from './routes/users.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
 import { initGridFS } from './services/imageService.js'
@@ -74,6 +76,7 @@ app.get('/health', (_req, res) => res.json({ ok: true }))
 
 // Routes
 app.use('/api/auth', authRouter)
+app.use('/api/firebase-auth', firebaseAuthRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/artisans', artisansRouter)
 app.use('/api/blog', blogRouter)
@@ -82,6 +85,7 @@ app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)
 app.use('/api/images', imagesRouter)
+app.use('/api/users', usersRouter)
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler)

@@ -8,15 +8,8 @@ import {
   updateProfile,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, googleProvider, db, isDevelopmentMode } from '@/lib/firebase';
-import { 
-  storeUser, 
-  getStoredUser, 
-  findUserByEmail, 
-  setCurrentUser, 
-  getCurrentUser 
-} from '@/lib/localStorage';
+import { auth, googleProvider } from '@/lib/firebase';
+import { firebaseAuthApi, setFirebaseToken, getFirebaseToken, User as ApiUser } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface User {
@@ -25,6 +18,24 @@ interface User {
   name: string;
   avatar?: string;
   role: 'user' | 'artisan';
+  phone?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  preferences?: {
+    newsletter: boolean;
+    notifications: boolean;
+    language: string;
+  };
+  isEmailVerified?: boolean;
+  authProvider?: 'firebase' | 'local';
+  firebaseUid?: string;
+  lastLogin?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -35,7 +46,13 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, name: string, role?: 'user' | 'artisan') => Promise<void>;
   signInWithGoogle: (role?: 'user' | 'artisan') => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateUserProfile: (profileData: { 
+    name?: string; 
+    phone?: string; 
+    address?: Partial<User['address']>; 
+    preferences?: Partial<User['preferences']>; 
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -56,78 +73,63 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Helper function to sync Firebase user with MongoDB
+  const syncUserWithMongoDB = async (firebaseUser: FirebaseUser, role: 'user' | 'artisan' = 'user') => {
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      setFirebaseToken(idToken);
+      
+      const response = await firebaseAuthApi.syncUser({ idToken, role });
+      const dbUser = response.user;
+      
+      const userProfile: User = {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        avatar: dbUser.avatar,
+        role: dbUser.role as 'user' | 'artisan',
+        phone: dbUser.phone,
+        address: dbUser.address,
+        preferences: dbUser.preferences,
+        isEmailVerified: dbUser.isEmailVerified,
+        authProvider: dbUser.authProvider,
+        firebaseUid: dbUser.firebaseUid,
+        lastLogin: dbUser.lastLogin,
+        createdAt: dbUser.createdAt
+      };
+      
+      setUser(userProfile);
+      return userProfile;
+    } catch (error) {
+      console.error('Failed to sync user with MongoDB:', error);
+      // Fallback to basic Firebase user data
+      const basicUser: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+        avatar: firebaseUser.photoURL || undefined,
+        role: role,
+        isEmailVerified: firebaseUser.emailVerified,
+        authProvider: 'firebase',
+        firebaseUid: firebaseUser.uid
+      };
+      setUser(basicUser);
+      return basicUser;
+    }
+  };
+
   // Listen to authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsLoading(true);
+      
       if (firebaseUser) {
-        // First check localStorage for user data
-        let userData = getStoredUser(firebaseUser.uid);
-        
-        if (userData) {
-          // Use stored user data
-          setUser({
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            name: firebaseUser.displayName || userData.name || '',
-            avatar: firebaseUser.photoURL || userData.avatar || undefined,
-            role: userData.role || 'user'
-          });
-        } else if (!isDevelopmentMode) {
-          // Only try Firestore in production
-          try {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-            if (userDoc.exists()) {
-              const firestoreData = userDoc.data();
-              const user = {
-                id: firebaseUser.uid,
-                email: firebaseUser.email!,
-                name: firebaseUser.displayName || firestoreData.name || '',
-                avatar: firebaseUser.photoURL || firestoreData.avatar || undefined,
-                role: firestoreData.role || 'user'
-              };
-              setUser(user);
-              // Store in localStorage for future use
-              storeUser(firebaseUser.uid, user);
-            } else {
-              // Create basic user profile
-              const user = {
-                id: firebaseUser.uid,
-                email: firebaseUser.email!,
-                name: firebaseUser.displayName || '',
-                avatar: firebaseUser.photoURL || undefined,
-                role: 'user' as const
-              };
-              setUser(user);
-              storeUser(firebaseUser.uid, user);
-            }
-          } catch (error) {
-            console.warn('Firestore error, using basic profile:', error);
-            const user = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email!,
-              name: firebaseUser.displayName || '',
-              avatar: firebaseUser.photoURL || undefined,
-              role: 'user' as const
-            };
-            setUser(user);
-            storeUser(firebaseUser.uid, user);
-          }
-        } else {
-          // Development mode - use basic profile
-          const user = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            name: firebaseUser.displayName || '',
-            avatar: firebaseUser.photoURL || undefined,
-            role: 'user' as const
-          };
-          setUser(user);
-          storeUser(firebaseUser.uid, user);
-        }
+        await syncUserWithMongoDB(firebaseUser);
       } else {
         setUser(null);
-        setCurrentUser(null);
+        setFirebaseToken(null);
       }
+      
       setIsLoading(false);
     });
 
@@ -139,28 +141,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       const credential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Check role from localStorage first
-      const storedUser = getStoredUser(credential.user.uid);
-      if (storedUser && storedUser.role !== role) {
-        await firebaseSignOut(auth);
-        throw new Error(`This account is registered as ${storedUser.role}, not ${role}`);
-      }
+      // Sync with MongoDB and check role
+      const dbUser = await syncUserWithMongoDB(credential.user, role);
       
-      // Only check Firestore in production if localStorage doesn't have role info
-      if (!isDevelopmentMode && !storedUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', credential.user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData.role !== role) {
-              await firebaseSignOut(auth);
-              throw new Error(`This account is registered as ${userData.role}, not ${role}`);
-            }
-          }
-        } catch (firestoreError) {
-          console.warn('Could not verify user role from Firestore:', firestoreError);
-          // Continue with sign-in even if Firestore check fails
-        }
+      if (dbUser.role !== role) {
+        await firebaseSignOut(auth);
+        throw new Error(`This account is registered as ${dbUser.role}, not ${role}`);
       }
       
       toast.success('Successfully signed in!');
@@ -177,33 +163,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update user profile
+      // Update Firebase user profile
       await updateProfile(credential.user, {
         displayName: name
       });
 
-      // Create user data object
-      const userData = {
-        id: credential.user.uid,
-        name,
-        email,
-        role,
-        createdAt: new Date().toISOString(),
-        avatar: null
-      };
-
-      // Always store in localStorage first
-      storeUser(credential.user.uid, userData);
-
-      // Only try Firestore in production
-      if (!isDevelopmentMode) {
-        try {
-          await setDoc(doc(db, 'users', credential.user.uid), userData);
-        } catch (firestoreError) {
-          console.warn('Could not save user data to Firestore:', firestoreError);
-          // Continue - localStorage has the data
-        }
-      }
+      // Sync with MongoDB
+      await syncUserWithMongoDB(credential.user, role);
 
       toast.success('Account created successfully!');
     } catch (error: any) {
@@ -219,30 +185,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsLoading(true);
       const credential = await signInWithPopup(auth, googleProvider);
       
-      try {
-        // Check if user already exists
-        const userDoc = await getDoc(doc(db, 'users', credential.user.uid));
-        
-        if (!userDoc.exists()) {
-          // Create new user document
-          await setDoc(doc(db, 'users', credential.user.uid), {
-            name: credential.user.displayName || '',
-            email: credential.user.email || '',
-            role,
-            createdAt: new Date().toISOString(),
-            avatar: credential.user.photoURL || null
-          });
-        } else {
-          // Check role for existing users
-          const userData = userDoc.data();
-          if (userData.role !== role) {
-            await firebaseSignOut(auth);
-            throw new Error(`This account is registered as ${userData.role}, not ${role}`);
-          }
-        }
-      } catch (firestoreError) {
-        console.warn('Could not access Firestore for Google sign-in:', firestoreError);
-        // Continue with Google sign-in even if Firestore operations fail
+      // Sync with MongoDB and check role
+      const dbUser = await syncUserWithMongoDB(credential.user, role);
+      
+      // For existing users, check if role matches
+      if (dbUser.role !== role) {
+        await firebaseSignOut(auth);
+        throw new Error(`This account is registered as ${dbUser.role}, not ${role}`);
       }
       
       toast.success('Successfully signed in with Google!');
@@ -257,15 +206,51 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async (): Promise<void> => {
     try {
       await firebaseSignOut(auth);
+      setFirebaseToken(null);
       toast.success('Signed out successfully');
     } catch (error: any) {
       toast.error(error.message || 'Sign out failed');
     }
   };
 
-  const updateUser = (userData: Partial<User>): void => {
+  const updateUser = async (userData: Partial<User>): Promise<void> => {
     if (user) {
       setUser({ ...user, ...userData });
+    }
+  };
+
+  const updateUserProfile = async (profileData: { 
+    name?: string; 
+    phone?: string; 
+    address?: Partial<User['address']>; 
+    preferences?: Partial<User['preferences']>; 
+  }): Promise<void> => {
+    try {
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+
+      const firebaseToken = getFirebaseToken();
+      if (!firebaseToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await firebaseAuthApi.updateProfile(profileData, firebaseToken);
+      const updatedUser = response.user;
+
+      const userProfile: User = {
+        ...user,
+        name: updatedUser.name,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        preferences: updatedUser.preferences
+      };
+
+      setUser(userProfile);
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+      throw error;
     }
   };
 
@@ -278,6 +263,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signUp,
     signInWithGoogle,
     updateUser,
+    updateUserProfile,
   };
 
   return (
