@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Star, MapPin, Truck, Shield, ArrowLeft, ArrowRight } from "lucide-react";
-import { Product } from "@/data/products";
+import { Product } from "@/lib/api";
 import { toast } from "sonner";
 
 interface QuickViewDialogProps {

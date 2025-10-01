@@ -8,16 +8,21 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    cors: {
-      origin: [
-        /^(http:\/\/)?localhost:\d+$/,
-        /^(http:\/\/)?127\.0\.0\.1:\d+$/
-      ],
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-      credentials: true,
-      maxAge: 600,
-    },
+    // Proxy image requests to backend to avoid CORS
+    proxy: {
+      '/api/images': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/images/, '/api/images'),
+      },
+      // Proxy other API calls if needed
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
   plugins: [
     react(),

@@ -8,21 +8,38 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockProducts } from "@/data/products";
+import { useProduct } from "@/hooks/useProducts";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
-  const product = mockProducts.find(p => p.id === id);
+  const { data: product, isLoading, error } = useProduct(id || '');
 
-  if (!product) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Product not found</h1>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {error ? 'Error loading product' : 'Product not found'}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {error instanceof Error ? error.message : 'The product you\'re looking for doesn\'t exist.'}
+          </p>
           <Link to="/shop">
             <Button>Back to Shop</Button>
           </Link>

@@ -8,7 +8,9 @@ import { ComparisonFloatingButton } from "@/components/ComparisonFloatingButton"
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProductComparison } from "@/hooks/useProductComparison";
-import { mockProducts, sortOptions, Product } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { sortOptions } from "@/data/products";
+import { Product } from "@/lib/api";
 
 const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,9 +30,16 @@ const Shop = () => {
     comparisonCount
   } = useProductComparison();
 
+  // Fetch products from API
+  const { data: productsData, isLoading, error } = useProducts({
+    limit: 100, // Get a reasonable amount for client-side filtering
+  });
+
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = mockProducts.filter(product => {
+    if (!productsData?.products) return [];
+    
+    let filtered = productsData.products.filter(product => {
       // Search query
       if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !product.description.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -77,7 +86,7 @@ const Shop = () => {
     });
 
     return filtered;
-  }, [searchQuery, sortBy, categoryFilter, priceFilter, handmadeFilter]);
+  }, [productsData?.products, searchQuery, sortBy, categoryFilter, priceFilter, handmadeFilter]);
 
   const handleQuickView = (product: Product) => {
     // TODO: Implement quick view modal
@@ -156,7 +165,7 @@ const Shop = () => {
         {/* Results Count */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-muted-foreground">
-            Showing {filteredAndSortedProducts.length} of {mockProducts.length} products
+            Showing {filteredAndSortedProducts.length} of {productsData?.pagination?.total || 0} products
             {searchQuery && (
               <span> for "<span className="font-medium">{searchQuery}</span>"</span>
             )}
@@ -165,7 +174,19 @@ const Shop = () => {
 
         {/* Products Grid */}
         <div className="max-w-6xl mx-auto">
-          {filteredAndSortedProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <h3 className="text-2xl font-semibold text-foreground mb-2">Error loading products</h3>
+              <p className="text-muted-foreground mb-6">
+                {error instanceof Error ? error.message : 'Failed to load products'}
+              </p>
+            </div>
+          ) : filteredAndSortedProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredAndSortedProducts.map(product => (
                 <ProductCard

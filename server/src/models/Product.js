@@ -15,23 +15,19 @@ const productSchema = new mongoose.Schema({
 	},
 	subcategory: { type: String, trim: true },
 	materials: [{ type: String, trim: true }],
-	dimensions: {
-		length: { type: Number, min: 0 },
-		width: { type: Number, min: 0 },
-		height: { type: Number, min: 0 },
-		unit: { type: String, enum: ['cm', 'inch'], default: 'cm' }
-	},
-	weight: { type: Number, min: 0 }, // in grams
+	dimensions: { type: String, default: '' }, // Changed to string to match frontend format (e.g., "15cm x 15cm x 20cm")
+	weight: { type: String, default: '' }, // Changed to string to match frontend format (e.g., "800g")
 	colors: [{ type: String, trim: true }],
 	tags: [{ type: String, trim: true, lowercase: true }],
-	stock: { type: Number, default: 0, min: 0 },
+	inStock: { type: Boolean, default: true },
+	stockCount: { type: Number, default: 0, min: 0 }, // Changed from stock to stockCount to match frontend
 	isHandmade: { type: Boolean, default: true },
 	shippingTime: { type: String, default: '3-5 days' },
 	rating: { type: Number, min: 0, max: 5, default: 0 },
 	reviewCount: { type: Number, default: 0 },
 	viewCount: { type: Number, default: 0 },
 	salesCount: { type: Number, default: 0 },
-	isFeatured: { type: Boolean, default: false },
+	featured: { type: Boolean, default: false }, // Changed from isFeatured to featured to match frontend
 	isActive: { type: Boolean, default: true },
 	seoTitle: { type: String, trim: true },
 	seoDescription: { type: String, trim: true }
@@ -49,7 +45,7 @@ productSchema.index({ name: 'text', description: 'text', tags: 'text' })
 productSchema.index({ price: 1 })
 productSchema.index({ rating: -1 })
 productSchema.index({ createdAt: -1 })
-productSchema.index({ isFeatured: -1, isActive: 1 })
+productSchema.index({ featured: -1, isActive: 1 })
 
 export default mongoose.model('Product', productSchema)
 

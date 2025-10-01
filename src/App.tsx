@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ShopWithBackend from "./pages/ShopWithBackend";
 import Artisans from "./pages/Artisans";
-import ArtisansWithBackend from "./pages/ArtisansWithBackend";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Categories from "./pages/Categories";
@@ -29,7 +28,6 @@ import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import SellerOnboarding from "./pages/SellerOnboarding";
 import ArtisanDetail from "./pages/ArtisanDetail";
-import ArtisanDetailWithBackend from "./pages/ArtisanDetailWithBackend";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import APITestPage from "./pages/APITestPage";
@@ -55,12 +53,10 @@ const App = () => (
             <Route path="/shop" element={<ShopWithBackend />} />
             <Route path="/shop-mock" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/artisans" element={<ArtisansWithBackend />} />
-            <Route path="/artisans-mock" element={<Artisans />} />
-            <Route path="/artisan/:id" element={<ArtisanDetailWithBackend />} />
-            <Route path="/artisan-mock/:id" element={<ArtisanDetail />} />
+            <Route path="/artisans" element={<Artisans />} />
+            <Route path="/artisan/:id" element={<ArtisanDetail />} />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/help" element={<Help />} />
             <Route path="/sustainability" element={<Sustainability />} />

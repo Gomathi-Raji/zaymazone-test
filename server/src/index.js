@@ -13,9 +13,10 @@ import ordersRouter from './routes/orders.js'
 import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
 import wishlistRouter from './routes/wishlist.js'
-import blogRouter from './routes/blog.js'
+import imagesRouter from './routes/images.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
+import { initGridFS } from './services/imageService.js'
 
 const app = express()
 
@@ -23,11 +24,23 @@ const app = express()
 app.set('trust proxy', 1)
 
 // Security & parsing
-app.use(helmet({ contentSecurityPolicy: false }))
-app.use(cors({
-	origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:8080'],
-	credentials: true,
+// Disable cross-origin resource policy to allow images to be loaded from other origins
+// Disable default cross-origin policies to allow images to be loaded from any origin
+app.use(helmet({
+	contentSecurityPolicy: false,
+	crossOriginResourcePolicy: false,
+	crossOriginEmbedderPolicy: false,
+	crossOriginOpenerPolicy: false,
 }))
+
+// More permissive CORS for development
+app.use(cors({
+	origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:5173'],
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
+}))
+
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan('combined'))
 app.use(requestLogger)
@@ -53,7 +66,7 @@ app.get('/', (_req, res) => res.json({
 		cart: ['GET /api/cart', 'POST /api/cart/add', 'PATCH /api/cart/item/:productId', 'DELETE /api/cart/item/:productId'],
 		reviews: ['GET /api/reviews/product/:productId', 'GET /api/reviews/my-reviews', 'POST /api/reviews', 'PATCH /api/reviews/:id'],
 		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear'],
-		blog: ['GET /api/blog', 'GET /api/blog/:id', 'GET /api/blog/featured', 'GET /api/blog/categories', 'POST /api/blog', 'PUT /api/blog/:id', 'PATCH /api/blog/:id/like']
+		images: ['GET /api/images/:filename', 'GET /api/images/:filename/info']
 	}
 }))
 app.get('/health', (_req, res) => res.json({ ok: true }))
@@ -66,7 +79,7 @@ app.use('/api/orders', ordersRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)
-app.use('/api/blog', blogRouter)
+app.use('/api/images', imagesRouter)
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler)
@@ -78,6 +91,7 @@ const port = process.env.PORT || 4000
 
 async function start() {
 	await mongoose.connect(mongoUri)
+	initGridFS() // Initialize GridFS after database connection
 	app.listen(port, () => {
 		console.log(`API listening on http://localhost:${port}`)
 	})

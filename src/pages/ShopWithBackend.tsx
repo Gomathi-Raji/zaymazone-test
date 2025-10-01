@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductComparison } from "@/hooks/useProductComparison";
-import { api, Product } from "@/lib/api";
-import { mockProducts } from "@/data/products";
+import { productsApi, Product } from "@/lib/api";
+
 import { toast } from "sonner";
 
 const ShopWithBackend = () => {
@@ -35,40 +35,27 @@ const ShopWithBackend = () => {
     comparisonCount
   } = useProductComparison();
 
-  // Use mock data instead of backend
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const productsData = useMemo(() => {
-    let filtered = mockProducts;
-    if (categoryFilter && categoryFilter !== 'all') {
-      filtered = filtered.filter(p => p.category === categoryFilter);
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (priceRange.min !== undefined) {
-      filtered = filtered.filter(p => p.price >= priceRange.min!);
-    }
-    if (priceRange.max !== undefined) {
-      filtered = filtered.filter(p => p.price <= priceRange.max!);
-    }
-    // Pagination
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = filtered.slice(start, end);
-    return {
-      products: paginated,
-      pagination: {
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit),
-        hasPrev: page > 1,
-        hasNext: end < filtered.length
-      }
-    };
-  }, [categoryFilter, searchQuery, priceRange, page, limit]);
+  // Use backend API instead of mock data
+  const { data: productsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['products', { 
+      page, 
+      limit, 
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      q: searchQuery || undefined,
+      minPrice: priceRange.min,
+      maxPrice: priceRange.max,
+      sortBy
+    }],
+    queryFn: () => productsApi.getAll({
+      page,
+      limit,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      q: searchQuery || undefined,
+      minPrice: priceRange.min,
+      maxPrice: priceRange.max
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Remove backend artisan fetch for now
 
@@ -235,37 +222,7 @@ const ShopWithBackend = () => {
               {productsData.products.map((product) => (
                 <ProductCard
                   key={product.id}
-                  product={{
-                    id: product.id,
-                    name: product.name,
-                    description: product.description,
-                    price: product.price,
-                    originalPrice: product.originalPrice,
-                    images: product.images,
-                    category: product.category,
-                    subcategory: product.subcategory,
-                    rating: product.rating,
-                    reviewCount: product.reviewCount,
-                    artisan: {
-                      id: product.artisan.id,
-                      name: product.artisan.name,
-                      location: product.artisan.location,
-                      bio: product.artisan.bio,
-                      avatar: product.artisan.avatar,
-                      rating: product.artisan.rating,
-                      totalProducts: product.artisan.totalProducts
-                    },
-                    stockCount: product.stockCount,
-                    isHandmade: product.isHandmade,
-                    featured: product.featured,
-                    materials: product.materials || [],
-                    tags: product.tags || [],
-                    colors: product.colors || [],
-                    dimensions: product.dimensions || '',
-                    weight: product.weight || '',
-                    inStock: product.inStock,
-                    shippingTime: product.shippingTime || '3-5 days'
-                  }}
+                  product={product}
                   onAddToComparison={addToComparison}
                 />
               ))}
@@ -323,7 +280,8 @@ const ShopWithBackend = () => {
       {comparisonCount > 0 && (
         <ComparisonFloatingButton
           count={comparisonCount}
-          onClick={openComparison}
+          onOpen={openComparison}
+          onClear={clearComparison}
         />
       )}
 
@@ -331,8 +289,7 @@ const ShopWithBackend = () => {
         products={comparisonProducts}
         isOpen={isComparisonOpen}
         onClose={closeComparison}
-        onRemove={removeFromComparison}
-        onClear={clearComparison}
+        onRemoveProduct={removeFromComparison}
       />
 
       <Footer />

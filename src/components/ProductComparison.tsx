@@ -3,7 +3,7 @@ import { X, Star, Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Product } from "@/data/products";
+import { Product } from "@/lib/api";
 
 interface ProductComparisonProps {
   products: Product[];

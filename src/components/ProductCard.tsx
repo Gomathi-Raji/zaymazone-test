@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Heart, Star, MapPin, BarChart3, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Product } from "@/data/products";
+import { Product } from "@/lib/api";
 import { QuickViewDialog } from "./QuickViewDialog";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";

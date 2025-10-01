@@ -1,6 +1,6 @@
 import { logEvent } from "./security";
 
-const API_BASE_URL = "http://localhost:4001";
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:4000";
 const TOKEN_KEY = "auth_token";
 
 export function getAuthToken(): string | null {
@@ -80,25 +80,28 @@ export interface Product {
 	originalPrice?: number;
 	images: string[];
 	category: string;
-	subcategory?: string;
+	subcategory: string;
 	materials: string[];
-	dimensions?: {
-		length: number;
-		width: number;
-		height: number;
-		unit: string;
-	};
-	weight?: number;
+	dimensions: string;
+	weight: string;
 	colors: string[];
-	tags: string[];
-	stock: number;
-	isHandmade: boolean;
-	shippingTime: string;
+	inStock: boolean;
+	stockCount: number;
+	artisan: {
+		id: string;
+		name: string;
+		location: string;
+		bio: string;
+		avatar: string;
+		rating: number;
+		totalProducts: number;
+	};
 	rating: number;
 	reviewCount: number;
-	artisanId: string;
-	isFeatured: boolean;
-	isActive: boolean;
+	tags: string[];
+	isHandmade: boolean;
+	shippingTime: string;
+	featured: boolean;
 }
 
 export interface CartItem {
@@ -165,41 +168,6 @@ export interface Review {
 		respondedAt: string;
 	};
 	createdAt: string;
-}
-
-export interface Artisan {
-	_id: string;
-	userId: string;
-	name: string;
-	bio: string;
-	location: {
-		city: string;
-		state: string;
-		country: string;
-	};
-	avatar: string;
-	coverImage?: string;
-	specialties: string[];
-	experience: number;
-	socials?: {
-		instagram?: string;
-		facebook?: string;
-		website?: string;
-	};
-	verification: {
-		isVerified: boolean;
-		documentType?: string;
-		documentNumber?: string;
-		verifiedAt?: string;
-	};
-	rating: number;
-	totalRatings: number;
-	totalProducts: number;
-	totalSales: number;
-	isActive: boolean;
-	joinedDate: string;
-	createdAt: string;
-	updatedAt: string;
 }
 
 // API Functions
@@ -442,8 +410,4 @@ export const api = {
 			body: { productId },
 			auth: true
 		}),
-		
-	// Artisans
-	getArtisans: () => apiRequest<any[]>('/api/artisans'),
-	getArtisan: (id: string) => apiRequest<any>(`/api/artisans/${id}`),
 };
