@@ -24,7 +24,6 @@ import { sanitize } from './middleware/validation.js'
 import { initGridFS } from './services/imageService.js'
 import { uploadImageToGridFS } from './services/imageService.js'
 import fs from 'fs'
-import path from 'path'
 
 const app = express()
 
