@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { artisanAnimations } from "@/lib/animations";
 import { AnimatedInput } from "@/components/AnimatedInput";
 
@@ -409,7 +409,7 @@ export default function Checkout() {
                         transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
                       >
                         <img
-                          src={item.productId.images[0] || "/placeholder.svg"}
+                          src={getImageUrl(item.productId.images[0] || "/placeholder.svg")}
                           alt={item.productId.name}
                           className="w-16 h-16 object-cover rounded-md"
                         />

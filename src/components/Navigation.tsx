@@ -19,6 +19,7 @@ import { WishlistDrawer } from "./WishlistDrawer";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { scrollToTop } from "@/lib/scrollUtils";
+import { getImageUrl } from "@/lib/api";
 // Using the uploaded logo directly
 
 export const Navigation = () => {
@@ -80,7 +81,7 @@ export const Navigation = () => {
               onClick={scrollToTop}
             >
               <img
-                src="/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png"
+                src={getImageUrl("/public/logo.png")}
                 alt="ZAYMAZONE Logo"
                 className="h-20 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
               />

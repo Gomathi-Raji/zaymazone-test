@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/lib/api";
+import { getImageUrl } from "@/lib/api";
 import { QuickViewDialog } from "./QuickViewDialog";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -121,7 +122,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
       <div className="relative aspect-square overflow-hidden">
         <Link to={`/product/${product.id}`}>
           <motion.img
-            src={product.images[0]}
+            src={getImageUrl(product.images[0])}
             alt={product.name}
             className="w-full h-full object-cover cursor-pointer"
             whileHover={{ scale: 1.1 }}

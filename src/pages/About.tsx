@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, Globe, Users, Leaf, Award, Target } from "lucide-react";
-import team1 from "@/assets/team1.jpg";
-import team2 from "@/assets/team2.png";
-import team3 from "@/assets/team3.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const About = () => {
   return (
@@ -172,7 +170,7 @@ const About = () => {
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
                   <img 
-                    src={team1} 
+                    src={getImageUrl('team1.jpg')} 
                     alt="Harishwaran"
                     className="w-full h-full object-cover"
                   />
@@ -189,7 +187,7 @@ const About = () => {
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
                   <img 
-                    src={team2}
+                    src={getImageUrl('team2.png')}
                     alt="Jayamurugan"
                     className="w-full h-full object-cover"
                   />
@@ -206,7 +204,7 @@ const About = () => {
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
                   <img 
-                    src={team3} 
+                    src={getImageUrl('team3.jpg')} 
                     alt="Dinesh"
                     className="w-full h-full object-cover"
                   />

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getImageUrl } from "@/lib/api";
 
 export const WishlistDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,7 +84,7 @@ export const WishlistDrawer = () => {
                       className="flex-shrink-0"
                     >
                       <img 
-                        src={item.productId.images[0]} 
+                        src={getImageUrl(item.productId.images[0])} 
                         alt={item.productId.name}
                         className="w-20 h-20 object-cover rounded-md"
                       />

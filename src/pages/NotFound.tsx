@@ -3,7 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Home, Search, ArrowLeft } from "lucide-react";
-import notFoundIllustration from "@/assets/404-illustration.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const NotFound = () => {
   return (
@@ -15,7 +15,7 @@ const NotFound = () => {
           {/* Illustration */}
           <div className="mb-8">
             <img 
-              src={notFoundIllustration} 
+              src={getImageUrl('/assets/404-illustration.jpg')} 
               alt="Scattered craft tools illustration"
               className="w-full max-w-md mx-auto mb-6 rounded-2xl shadow-soft"
             />

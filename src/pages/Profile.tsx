@@ -24,10 +24,7 @@ import {
   Camera
 } from "lucide-react";
 import { useState } from "react";
-import userAvatar from "@/assets/user-avatar.jpg";
-import wishlistKashmiriShawl from "@/assets/wishlist-kashmiri-shawl.jpg";
-import wishlistBluePottery from "@/assets/wishlist-blue-pottery.jpg";
-import wishlistCopperBottle from "@/assets/wishlist-copper-bottle.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const Profile = () => {
   const { toast } = useToast();
@@ -74,21 +71,21 @@ const Profile = () => {
       name: "Handwoven Kashmiri Shawl",
       price: "$180",
       artisan: "Rajesh Kumar",
-      image: wishlistKashmiriShawl
+      image: getImageUrl('/assets/wishlist-kashmiri-shawl.jpg')
     },
     {
       id: 2,
       name: "Blue Pottery Dinner Set",
       price: "$125",
       artisan: "Renu Kumari", 
-      image: wishlistBluePottery
+      image: getImageUrl('/assets/wishlist-blue-pottery.jpg')
     },
     {
       id: 3,
       name: "Copper Water Bottle",
       price: "$45",
       artisan: "Arjun Singh",
-      image: wishlistCopperBottle
+      image: getImageUrl('/assets/wishlist-copper-bottle.jpg')
     }
   ]);
 
@@ -159,11 +156,11 @@ const Profile = () => {
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <Avatar className="w-20 h-20">
-                        <AvatarImage src={userAvatar} />
+                        <AvatarImage src={getImageUrl('/assets/user-avatar.jpg')} />
                         <AvatarFallback>SJ</AvatarFallback>
                       </Avatar>
                       {isEditing && (
-                        <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0">
+                        <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0" aria-label="Change profile picture">
                           <Camera className="w-3 h-3" />
                         </Button>
                       )}

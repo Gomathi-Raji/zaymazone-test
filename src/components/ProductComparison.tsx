@@ -3,7 +3,7 @@ import { X, Star, Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Product } from "@/lib/api";
+import { Product, getImageUrl } from "@/lib/api";
 
 interface ProductComparisonProps {
   products: Product[];
@@ -74,7 +74,7 @@ export const ProductComparison = ({
                         </Button>
                         
                         <img 
-                          src={product.images[0]} 
+                          src={getImageUrl(product.images[0])} 
                           alt={product.name}
                           className="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
                         />

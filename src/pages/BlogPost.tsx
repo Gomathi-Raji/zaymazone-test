@@ -19,18 +19,8 @@ import {
   Linkedin
 } from "lucide-react";
 
-// Blog images
-import blogBluePottery from "@/assets/blog-blue-pottery.jpg";
-import blogHandloom from "@/assets/blog-handloom.jpg";
-import blogDhokra from "@/assets/blog-dhokra.jpg";
-import blogSustainability from "@/assets/blog-sustainability.jpg";
-import blogEconomics from "@/assets/blog-economics.jpg";
-import blogInnovation from "@/assets/blog-innovation.jpg";
-
-// Author avatars
-import authorPriya from "@/assets/author-priya.jpg";
-import authorRajesh from "@/assets/author-rajesh.jpg";
-import authorMeera from "@/assets/author-meera.jpg";
+// Blog images and author avatars are now served from API
+import { getImageUrl } from "@/lib/api";
 
 const BlogPost = () => {
   const { id } = useParams();
@@ -65,14 +55,14 @@ const BlogPost = () => {
       `,
       author: {
         name: "Priya Sharma",
-        avatar: authorPriya,
+        avatar: getImageUrl('author-priya.jpg'),
         role: "Craft Historian",
         bio: "Priya is a cultural researcher and craft historian with over 15 years of experience documenting traditional Indian arts. She has authored several books on Indian craftsmanship and regularly contributes to cultural publications."
       },
       category: "Traditional Crafts",
       date: "Jan 15, 2024",
       readTime: "8 min read",
-      image: blogBluePottery,
+      image: getImageUrl('blog-blue-pottery.jpg'),
       likes: 247,
       comments: 18,
       tags: ["blue pottery", "rajasthan", "traditional crafts", "ceramics", "artisans"]
@@ -94,14 +84,14 @@ const BlogPost = () => {
       `,
       author: {
         name: "Rajesh Kumar",
-        avatar: authorRajesh,
+        avatar: getImageUrl('author-rajesh.jpg'),
         role: "Cultural Researcher",
         bio: "Rajesh is a cultural anthropologist specializing in Indian textile traditions. He has spent over a decade documenting weaving communities across Bengal and eastern India."
       },
       category: "Textiles",
       date: "Jan 12, 2024",
       readTime: "6 min read",
-      image: blogHandloom,
+      image: getImageUrl('blog-handloom.jpg'),
       likes: 189,
       comments: 12,
       tags: ["handloom", "bengal", "textiles", "weaving", "heritage"]
@@ -120,14 +110,14 @@ const BlogPost = () => {
       `,
       author: {
         name: "Meera Devi",
-        avatar: authorMeera,
+        avatar: getImageUrl('author-meera.jpg'),
         role: "Art Curator",
         bio: "Meera is a contemporary art curator with expertise in traditional Indian metal crafts. She has curated several exhibitions on tribal and folk art forms."
       },
       category: "Metal Crafts",
       date: "Jan 10, 2024",
       readTime: "5 min read",
-      image: blogDhokra,
+      image: getImageUrl('blog-dhokra.jpg'),
       likes: 156,
       comments: 9,
       tags: ["dhokra", "metal casting", "brass", "sculpture", "tribal art"]
@@ -140,19 +130,19 @@ const BlogPost = () => {
     {
       id: 2,
       title: "Preserving Handloom Traditions: The Weavers of Bengal",
-      image: blogHandloom,
+      image: getImageUrl('blog-handloom.jpg'),
       category: "Textiles"
     },
     {
       id: 3,
       title: "The Revival of Dhokra Art: Metal Casting in Modern Times",
-      image: blogDhokra, 
+      image: getImageUrl('blog-dhokra.jpg'), 
       category: "Metal Crafts"
     },
     {
       id: 4,
       title: "Sustainable Crafting: How Traditional Arts Support Environmental Conservation",
-      image: blogSustainability,
+      image: getImageUrl('blog-sustainability.jpg'),
       category: "Sustainability"
     }
   ].filter(relatedPost => relatedPost.id !== post.id);

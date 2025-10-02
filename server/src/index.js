@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import rateLimit from 'express-rate-limit'
 import mongoose from 'mongoose'
+import path from 'path'
 
 import authRouter from './routes/auth.js'
 import firebaseAuthRouter from './routes/firebase-auth.js'
@@ -89,6 +90,9 @@ app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)
 app.use('/api/images', imagesRouter)
 app.use('/api/users', usersRouter)
+
+// All assets are now served from database via /api/images/ endpoint
+// Removed static asset serving middleware
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler)

@@ -8,19 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    // Proxy image requests to backend to avoid CORS
+    // Proxy API requests to production backend
     proxy: {
-      '/api/images': {
-        target: 'http://localhost:4000',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api\/images/, '/api/images'),
-      },
-      // Proxy other API calls if needed
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'https://zaymazone-backend.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     }
   },

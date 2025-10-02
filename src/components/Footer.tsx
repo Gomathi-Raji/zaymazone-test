@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { scrollToTop } from "@/lib/scrollUtils";
+import { getImageUrl } from "@/lib/api";
 
 const footerSections = [
   {
@@ -61,7 +62,7 @@ export const Footer = () => {
             <div className="flex items-center mb-6">
               <Link to="/" onClick={scrollToTop}>
                 <img 
-                  src="/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png" 
+                  src={getImageUrl("/public/logo.png")} 
                   alt="ZAYMAZONE Logo" 
                   className="h-16 w-auto object-contain"
                 />

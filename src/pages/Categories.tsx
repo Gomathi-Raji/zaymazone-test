@@ -5,16 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Palette, Lightbulb, ShirtIcon, Gift } from "lucide-react";
-import potteryCategory from "@/assets/pottery-category.jpg";
-import textilesCategory from "@/assets/textiles-category.jpg";
-import craftsCategory from "@/assets/crafts-category.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const categoryData = [
   {
     id: "pottery",
     name: "Pottery & Ceramics",
     description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
-    image: potteryCategory,
+    image: getImageUrl('pottery-category.jpg'),
     icon: Gift,
     productCount: 48,
     subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
@@ -25,7 +23,7 @@ const categoryData = [
     id: "textiles",
     name: "Handwoven Textiles",
     description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
-    image: textilesCategory,
+    image: getImageUrl('textiles-category.jpg'),
     icon: ShirtIcon,
     productCount: 85,
     subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
@@ -36,7 +34,7 @@ const categoryData = [
     id: "crafts",
     name: "Traditional Crafts",
     description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
-    image: craftsCategory,
+    image: getImageUrl('crafts-category.jpg'),
     icon: Palette,
     productCount: 67,
     subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
@@ -47,7 +45,7 @@ const categoryData = [
     id: "paintings",
     name: "Folk Paintings",
     description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
-    image: craftsCategory,
+    image: getImageUrl('crafts-category.jpg'),
     icon: Palette,
     productCount: 29,
     subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
@@ -58,7 +56,7 @@ const categoryData = [
     id: "lighting",
     name: "Decorative Lighting",
     description: "Handcrafted lamps, lanterns, and lighting fixtures with traditional designs and modern functionality.",
-    image: craftsCategory,
+    image: getImageUrl('crafts-category.jpg'),
     icon: Lightbulb,
     productCount: 18,
     subcategories: ["Table Lamps", "Wall Sconces", "Hanging Lamps", "Candle Holders"],
@@ -69,7 +67,7 @@ const categoryData = [
     id: "jewelry",
     name: "Traditional Jewelry",
     description: "Handcrafted jewelry featuring traditional techniques like Kundan, Meenakari, and tribal designs.",
-    image: craftsCategory,
+    image: getImageUrl('crafts-category.jpg'),
     icon: Gift,
     productCount: 34,
     subcategories: ["Necklaces", "Earrings", "Bracelets", "Rings"],

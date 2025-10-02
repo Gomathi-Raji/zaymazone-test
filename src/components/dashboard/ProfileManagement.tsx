@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Camera, MapPin, Phone, Mail, Globe } from "lucide-react";
-import artisan1 from "@/assets/artisan-avatar-1.jpg";
+import { getImageUrl } from "@/lib/api";
 
 export function ProfileManagement() {
   return (
@@ -20,10 +20,10 @@ export function ProfileManagement() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="w-20 h-20">
-                <AvatarImage src={artisan1} />
+                <AvatarImage src={getImageUrl('artisan-avatar-1.jpg')} />
                 <AvatarFallback>RK</AvatarFallback>
               </Avatar>
-              <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0">
+              <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0" aria-label="Change profile picture">
                 <Camera className="w-3 h-3" />
               </Button>
             </div>

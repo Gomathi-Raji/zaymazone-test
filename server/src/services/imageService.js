@@ -80,7 +80,7 @@ export function getImageStream(gridfsId) {
 
 // Get image by filename
 export async function getImageByFilename(filename) {
-  const image = await Image.findOne({ filename, isActive: true })
+  const image = await Image.findOne({ filename, isActive: true }).sort({ uploadDate: -1 })
   return image
 }
 

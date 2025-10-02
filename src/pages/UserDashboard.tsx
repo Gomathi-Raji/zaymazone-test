@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { api } from "@/lib/api";
+import { api, getImageUrl } from "@/lib/api";
 import { 
   User, 
   Package, 
@@ -263,7 +263,7 @@ export default function UserDashboard() {
                             {order.items.map((item) => (
                               <div key={item.product._id} className="flex items-center gap-3">
                                 <img 
-                                  src={item.product.images[0] || "/placeholder.svg"} 
+                                  src={getImageUrl(item.product.images[0] || "/placeholder.svg")} 
                                   alt={item.product.name}
                                   className="w-12 h-12 object-cover rounded"
                                 />

@@ -1,6 +1,31 @@
 import { logEvent } from "./security";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string)?.replace('/api', '') || "http://localhost:4000";
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // Check for explicit API URL from environment
+  if (import.meta.env.VITE_API_URL) {
+    return (import.meta.env.VITE_API_URL as string).replace('/api', '');
+  }
+
+  // In development, use localhost
+  if (import.meta.env.DEV) {
+    return "http://localhost:4000";
+  }
+
+  // For production/mobile, use the current origin or a configured backend URL
+  // This allows the app to work when served from different domains
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+
+  if (isLocalhost) {
+    return "http://localhost:4000";
+  }
+
+  // For production deployments, assume backend is on the same domain or use environment variable
+  return import.meta.env.VITE_BACKEND_URL || `${currentOrigin}/api`.replace('/api/api', '/api');
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const TOKEN_KEY = "auth_token";
 const FIREBASE_TOKEN_KEY = "firebase_id_token";
 
@@ -590,3 +615,23 @@ export const api = {
 			auth: true
 		}),
 };
+
+// Utility function to handle image URLs
+export function getImageUrl(path: string): string {
+  if (!path) return '/placeholder.svg';
+
+  // If it's already a full URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  // If it's already an API image path, use it directly
+  if (path.startsWith('/api/images/')) {
+    return `${API_BASE_URL}${path}`;
+  }
+
+  // For all other paths (assets, uploads, etc.), serve from database via API
+  // Extract filename from path
+  const filename = path.split('/').pop() || path;
+  return `${API_BASE_URL}/api/images/${filename}`;
+}

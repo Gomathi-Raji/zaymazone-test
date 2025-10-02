@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Star, MapPin, Truck, Shield, ArrowLeft, ArrowRight } from "lucide-react";
-import { Product } from "@/lib/api";
+import { Product, getImageUrl } from "@/lib/api";
 import { toast } from "sonner";
 import { AnimatedDialog } from "./AnimatedDialog";
 
@@ -52,7 +52,7 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
         <div className="space-y-4">
           <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
             <img 
-              src={product.images[currentImageIndex]} 
+              src={getImageUrl(product.images[currentImageIndex])} 
               alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -102,12 +102,13 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
+                    aria-label={`Select image ${index + 1} of ${product.images.length}`}
                     className={`flex-1 aspect-square rounded-md overflow-hidden border-2 ${
                       index === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
                     <img 
-                      src={image} 
+                      src={getImageUrl(image)} 
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />

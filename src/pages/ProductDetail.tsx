@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProduct } from "@/hooks/useProducts";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getImageUrl } from "@/lib/api";
 import { toast } from "sonner";
 
 const ProductDetail = () => {
@@ -123,7 +124,7 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="aspect-square bg-card rounded-2xl overflow-hidden mb-4">
               <img
-                src={product.images[selectedImageIndex]}
+                src={getImageUrl(product.images[selectedImageIndex])}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -136,9 +137,10 @@ const ProductDetail = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
+                    aria-label={`View ${product.name} image ${index + 1} of ${product.images.length}`}
                     className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImageIndex === index 
-                        ? 'border-primary' 
+                      selectedImageIndex === index
+                        ? 'border-primary'
                         : 'border-transparent hover:border-primary/50'
                     }`}
                   >
@@ -232,6 +234,7 @@ const ProductDetail = () => {
                 <div className="flex items-center border border-input rounded-lg">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    aria-label="Decrease quantity"
                     className="px-3 py-2 hover:bg-accent"
                     disabled={quantity <= 1}
                   >
@@ -240,6 +243,7 @@ const ProductDetail = () => {
                   <span className="px-4 py-2 border-x border-input">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Increase quantity"
                     className="px-3 py-2 hover:bg-accent"
                     disabled={quantity >= product.stockCount}
                   >
