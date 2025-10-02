@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { getImageByFilename, getImageStream } from '../services/imageService.js'
+import { getImageByFilename, getImageStream, uploadImageToGridFS } from '../services/imageService.js'
+import multer from 'multer'
+import fs from 'fs'
+import path from 'path'
 
 import cors from 'cors'
 

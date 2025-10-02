@@ -169,10 +169,13 @@ const About = () => {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
-                    src={getImageUrl('team1.jpg')} 
+                  <img
+                    src={getImageUrl('team1.jpg')}
                     alt="Harishwaran"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
                 <h3 className="font-semibold text-lg">Harishwaran P</h3>
@@ -186,10 +189,13 @@ const About = () => {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
+                  <img
                     src={getImageUrl('team2.png')}
                     alt="Jayamurugan"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
                 <h3 className="font-semibold text-lg">Jayamurugan V</h3>
@@ -203,10 +209,13 @@ const About = () => {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
-                    src={getImageUrl('team3.jpg')} 
+                  <img
+                    src={getImageUrl('team3.jpg')}
                     alt="Dinesh"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
                 <h3 className="font-semibold text-lg">Dinesh S</h3>

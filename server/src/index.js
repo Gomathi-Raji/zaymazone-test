@@ -22,6 +22,9 @@ import usersRouter from './routes/users.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
 import { initGridFS } from './services/imageService.js'
+import { uploadImageToGridFS } from './services/imageService.js'
+import fs from 'fs'
+import path from 'path'
 
 const app = express()
 
@@ -121,9 +124,41 @@ app.use(errorHandler)
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zaymazone'
 const port = process.env.PORT || 4000
 
+// Upload team images on startup
+async function uploadTeamImagesOnStartup() {
+  try {
+    const teamImages = ['team1.jpg', 'team2.png', 'team3.jpg']
+    const assetDir = path.join(process.cwd(), '../src/assets')
+
+    console.log('Checking for team images to upload...')
+
+    for (const imageName of teamImages) {
+      const imagePath = path.join(assetDir, imageName)
+
+      if (fs.existsSync(imagePath)) {
+        try {
+          await uploadImageToGridFS(imagePath, imageName, 'team')
+          console.log(`✅ Uploaded team image: ${imageName}`)
+        } catch (error) {
+          // Image might already exist, that's ok
+          console.log(`ℹ️  Team image ${imageName} may already exist`)
+        }
+      } else {
+        console.log(`⚠️  Team image not found: ${imagePath}`)
+      }
+    }
+  } catch (error) {
+    console.error('Error uploading team images:', error)
+  }
+}
+
 async function start() {
 	await mongoose.connect(mongoUri)
 	initGridFS() // Initialize GridFS after database connection
+
+	// Upload team images if they exist
+	await uploadTeamImagesOnStartup()
+
 	app.listen(port, () => {
 		console.log(`API listening on http://localhost:${port}`)
 	})
