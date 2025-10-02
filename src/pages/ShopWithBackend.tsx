@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Filter, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
@@ -13,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductComparison } from "@/hooks/useProductComparison";
 import { productsApi, Product } from "@/lib/api";
+import { artisanAnimations } from "@/lib/animations";
 
-import { toast } from "sonner";
+import { SkeletonGrid } from "@/components/SkeletonCard";
 
 const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -209,24 +211,31 @@ const ShopWithBackend = () => {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading products...</p>
-          </div>
+          <SkeletonGrid count={8} />
         )}
 
         {/* Product Grid */}
         {!isLoading && productsData && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {productsData.products.map((product) => (
-                <ProductCard
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+              variants={artisanAnimations.container}
+              initial="hidden"
+              animate="visible"
+            >
+              {productsData.products.map((product, index) => (
+                <motion.div
                   key={product.id}
-                  product={product}
-                  onAddToComparison={addToComparison}
-                />
+                  variants={artisanAnimations.gridItem}
+                  custom={index}
+                >
+                  <ProductCard
+                    product={product}
+                    onAddToComparison={addToComparison}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Pagination */}
             {productsData.pagination.totalPages > 1 && (

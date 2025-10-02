@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Star, MapPin, BarChart3, ShoppingCart, ShoppingBag } from "lucide-react";
+import { Heart, Star, MapPin, BarChart3, ShoppingCart, ShoppingBag, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/lib/api";
@@ -18,6 +19,8 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, onQuickView, onAddToComparison }: ProductCardProps) => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { addToCart, isLoading: cartLoading } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist, isLoading: wishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -49,6 +52,12 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
     try {
       await addToCart(product.id, 1);
+
+      // Show success animation
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+
+      toast.success('Added to cart successfully!');
     } catch (error) {
       // Error is already handled in the cart context
     }
@@ -101,19 +110,35 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
     : 0;
 
   return (
-    <div className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1">
+    <motion.div
+      className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300"
+      whileHover={{ y: -4, scale: 1.02 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+    >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden">
         <Link to={`/product/${product.id}`}>
-          <img 
-            src={product.images[0]} 
+          <motion.img
+            src={product.images[0]}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 cursor-pointer"
+            className="w-full h-full object-cover cursor-pointer"
+            whileHover={{ scale: 1.1 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           />
         </Link>
         
         {/* Overlay with quick actions */}
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              className="absolute inset-0 bg-black/20 flex items-center justify-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
           <Button 
             size="sm"
             onClick={() => setIsQuickViewOpen(true)}
@@ -131,7 +156,9 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
               Compare
             </Button>
           )}
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
@@ -151,30 +178,64 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         {/* Top right action buttons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2">
           {/* Wishlist button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
-              inWishlist ? 'text-red-500' : ''
-            }`}
-            title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
-            disabled={wishlistLoading}
-            onClick={handleWishlistToggle}
+          <motion.div
+            initial={{ y: -10, opacity: 0 }}
+            animate={isHovered ? { y: 0, opacity: 1 } : { y: -10, opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
-          </Button>
-          
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`bg-white/80 hover:bg-white rounded-full hover:scale-110 transition-all duration-300 ${
+                inWishlist ? 'text-red-500' : ''
+              }`}
+              title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+              disabled={wishlistLoading}
+              onClick={handleWishlistToggle}
+            >
+              <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
+            </Button>
+          </motion.div>
+
           {/* Add to cart icon button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-white/80 hover:bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-            disabled={!product.inStock || cartLoading || product.stockCount === 0}
-            onClick={handleAddToCart}
-            title="Add to Cart"
+          <motion.div
+            initial={{ y: -10, opacity: 0 }}
+            animate={isHovered ? { y: 0, opacity: 1 } : { y: -10, opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
-            <ShoppingCart className={`w-4 h-4 ${cartLoading ? 'animate-pulse' : ''}`} />
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-white/80 hover:bg-white rounded-full hover:scale-110 transition-all duration-300"
+              disabled={!product.inStock || cartLoading || product.stockCount === 0}
+              onClick={handleAddToCart}
+              title="Add to Cart"
+            >
+              <AnimatePresence mode="wait">
+                {showSuccess ? (
+                  <motion.div
+                    key="success"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Check className="w-4 h-4 text-green-500" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="cart"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ShoppingCart className={`w-4 h-4 ${cartLoading ? 'animate-pulse' : ''}`} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Button>
+          </motion.div>
         </div>
       </div>
 
@@ -218,27 +279,33 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         </div>
 
         {/* Primary Action Button - Changes based on wishlist status */}
-        {inWishlist ? (
-          <Button 
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 hover:scale-[1.02]"
-            disabled={!product.inStock || cartLoading || product.stockCount === 0}
-            onClick={handleAddToCart}
-            size="lg"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
-          </Button>
-        ) : (
-          <Button 
-            className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 hover:scale-[1.02]"
-            disabled={!product.inStock || cartLoading || product.stockCount === 0}
-            onClick={handleBuyNow}
-            size="lg"
-          >
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
-          </Button>
-        )}
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.2 }}
+        >
+          {inWishlist ? (
+            <Button
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300"
+              disabled={!product.inStock || cartLoading || product.stockCount === 0}
+              onClick={handleAddToCart}
+              size="lg"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
+            </Button>
+          ) : (
+            <Button
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300"
+              disabled={!product.inStock || cartLoading || product.stockCount === 0}
+              onClick={handleBuyNow}
+              size="lg"
+            >
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
+            </Button>
+          )}
+        </motion.div>
 
         {/* Stock info */}
         {product.inStock && product.stockCount <= 5 && product.stockCount > 0 && (
@@ -253,6 +320,6 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
       />
-    </div>
+    </motion.div>
   );
 };

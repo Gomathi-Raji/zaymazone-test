@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Star, MapPin, Truck, Shield, ArrowLeft, ArrowRight } from "lucide-react";
 import { Product } from "@/lib/api";
 import { toast } from "sonner";
+import { AnimatedDialog } from "./AnimatedDialog";
 
 interface QuickViewDialogProps {
   product: Product;
@@ -39,15 +40,20 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-          {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-              <img 
-                src={product.images[currentImageIndex]} 
-                alt={product.name}
+    <AnimatedDialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title={product.name}
+      description={`Product details for ${product.name}`}
+      className="max-w-4xl max-h-[90vh] overflow-auto"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Image Gallery */}
+        <div className="space-y-4">
+          <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <img 
+              src={product.images[currentImageIndex]} 
+              alt={product.name}
                 className="w-full h-full object-cover"
               />
               
@@ -241,7 +247,6 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </AnimatedDialog>
   );
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,20 +12,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Menu, User, Heart, Palette } from "lucide-react";
+import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { CartDrawer } from "./CartDrawer";
 import { SearchDialog } from "./SearchDialog";
 import { WishlistDrawer } from "./WishlistDrawer";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "@/contexts/AuthContext";
+import { scrollToTop } from "@/lib/scrollUtils";
 // Using the uploaded logo directly
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setIsScrolled(latest > 50);
+  });
 
   const NavLinks = () => (
     <>
-      <Link to="/" className="link-underline text-foreground hover:text-primary font-medium">
+      <Link
+        to="/"
+        className="link-underline text-foreground hover:text-primary font-medium"
+        onClick={scrollToTop}
+      >
         Home
       </Link>
       <Link to="/shop" className="link-underline text-foreground hover:text-primary font-medium">
@@ -50,15 +62,26 @@ export const Navigation = () => {
   );
 
   return (
-    <nav className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50">
+    <motion.nav
+      className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50"
+      animate={{
+        backgroundColor: isScrolled ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.8)",
+        backdropFilter: isScrolled ? "blur(12px)" : "blur(8px)",
+      }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center group">
-              <img 
-                src="/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png" 
-                alt="ZAYMAZONE Logo" 
+            <Link
+              to="/"
+              className="flex items-center group"
+              onClick={scrollToTop}
+            >
+              <img
+                src="/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png"
+                alt="ZAYMAZONE Logo"
                 className="h-20 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
               />
             </Link>
@@ -123,14 +146,62 @@ export const Navigation = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <div className="flex flex-col space-y-6 mt-6">
-                  <NavLinks />
-                </div>
+                <motion.div
+                  className="flex flex-col space-y-6 mt-6"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: {
+                      opacity: 1,
+                      transition: {
+                        staggerChildren: 0.1,
+                        delayChildren: 0.2,
+                      },
+                    },
+                  }}
+                >
+                  {[
+                    { to: "/", label: "Home", onClick: scrollToTop },
+                    { to: "/shop", label: "Shop" },
+                    { to: "/categories", label: "Categories" },
+                    { to: "/artisans", label: "Artisans" },
+                    { to: "/blog", label: "Blog" },
+                    { to: "/about", label: "About" },
+                    { to: "/contact", label: "Contact" },
+                  ].map((item, index) => (
+                    <motion.div
+                      key={item.to}
+                      variants={{
+                        hidden: { x: 50, opacity: 0 },
+                        visible: {
+                          x: 0,
+                          opacity: 1,
+                          transition: {
+                            duration: 0.4,
+                            ease: [0.25, 0.46, 0.45, 0.94],
+                          },
+                        },
+                      }}
+                    >
+                      <Link
+                        to={item.to}
+                        className="link-underline text-foreground hover:text-primary font-medium block py-2"
+                        onClick={() => {
+                          if (item.onClick) item.onClick();
+                          setIsOpen(false);
+                        }}
+                      >
+                        {item.label}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
               </SheetContent>
             </Sheet>
           </div>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 };

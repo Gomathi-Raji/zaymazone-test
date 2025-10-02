@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, Store, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { scrollToTop } from "@/lib/scrollUtils";
 
 const MobileBottomNav = () => {
   const location = useLocation();
@@ -9,7 +10,8 @@ const MobileBottomNav = () => {
     {
       icon: Home,
       label: "Home",
-      path: "/"
+      path: "/",
+      onClick: scrollToTop
     },
     {
       icon: Store,
@@ -40,6 +42,7 @@ const MobileBottomNav = () => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={item.onClick}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 py-2 px-1 rounded-lg transition-all duration-200",
                 isActive
