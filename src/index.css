@@ -919,6 +919,80 @@ All colors MUST be HSL.
     }
   }
 
+  /* Mobile product detail page styles */
+  @media (max-width: 768px) {
+    /* Ensure mobile containment for product detail pages */
+    .mobile-product-detail {
+      width: 100vw;
+      max-width: 100vw;
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
+
+    .mobile-product-detail * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Product images should never overflow */
+    .mobile-product-detail img {
+      width: 100% !important;
+      height: auto !important;
+      max-width: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
+
+    /* Text content should wrap properly */
+    .mobile-product-detail h1,
+    .mobile-product-detail h2,
+    .mobile-product-detail h3,
+    .mobile-product-detail p,
+    .mobile-product-detail span,
+    .mobile-product-detail dt,
+    .mobile-product-detail dd,
+    .mobile-product-detail li {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      -webkit-hyphens: auto;
+      hyphens: auto;
+      max-width: 100%;
+    }
+
+    /* Flex containers should not overflow */
+    .mobile-product-detail .flex {
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    /* Grid containers should be contained */
+    .mobile-product-detail .grid {
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    /* Tab content should be contained */
+    .mobile-product-detail [data-radix-tabs-content] {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Button containers should wrap */
+    .mobile-product-detail .space-y-3,
+    .mobile-product-detail .space-y-4 {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Ensure all divs are contained */
+    .mobile-product-detail div {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
   .mobile-grid {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));

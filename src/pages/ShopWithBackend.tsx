@@ -21,9 +21,7 @@ import { SkeletonGrid } from "@/components/SkeletonCard";
 
 const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
@@ -57,9 +55,7 @@ const ShopWithBackend = () => {
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       q: searchQuery || undefined,
       minPrice: priceRange.min,
-      maxPrice: priceRange.max,
-      sortBy,
-      availability: availabilityFilter !== 'all' ? availabilityFilter : undefined
+      maxPrice: priceRange.max
     }],
     queryFn: () => productsApi.getAll({
       page,
@@ -67,9 +63,7 @@ const ShopWithBackend = () => {
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       q: searchQuery || undefined,
       minPrice: priceRange.min,
-      maxPrice: priceRange.max,
-      sortBy,
-      availability: availabilityFilter !== 'all' ? availabilityFilter : undefined
+      maxPrice: priceRange.max
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -102,9 +96,7 @@ const ShopWithBackend = () => {
   const clearFilters = () => {
     setSearchQuery("");
     setCategoryFilter("all");
-    setAvailabilityFilter("all");
     setPriceRange({});
-    setSortBy("newest");
     setPage(1);
   };
 
@@ -160,7 +152,7 @@ const ShopWithBackend = () => {
           </form>
 
           {/* Enhanced Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger>
@@ -173,33 +165,6 @@ const ShopWithBackend = () => {
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-
-            {/* Sort Filter */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort By" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="featured">Featured</SelectItem>
-                <SelectItem value="price_low">Price: Low to High</SelectItem>
-                <SelectItem value="price_high">Price: High to Low</SelectItem>
-                <SelectItem value="rating">Customer Rating</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Availability Filter */}
-            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Availability" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                <SelectItem value="instock">In Stock Only</SelectItem>
-                <SelectItem value="outofstock">Out of Stock</SelectItem>
               </SelectContent>
             </Select>
 
@@ -229,7 +194,7 @@ const ShopWithBackend = () => {
           </div>
 
           {/* Active Filters Display */}
-          {(categoryFilter !== "all" || Object.keys(priceRange).length > 0 || availabilityFilter !== "all" || searchQuery) && (
+          {(categoryFilter !== "all" || Object.keys(priceRange).length > 0 || searchQuery) && (
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               {categoryFilter !== "all" && (
@@ -242,12 +207,6 @@ const ShopWithBackend = () => {
                 <Badge variant="secondary" className="gap-1">
                   Price: ₹{priceRange.min?.toLocaleString()} - ₹{priceRange.max?.toLocaleString()}
                   <button onClick={() => setPriceRange({})} className="ml-1 hover:text-destructive">×</button>
-                </Badge>
-              )}
-              {availabilityFilter !== "all" && (
-                <Badge variant="secondary" className="gap-1">
-                  {availabilityFilter === "instock" ? "In Stock" : "Out of Stock"}
-                  <button onClick={() => setAvailabilityFilter("all")} className="ml-1 hover:text-destructive">×</button>
                 </Badge>
               )}
               {searchQuery && (
