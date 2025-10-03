@@ -80,6 +80,10 @@ export const WishlistProvider = ({ children }: WishlistProviderProps) => {
       console.error('Error fetching wishlist:', error);
       // Set empty wishlist on error
       setWishlist({ products: [] });
+      // Only show toast for network errors, not for authentication issues
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        toast.error('Unable to connect to server. Please check your internet connection.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useProductComparison } from "@/hooks/useProductComparison";
 import { productsApi, Product } from "@/lib/api";
 import { artisanAnimations } from "@/lib/animations";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 import { SkeletonGrid } from "@/components/SkeletonCard";
 
@@ -36,6 +37,16 @@ const ShopWithBackend = () => {
     closeComparison,
     comparisonCount
   } = useProductComparison();
+
+  // Pull-to-refresh functionality
+  const handleRefresh = async () => {
+    await refetch();
+  };
+
+  const { containerRef, isRefreshing, pullProgress, handlers } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+  });
 
   // Use backend API instead of mock data
   const { data: productsData, isLoading, error, refetch } = useQuery({
@@ -214,14 +225,30 @@ const ShopWithBackend = () => {
           <SkeletonGrid count={8} />
         )}
 
-        {/* Product Grid */}
+        {/* Product Grid with Pull-to-Refresh */}
         {!isLoading && productsData && (
-          <>
+          <div
+            ref={containerRef}
+            {...handlers}
+            className="relative"
+          >
+            {/* Pull-to-refresh indicator */}
+            {isRefreshing && (
+              <div className="mobile-pull-refresh refreshing">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                Refreshing...
+              </div>
+            )}
+
             <motion.div
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
               variants={artisanAnimations.container}
               initial="hidden"
               animate="visible"
+              style={{
+                transform: pullProgress > 0 ? `translateY(${pullProgress * 60}px)` : 'none',
+                transition: isRefreshing ? 'none' : 'transform 0.2s ease-out'
+              }}
             >
               {productsData.products.map((product, index) => (
                 <motion.div
@@ -247,7 +274,7 @@ const ShopWithBackend = () => {
                 >
                   Previous
                 </Button>
-                
+
                 <div className="flex items-center gap-2">
                   {[...Array(productsData.pagination.totalPages)].map((_, i) => (
                     <Button
@@ -270,7 +297,7 @@ const ShopWithBackend = () => {
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* No Results */}

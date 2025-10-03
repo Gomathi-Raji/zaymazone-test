@@ -54,6 +54,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       console.error('Failed to fetch cart:', error);
       // Don't show error toast for cart fetch failures
       setCart({ items: [], total: 0, itemCount: 0, updatedAt: new Date().toISOString() });
+      // Only show toast for network errors
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        toast.error('Unable to connect to server. Cart functionality may be limited.');
+      }
     } finally {
       setIsLoading(false);
     }

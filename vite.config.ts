@@ -8,12 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    // Proxy API requests to production backend
+    // Proxy API requests to local mock server in development, production backend otherwise
     proxy: {
       '/api': {
-        target: 'https://zaymazone-backend.onrender.com',
+        target: mode === 'development' ? 'http://localhost:5000' : 'https://zaymazone-backend.onrender.com',
         changeOrigin: true,
-        secure: true,
+        secure: mode !== 'development',
       }
     }
   },

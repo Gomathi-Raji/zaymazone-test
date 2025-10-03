@@ -112,7 +112,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
   return (
     <motion.div
-      className="group bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300"
+      className="group bg-card mobile-card overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300"
       whileHover={{ y: -4, scale: 1.02 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -241,10 +241,10 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
       </div>
 
       {/* Product Info */}
-      <div className="p-5">
+      <div className="mobile-container">
         <div className="flex items-start justify-between mb-2">
           <Link to={`/product/${product.id}`}>
-            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer">
+            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer mobile-body">
               {product.name}
             </h3>
           </Link>
@@ -253,10 +253,10 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         {/* Artisan Info */}
         {product.artisan && (
           <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
-            <MapPin className="w-3 h-3" />
-            <span>{product.artisan.name}</span>
-            <span>•</span>
-            <span>{product.artisan.location}</span>
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{product.artisan.name}</span>
+            <span className="flex-shrink-0">•</span>
+            <span className="truncate">{product.artisan.location}</span>
           </div>
         )}
 
@@ -270,10 +270,10 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl font-bold text-foreground">₹{product.price.toLocaleString()}</span>
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="mobile-heading text-foreground">₹{product.price.toLocaleString()}</span>
           {product.originalPrice && (
-            <span className="text-sm text-muted-foreground line-through">
+            <span className="mobile-body text-muted-foreground line-through">
               ₹{product.originalPrice.toLocaleString()}
             </span>
           )}
@@ -287,20 +287,18 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         >
           {inWishlist ? (
             <Button
-              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300"
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 mobile-btn"
               disabled={!product.inStock || cartLoading || product.stockCount === 0}
               onClick={handleAddToCart}
-              size="lg"
             >
               <ShoppingCart className="w-4 h-4 mr-2" />
               {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
             </Button>
           ) : (
             <Button
-              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300"
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 mobile-btn"
               disabled={!product.inStock || cartLoading || product.stockCount === 0}
               onClick={handleBuyNow}
-              size="lg"
             >
               <ShoppingBag className="w-4 h-4 mr-2" />
               {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
