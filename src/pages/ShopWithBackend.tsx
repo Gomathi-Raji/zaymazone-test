@@ -132,13 +132,13 @@ const ShopWithBackend = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 overflow-hidden">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+        <div className="mb-6 text-center px-2">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
             Shop Artisan Crafts
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover authentic handcrafted treasures from skilled artisans across India
           </p>
         </div>
@@ -308,7 +308,7 @@ const ShopWithBackend = () => {
             )}
 
             <motion.div
-              className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6 mb-8"
+              className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5 xl:gap-6 mb-8 px-2 sm:px-0"
               variants={artisanAnimations.container}
               initial="hidden"
               animate="visible"

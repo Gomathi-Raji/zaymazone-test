@@ -844,6 +844,7 @@ All colors MUST be HSL.
     width: 100%;
     max-width: 100%;
     overflow: hidden;
+    min-width: 0; /* Prevent flex item overflow */
   }
 
   .product-image-mobile {
@@ -853,6 +854,54 @@ All colors MUST be HSL.
     object-position: center;
     aspect-ratio: 1 / 1; /* Force square aspect ratio */
     max-height: 100%;
+    display: block;
+  }
+
+  /* Ensure mobile grid doesn't overflow */
+  .mobile-product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .mobile-product-grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Force image containment */
+  .mobile-product-card {
+    contain: layout style size;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mobile-product-card img {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+
+  /* Container queries for very small screens */
+  @media (max-width: 375px) {
+    .mobile-grid-products {
+      gap: 0.25rem;
+      padding: 0.125rem;
+    }
+    
+    .mobile-product-card {
+      font-size: 0.75rem;
+    }
+    
+    .mobile-product-card .p-3 {
+      padding: 0.5rem;
+    }
   }
 
   /* Mobile grid layout */

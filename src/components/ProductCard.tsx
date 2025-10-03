@@ -112,22 +112,23 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
   return (
     <motion.div
-      className="group bg-card rounded-xl overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300 w-full max-w-full"
-      whileHover={{ y: -4, scale: 1.02 }}
+      className="group bg-card rounded-lg overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300 w-full min-w-0 mobile-product-card"
+      whileHover={{ y: -2, scale: 1.01 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <div className="relative aspect-square overflow-hidden bg-gray-50">
         <Link to={`/product/${product.id}`}>
           <motion.img
             src={getImageUrl(product.images[0])}
             alt={product.name}
-            className="w-full h-full object-cover object-center cursor-pointer"
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="w-full h-full object-cover object-center cursor-pointer block"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             loading="lazy"
+            style={{ maxWidth: '100%', height: 'auto' }}
           />
         </Link>
         
@@ -242,10 +243,10 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
       </div>
 
       {/* Product Info */}
-      <div className="p-4 space-y-3">
-        <div className="flex items-start justify-between mb-2">
+      <div className="p-3 space-y-2">
+        <div className="flex items-start justify-between mb-1">
           <Link to={`/product/${product.id}`}>
-            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer text-sm sm:text-base">
+            <h3 className="font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer text-xs sm:text-sm leading-tight">
               {product.name}
             </h3>
           </Link>
@@ -253,28 +254,26 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
         {/* Artisan Info */}
         {product.artisan && (
-          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1 mb-2 text-xs text-muted-foreground">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{product.artisan.name}</span>
-            <span className="flex-shrink-0">•</span>
-            <span className="truncate">{product.artisan.location}</span>
+            <span className="truncate text-xs">{product.artisan.name}</span>
           </div>
         )}
 
         {/* Rating */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-1 mb-2">
           <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-medium">{product.rating}</span>
+            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-xs font-medium">{product.rating}</span>
           </div>
-          <span className="text-sm text-muted-foreground">({product.reviewCount})</span>
+          <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="text-lg font-bold text-foreground">₹{product.price.toLocaleString()}</span>
+        <div className="flex items-center gap-1 mb-3 flex-wrap">
+          <span className="text-sm font-bold text-foreground">₹{product.price.toLocaleString()}</span>
           {product.originalPrice && (
-            <span className="text-sm text-muted-foreground line-through">
+            <span className="text-xs text-muted-foreground line-through">
               ₹{product.originalPrice.toLocaleString()}
             </span>
           )}
@@ -282,26 +281,28 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
         {/* Primary Action Button - Changes based on wishlist status */}
         <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
           transition={{ duration: 0.2 }}
         >
           {inWishlist ? (
             <Button
-              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 mobile-btn"
+              size="sm"
+              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 text-xs py-2"
               disabled={!product.inStock || cartLoading || product.stockCount === 0}
               onClick={handleAddToCart}
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
+              <ShoppingCart className="w-3 h-3 mr-1" />
               {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
             </Button>
           ) : (
             <Button
-              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 mobile-btn"
+              size="sm"
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 text-xs py-2"
               disabled={!product.inStock || cartLoading || product.stockCount === 0}
               onClick={handleBuyNow}
             >
-              <ShoppingBag className="w-4 h-4 mr-2" />
+              <ShoppingBag className="w-3 h-3 mr-1" />
               {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
             </Button>
           )}
