@@ -3,12 +3,12 @@ import { logEvent } from "./security";
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
   // Check for explicit API URL from environment
-  if (import.meta.env.VITE_API_URL) {
-    return (import.meta.env.VITE_API_URL as string).replace('/api', '');
+  if ((import.meta as any).env.VITE_API_URL) {
+    return ((import.meta as any).env.VITE_API_URL as string).replace('/api', '');
   }
 
   // In development, use localhost
-  if (import.meta.env.DEV) {
+  if ((import.meta as any).env.DEV) {
     return "http://localhost:4000";
   }
 
@@ -22,7 +22,7 @@ const getApiBaseUrl = () => {
   }
 
   // For production deployments, assume backend is on the same domain or use environment variable
-  return import.meta.env.VITE_BACKEND_URL || `${currentOrigin}/api`.replace('/api/api', '/api');
+  return (import.meta as any).env.VITE_BACKEND_URL || `${currentOrigin}/api`.replace('/api/api', '/api');
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -301,7 +301,8 @@ export const firebaseAuthApi = {
 		name?: string; 
 		phone?: string; 
 		address?: Partial<User['address']>; 
-		preferences?: Partial<User['preferences']>; 
+		preferences?: Partial<User['preferences']>;
+		avatar?: string;
 	}, idToken: string) =>
 		apiRequest<{ message: string; user: User }>(
 			"/api/firebase-auth/profile",
@@ -358,6 +359,35 @@ export const productsApi = {
 			method: "DELETE", 
 			auth: true 
 		}),
+};
+
+export const imagesApi = {
+	upload: (file: File) => {
+		const url = `${API_BASE_URL}/api/images/upload`;
+		const form = new FormData();
+		form.append('image', file);
+
+		// Attach auth token if available
+		const headers: Record<string, string> = {};
+		try {
+			const firebaseToken = getFirebaseToken();
+			const jwt = getAuthToken();
+			const token = firebaseToken || jwt;
+			if (token) headers['Authorization'] = `Bearer ${token}`;
+		} catch {}
+
+		return fetch(url, {
+			method: 'POST',
+			body: form,
+			headers,
+		}).then(async (res) => {
+			if (!res.ok) {
+				const text = await res.text().catch(() => 'Upload failed');
+				throw new Error(text || `Upload failed: ${res.status}`);
+			}
+			return res.json();
+		});
+	}
 };
 
 export const cartApi = {
@@ -606,6 +636,81 @@ export const artisansApi = {
 		apiRequest<Artisan>(`/api/artisans/${id}`),
 };
 
+export const addressesApi = {
+	getAll: () => apiRequest<any[]>('/api/addresses', { auth: true }),
+	
+	add: (address: any) => 
+		apiRequest<{ address: any }>('/api/addresses', {
+			method: 'POST',
+			body: address,
+			auth: true
+		}),
+	
+	update: (id: string, address: any) => 
+		apiRequest<{ address: any }>(`/api/addresses/${id}`, {
+			method: 'PUT',
+			body: address,
+			auth: true
+		}),
+	
+	delete: (id: string) => 
+		apiRequest<{ message: string }>(`/api/addresses/${id}`, {
+			method: 'DELETE',
+			auth: true
+		}),
+	
+	setDefault: (id: string) => 
+		apiRequest<{ message: string }>(`/api/addresses/${id}/default`, {
+			method: 'PUT',
+			auth: true
+		}),
+};
+
+export const blogApi = {
+	getAll: (params?: {
+		page?: number;
+		limit?: number;
+		category?: string;
+		tag?: string;
+		search?: string;
+		featured?: boolean;
+	}) => {
+		const searchParams = new URLSearchParams();
+		if (params) {
+			Object.entries(params).forEach(([key, value]) => {
+				if (value !== undefined) {
+					searchParams.append(key, value.toString());
+				}
+			});
+		}
+		const queryString = searchParams.toString();
+		return apiRequest<{
+			posts: any[];
+			pagination: any;
+		}>(`/api/blog${queryString ? `?${queryString}` : ''}`);
+	},
+
+	getById: (id: string) =>
+		apiRequest<any>(`/api/blog/${id}`),
+
+	getCategories: () =>
+		apiRequest<string[]>('/api/blog/categories'),
+
+	getTags: () =>
+		apiRequest<string[]>('/api/blog/tags'),
+
+	getFeatured: () =>
+		apiRequest<any[]>('/api/blog/featured'),
+
+	like: (id: string) =>
+		apiRequest<{ message: string; likes: number }>(`/api/blog/${id}/like`, {
+			method: 'PATCH'
+		}),
+
+	getRelated: (id: string) =>
+		apiRequest<any[]>(`/api/blog/${id}/related`),
+};
+
 // Unified API export
 export const api = {
 	// Auth
@@ -648,6 +753,8 @@ export const api = {
 	// Artisans
 	getArtisans: artisansApi.getAll,
 	getArtisan: artisansApi.getById,
+	// Images
+	uploadImage: imagesApi.upload,
 	
 	// Wishlist
 	getWishlist: () => apiRequest<any[]>('/api/wishlist', { auth: true }),
@@ -667,6 +774,22 @@ export const api = {
 			method: 'DELETE',
 			auth: true
 		}),
+	
+	// Addresses
+	getUserAddresses: addressesApi.getAll,
+	addAddress: addressesApi.add,
+	updateAddress: addressesApi.update,
+	deleteAddress: addressesApi.delete,
+	setDefaultAddress: addressesApi.setDefault,
+
+	// Blog
+	getBlogPosts: blogApi.getAll,
+	getBlogPost: blogApi.getById,
+	getBlogCategories: blogApi.getCategories,
+	getBlogTags: blogApi.getTags,
+	getFeaturedBlogPosts: blogApi.getFeatured,
+	likeBlogPost: blogApi.like,
+	getRelatedBlogPosts: blogApi.getRelated,
 };
 
 // Utility function to handle image URLs

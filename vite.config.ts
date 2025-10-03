@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
     // Proxy API requests to local mock server in development, production backend otherwise
     proxy: {
       '/api': {
-        target: mode === 'development' ? 'http://localhost:5000' : 'https://zaymazone-backend.onrender.com',
+        target: mode === 'development' ? 'http://localhost:4000' : 'https://zaymazone-backend.onrender.com',
         changeOrigin: true,
         secure: mode !== 'development',
       }

@@ -223,7 +223,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     name?: string; 
     phone?: string; 
     address?: Partial<User['address']>; 
-    preferences?: Partial<User['preferences']>; 
+    preferences?: Partial<User['preferences']>;
+    avatar?: string;
   }): Promise<void> => {
     try {
       if (!user) {
@@ -243,6 +244,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         name: updatedUser.name,
         phone: updatedUser.phone,
         address: updatedUser.address,
+        avatar: updatedUser.avatar,
         preferences: updatedUser.preferences
       };
 

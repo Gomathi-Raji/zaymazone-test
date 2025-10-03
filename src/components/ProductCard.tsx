@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Star, MapPin, BarChart3, ShoppingCart, ShoppingBag, Check } from "lucide-react";
+import { Heart, Star, MapPin, BarChart3, ShoppingCart, ShoppingBag, Check, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const { addToCart, isLoading: cartLoading } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist, isLoading: wishlistLoading } = useWishlist();
   const { isAuthenticated } = useAuth();
@@ -120,7 +121,8 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gray-50">
-        <Link to={`/product/${product.id}`}>
+        {/* Desktop - Link to product page */}
+        <Link to={`/product/${product.id}`} className="hidden md:block">
           <motion.img
             src={getImageUrl(product.images[0])}
             alt={product.name}
@@ -131,34 +133,141 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
             style={{ maxWidth: '100%', height: 'auto' }}
           />
         </Link>
+
+        {/* Mobile - Touchable image */}
+        <div className="md:hidden relative">
+          <motion.img
+            src={getImageUrl(product.images[0])}
+            alt={product.name}
+            className="w-full h-full object-cover object-center cursor-pointer block"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowMobileActions(!showMobileActions);
+            }}
+            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            loading="lazy"
+            style={{ maxWidth: '100%', height: 'auto' }}
+          />
+          {/* Touch hint */}
+          {!showMobileActions && (
+            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+              Tap for actions
+            </div>
+          )}
+        </div>
         
-        {/* Overlay with quick actions */}
+        {/* Desktop overlay - Hidden on mobile */}
         <AnimatePresence>
           {isHovered && (
             <motion.div
-              className="absolute inset-0 bg-black/20 flex items-center justify-center gap-2"
+              className="hidden md:flex absolute inset-0 bg-black/20 items-center justify-center gap-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-          <Button 
-            size="sm"
-            onClick={() => setIsQuickViewOpen(true)}
-            className="bg-white text-foreground hover:bg-white/90 border border-white/20 shadow-soft"
-          >
-            Quick View
-          </Button>
-          {onAddToComparison && (
-            <Button 
-              size="sm"
-              onClick={() => onAddToComparison(product)}
-              className="bg-white/90 text-foreground hover:bg-white border border-white/20 shadow-soft"
-            >
-              <BarChart3 className="w-3 h-3 mr-1" />
-              Compare
-            </Button>
+              <Button 
+                size="sm"
+                onClick={() => setIsQuickViewOpen(true)}
+                className="bg-white text-foreground hover:bg-white/90 border border-white/20 shadow-soft"
+              >
+                Quick View
+              </Button>
+              {onAddToComparison && (
+                <Button 
+                  size="sm"
+                  onClick={() => onAddToComparison(product)}
+                  className="bg-white/90 text-foreground hover:bg-white border border-white/20 shadow-soft"
+                >
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  Compare
+                </Button>
+              )}
+            </motion.div>
           )}
+        </AnimatePresence>
+
+        {/* Mobile Action Panel - Appears on touch */}
+        <AnimatePresence>
+          {showMobileActions && (
+            <motion.div
+              className="md:hidden absolute inset-0 bg-transparent flex items-center justify-end pr-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowMobileActions(false)}
+            >
+              <motion.div
+                className="flex flex-col gap-2 p-1 rounded-lg"
+                initial={{ x: 40, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 40, opacity: 0 }}
+                transition={{ duration: 0.2, delay: 0.05 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Wishlist */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-12 w-12 rounded-full hover:scale-105 transition-transform ${
+                    inWishlist ? 'text-red-500' : 'text-gray-100/90'
+                  }`}
+                  onClick={handleWishlistToggle}
+                  disabled={wishlistLoading}
+                  title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                >
+                  <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
+                </Button>
+
+                {/* Cart */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12 rounded-full hover:scale-105 transition-transform text-gray-100/90"
+                  onClick={handleAddToCart}
+                  disabled={!product.inStock || cartLoading || product.stockCount === 0}
+                  title="Add to Cart"
+                >
+                  <AnimatePresence mode="wait">
+                    {showSuccess ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <ShoppingCart className={`w-5 h-5 ${cartLoading ? 'animate-pulse' : ''}`} />
+                    )}
+                  </AnimatePresence>
+                </Button>
+
+                {/* Quick View */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12 rounded-full hover:scale-105 transition-transform text-gray-100/90"
+                  onClick={() => {
+                    setIsQuickViewOpen(true);
+                    setShowMobileActions(false);
+                  }}
+                  title="Quick View"
+                >
+                  <Eye className="w-5 h-5" />
+                </Button>
+
+                {/* Compare */}
+                {onAddToComparison && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-12 w-12 rounded-full hover:scale-105 transition-transform text-gray-100/90"
+                    onClick={() => {
+                      onAddToComparison(product);
+                      setShowMobileActions(false);
+                    }}
+                    title="Compare"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                  </Button>
+                )}
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -178,8 +287,8 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
           )}
         </div>
 
-        {/* Top right action buttons */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
+        {/* Desktop action buttons - Hidden on mobile */}
+        <div className="hidden md:flex absolute top-3 right-3 flex-col gap-2">
           {/* Wishlist button */}
           <motion.div
             initial={{ y: -10, opacity: 0 }}
@@ -242,6 +351,8 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         </div>
       </div>
 
+
+
       {/* Product Info */}
       <div className="p-3 space-y-2">
         <div className="flex items-start justify-between mb-1">
@@ -279,33 +390,21 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
           )}
         </div>
 
-        {/* Primary Action Button - Changes based on wishlist status */}
+        {/* Primary Action Button - Always Buy Now */}
         <motion.div
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           transition={{ duration: 0.2 }}
         >
-          {inWishlist ? (
-            <Button
-              size="sm"
-              className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all duration-300 text-xs py-2"
-              disabled={!product.inStock || cartLoading || product.stockCount === 0}
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="w-3 h-3 mr-1" />
-              {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 text-xs py-2"
-              disabled={!product.inStock || cartLoading || product.stockCount === 0}
-              onClick={handleBuyNow}
-            >
-              <ShoppingBag className="w-3 h-3 mr-1" />
-              {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
-            </Button>
-          )}
+          <Button
+            size="sm"
+            className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 text-xs py-2"
+            disabled={!product.inStock || cartLoading || product.stockCount === 0}
+            onClick={handleBuyNow}
+          >
+            <ShoppingBag className="w-3 h-3 mr-1" />
+            {!product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Buy Now'}
+          </Button>
         </motion.div>
 
         {/* Stock info */}

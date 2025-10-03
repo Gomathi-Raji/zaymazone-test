@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { 
   User, 
   Mail, 
@@ -21,80 +21,109 @@ import {
   Star,
   Edit,
   Save,
-  Camera
+  Camera,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
-import { getImageUrl } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { getImageUrl, api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
-  const { toast } = useToast();
+  const { user, updateUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    bio: "Art enthusiast and collector of traditional crafts. I love supporting local artisans and discovering unique handmade pieces.",
-    joinDate: "March 2023"
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    bio: "",
+    joinDate: "",
+    avatar: ""
   });
 
-  const [orders] = useState([
-    {
-      id: "#ORD-2024-001",
-      date: "Jan 15, 2024",
-      status: "Delivered",
-      total: "$187",
-      items: 2,
-      artisan: "Renu Kumari"
-    },
-    {
-      id: "#ORD-2024-002", 
-      date: "Jan 08, 2024",
-      status: "Shipped",
-      total: "$245",
-      items: 1,
-      artisan: "Vikram Sharma"
-    },
-    {
-      id: "#ORD-2024-003",
-      date: "Dec 28, 2023", 
-      status: "Delivered",
-      total: "$98",
-      items: 3,
-      artisan: "Meera Devi"
-    }
-  ]);
+  const [orders, setOrders] = useState<any[]>([]);
 
-  const [wishlist] = useState([
-    {
-      id: 1,
-      name: "Handwoven Kashmiri Shawl",
-      price: "$180",
-      artisan: "Rajesh Kumar",
-      image: getImageUrl('/assets/wishlist-kashmiri-shawl.jpg')
-    },
-    {
-      id: 2,
-      name: "Blue Pottery Dinner Set",
-      price: "$125",
-      artisan: "Renu Kumari", 
-      image: getImageUrl('/assets/wishlist-blue-pottery.jpg')
-    },
-    {
-      id: 3,
-      name: "Copper Water Bottle",
-      price: "$45",
-      artisan: "Arjun Singh",
-      image: getImageUrl('/assets/wishlist-copper-bottle.jpg')
-    }
-  ]);
+  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalSpent: 0,
+    wishlistItems: 0,
+    memberSince: ""
+  });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
-    });
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
+
+  const loadUserData = async () => {
+    setLoading(true);
+    try {
+      // Load user data from context
+      setUserData({
+        name: user?.name || "",
+        email: user?.email || "",
+        phone: user?.phone || "",
+        location: user?.address ? `${user.address.city}, ${user.address.state}` : "",
+        bio: "Art enthusiast and collector of traditional crafts.",
+        joinDate: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "",
+        avatar: user?.avatar || ""
+      });
+
+      // Load orders and wishlist
+      const [ordersData, wishlistData] = await Promise.all([
+        api.getUserOrders().catch(() => ({ orders: [] })),
+        api.getWishlist().catch(() => [])
+      ]);
+
+      setOrders(ordersData.orders || []);
+      // Ensure wishlistData is an array
+      const wishlistItems = Array.isArray(wishlistData)
+        ? wishlistData
+        : (wishlistData && Array.isArray((wishlistData as any).products)
+           ? (wishlistData as any).products
+           : []);
+      setWishlist(wishlistItems);
+
+      // Calculate stats
+      const totalSpent = (ordersData.orders || []).reduce((sum: number, order: any) => sum + (order.total || 0), 0);
+      setStats({
+        totalOrders: ordersData.orders?.length || 0,
+        totalSpent,
+        wishlistItems: wishlistItems.length || 0,
+        memberSince: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ""
+      });
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      if (updateUserProfile) {
+        await updateUserProfile({
+          name: userData.name,
+          phone: userData.phone,
+          address: {
+            city: userData.location.split(',')[0]?.trim() || "",
+            state: userData.location.split(',')[1]?.trim() || "",
+            street: "",
+            zipCode: "",
+            country: "India"
+          }
+        });
+      }
+      setIsEditing(false);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      toast.error('Failed to update profile');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,6 +134,21 @@ const Profile = () => {
       default: return <Badge variant="destructive">Pending</Badge>;
     }
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Please sign in</h2>
+            <p className="text-muted-foreground">You need to be logged in to access your profile</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,8 +200,8 @@ const Profile = () => {
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <Avatar className="w-20 h-20">
-                        <AvatarImage src={getImageUrl('/assets/user-avatar.jpg')} />
-                        <AvatarFallback>SJ</AvatarFallback>
+                        <AvatarImage src={userData.avatar ? getImageUrl(userData.avatar) : getImageUrl('/assets/user-avatar.jpg')} />
+                        <AvatarFallback>{userData.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}</AvatarFallback>
                       </Avatar>
                       {isEditing && (
                         <Button size="sm" variant="outline" className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0" aria-label="Change profile picture">
@@ -236,19 +280,19 @@ const Profile = () => {
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Total Orders</span>
-                      <span className="font-semibold">12</span>
+                      <span className="font-semibold">{stats.totalOrders}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Total Spent</span>
-                      <span className="font-semibold">$1,247</span>
+                      <span className="font-semibold">₹{stats.totalSpent.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Wishlist Items</span>
-                      <span className="font-semibold">8</span>
+                      <span className="font-semibold">{stats.wishlistItems}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Member Since</span>
-                      <span className="font-semibold">{userData.joinDate}</span>
+                      <span className="font-semibold">{stats.memberSince}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -288,28 +332,40 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {orders.map((order, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-foreground">{order.id}</p>
-                          <p className="text-sm text-muted-foreground">{order.date}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {order.items} item{order.items > 1 ? 's' : ''} from {order.artisan}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="font-semibold text-foreground">{order.total}</p>
-                          {getStatusBadge(order.status)}
-                        </div>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin" />
                     </div>
-                  ))}
+                  ) : orders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No orders yet</h3>
+                      <p className="text-muted-foreground">Start shopping to see your orders here</p>
+                    </div>
+                  ) : (
+                    orders.map((order: any) => (
+                      <div key={order.id || order._id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-foreground">#{(order.id || order._id)?.slice(-8)}</p>
+                            <p className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {order.items?.length || 0} item{(order.items?.length || 0) > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-semibold text-foreground">₹{(order.total || 0).toLocaleString()}</p>
+                            {getStatusBadge(order.status)}
+                          </div>
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -323,32 +379,44 @@ const Profile = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {wishlist.map((item) => (
-                    <Card key={item.id} className="overflow-hidden">
-                      <div className="aspect-square bg-muted">
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium text-foreground mb-1">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">by {item.artisan}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">{item.price}</span>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Heart className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm">
-                              <ShoppingBag className="w-4 h-4" />
-                            </Button>
-                          </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8 col-span-full">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                    </div>
+                  ) : wishlist.length === 0 ? (
+                    <div className="text-center py-8 col-span-full">
+                      <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
+                      <p className="text-muted-foreground">Save items you love for later</p>
+                    </div>
+                  ) : (
+                    wishlist.map((item: any) => (
+                      <Card key={item.productId?._id || item.id || item._id} className="overflow-hidden">
+                        <div className="aspect-square bg-muted">
+                          <img 
+                            src={getImageUrl(item.productId?.images?.[0] || item.image || '/placeholder.svg')} 
+                            alt={item.productId?.name || item.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CardContent className="p-4">
+                          <h3 className="font-medium text-foreground mb-1">{item.productId?.name || item.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">by {item.productId?.artisan?.name || item.artisan?.name || 'Unknown Artisan'}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground">₹{(item.productId?.price || item.price || 0).toLocaleString()}</span>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline">
+                                <Heart className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm">
+                                <ShoppingBag className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

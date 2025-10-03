@@ -17,6 +17,7 @@ import paymentsRouter from './routes/payments.js'
 import cartRouter from './routes/cart.js'
 import reviewsRouter from './routes/reviews.js'
 import wishlistRouter from './routes/wishlist.js'
+import addressesRouter from './routes/addresses.js'
 import imagesRouter from './routes/images.js'
 import usersRouter from './routes/users.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
@@ -126,6 +127,7 @@ app.use('/api/payments', paymentsRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/wishlist', wishlistRouter)
+app.use('/api/addresses', addressesRouter)
 app.use('/api/images', imagesRouter)
 app.use('/api/users', usersRouter)
 

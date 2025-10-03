@@ -81,7 +81,7 @@ export const Navigation = () => {
               onClick={scrollToTop}
             >
               <img
-                src={getImageUrl("/public/logo.png")}
+                src={getImageUrl("logo.png")}
                 alt="ZAYMAZONE Logo"
                 className="h-20 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
               />
@@ -170,6 +170,15 @@ export const Navigation = () => {
                     { to: "/blog", label: "Blog" },
                     { to: "/about", label: "About" },
                     { to: "/contact", label: "Contact" },
+                    { to: "/help", label: "Help & Support" },
+                    { to: "/sustainability", label: "Sustainability" },
+                    { to: "/start-selling", label: "Start Selling" },
+                    ...(isAuthenticated ? [
+                      { to: "/profile", label: "My Profile" },
+                      { to: "/orders", label: "My Orders" },
+                      { to: "/wishlist", label: "Wishlist" },
+                      { to: "/addresses", label: "Addresses" },
+                    ] : []),
                   ].map((item, index) => (
                     <motion.div
                       key={item.to}

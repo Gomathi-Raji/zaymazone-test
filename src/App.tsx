@@ -45,6 +45,8 @@ import SignUpArtisan from "./pages/SignUpArtisan";
 import Dashboard from "./pages/Dashboard";
 import ArtisanDashboard from "./pages/ArtisanDashboard";
 import MockPayment from "./pages/MockPayment";
+import Wishlist from "./pages/Wishlist";
+import Addresses from "./pages/Addresses";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +103,8 @@ const App = () => (
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/addresses" element={<Addresses />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -33,8 +33,9 @@ export const useProducts = (params: UseProductsParams = {}) => {
   if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
 
   const queryString = queryParams.toString();
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-  const url = `${apiUrl}/products${queryString ? `?${queryString}` : ''}`;
+  // Use relative path in development (Vite proxy), else use configured backend URL
+  const host = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
+  const url = `${host}/api/products${queryString ? `?${queryString}` : ''}`;
 
   return useQuery<ProductsResponse>({
     queryKey: ['products', params],
@@ -49,12 +50,12 @@ export const useProducts = (params: UseProductsParams = {}) => {
 };
 
 export const useProduct = (id: string) => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-  
+  // Use relative path in development (Vite proxy), else use configured backend URL
+  const host = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
   return useQuery<Product>({
     queryKey: ['product', id],
     queryFn: async () => {
-      const response = await fetch(`${apiUrl}/products/${id}`);
+      const response = await fetch(`${host}/api/products/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch product');
       }

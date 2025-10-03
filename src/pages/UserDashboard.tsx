@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { api, getImageUrl } from "@/lib/api";
@@ -24,7 +25,7 @@ import {
   Calendar,
   Loader2 
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Order {
   _id: string;
@@ -42,10 +43,11 @@ interface Order {
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: string;
   paymentMethod: string;
+  paymentStatus: string;
 }
 
 export default function UserDashboard() {
-  const { user, updateUser, signOut } = useAuth();
+  const { user, updateUser, updateUserProfile, signOut } = useAuth();
   const { cart } = useCart();
   const { toast } = useToast();
 
@@ -65,10 +67,54 @@ export default function UserDashboard() {
       country: "India"
     }
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderPaymentStatus, setOrderPaymentStatus] = useState<string>('');
 
   useEffect(() => {
     if (user) {
       loadUserData();
+    }
+    // start polling for orders every 30s
+    const interval = setInterval(() => {
+      if (user) loadUserData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedOrder) {
+      const pollPaymentStatus = async () => {
+        try {
+          const result = await api.getPaymentStatus(selectedOrder._id);
+          if (result.success) {
+            setOrderPaymentStatus(result.payment.paymentStatus);
+          }
+        } catch (err) {
+          console.error('Failed to poll payment status', err);
+        }
+      };
+      pollPaymentStatus();
+      const interval = setInterval(pollPaymentStatus, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedOrder]);
+
+  // keep local profileData in sync when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || {
+          street: "",
+          city: "",
+          state: "",
+          zipCode: "",
+          country: "India"
+        }
+      });
     }
   }, [user]);
 
@@ -97,7 +143,8 @@ export default function UserDashboard() {
         totalAmount: order.total,
         status: order.status,
         createdAt: order.createdAt,
-        paymentMethod: order.paymentMethod
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus
       }));
       
       setOrders(transformedOrders);
@@ -117,20 +164,37 @@ export default function UserDashboard() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      updateUser(profileData);
+      let avatarUrl: string | undefined;
+      if (avatarFile) {
+        const uploadResult: any = await api.uploadImage(avatarFile);
+        avatarUrl = uploadResult.url || uploadResult.data?.url || uploadResult.imageUrl || uploadResult["url"];
+      }
+
+      const payload: any = {
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+      };
+      if (avatarUrl) payload.avatar = avatarUrl;
+
+      // call AuthContext's updateUserProfile which persists to backend and updates context
+      if (updateUserProfile) {
+        await updateUserProfile(payload);
+      } else {
+        // fallback: update local user
+        updateUser(profileData as any);
+      }
+
+      setAvatarFile(null);
       setEditingProfile(false);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated",
-      });
-    } catch (error) {
-      toast({
-        title: "Error updating profile",
-        description: "Failed to update your profile",
-        variant: "destructive",
-      });
+      toast({ title: 'Profile updated', description: 'Your profile has been successfully updated' });
+    } catch (err: any) {
+      console.error('Profile update failed', err);
+      toast({ title: 'Error updating profile', description: err?.message || 'Failed to update your profile', variant: 'destructive' });
     }
   };
+
+  // removed dynamic helper; using updateUserProfile from AuthContext instead
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
@@ -142,6 +206,29 @@ export default function UserDashboard() {
     };
     const config = variants[status] || variants.pending;
     return <Badge variant={config.variant}>{config.text}</Badge>;
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await api.cancelOrder(orderId);
+      toast({ title: 'Order cancelled', description: 'Your order was cancelled' });
+      await loadUserData();
+    } catch (err: any) {
+      toast({ title: 'Cancel failed', description: err.message || 'Failed to cancel order', variant: 'destructive' });
+    }
+  };
+
+  const handlePayNow = async (orderId: string) => {
+    try {
+      const result = await api.createPaymentOrder({ orderId });
+      if (result.success && result.paymentOrder.paymentUrl) {
+        window.location.href = result.paymentOrder.paymentUrl;
+      } else {
+        toast({ title: 'Payment failed', description: 'Could not create payment order', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to initiate payment', variant: 'destructive' });
+    }
   };
 
   if (!user) {
@@ -281,10 +368,24 @@ export default function UserDashboard() {
                             <p className="text-sm text-muted-foreground">
                               Payment: {order.paymentMethod.toUpperCase()}
                             </p>
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={() => setSelectedOrder(order)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Details
+                                </Button>
+                              </DialogTrigger>
+                              {order.paymentStatus === 'pending' && (
+                                <Button size="sm" onClick={() => handlePayNow(order._id)}>
+                                  Pay Now
+                                </Button>
+                              )}
+                              {order.status !== 'cancelled' && (
+                                <Button size="sm" variant="destructive" onClick={() => handleCancelOrder(order._id)}>
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -317,7 +418,7 @@ export default function UserDashboard() {
                   {editingProfile ? (
                     <form onSubmit={handleProfileUpdate} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                          <div>
                           <Label htmlFor="name">Full Name</Label>
                           <Input
                             id="name"
@@ -325,6 +426,20 @@ export default function UserDashboard() {
                             onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                           />
                         </div>
+                          <div>
+                            <Label htmlFor="avatar">Profile Picture</Label>
+                            <input
+                              id="avatar"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setAvatarFile(e.target.files ? e.target.files[0] : null)}
+                              className="block"
+                              aria-label="Upload profile picture"
+                            />
+                            {avatarFile && (
+                              <img src={URL.createObjectURL(avatarFile)} alt="preview" className="w-24 h-24 object-cover rounded mt-2" />
+                            )}
+                          </div>
                         <div>
                           <Label htmlFor="email">Email</Label>
                           <Input
@@ -495,6 +610,49 @@ export default function UserDashboard() {
       </div>
 
       <Footer />
+
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about your order including items, status, and payment information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div>
+                <p><strong>Order ID:</strong> {selectedOrder._id}</p>
+                <p><strong>Status:</strong> {selectedOrder.status}</p>
+                <p><strong>Payment Status:</strong> {orderPaymentStatus || 'Loading...'}</p>
+                <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
+                <p><strong>Total:</strong> ₹{selectedOrder.totalAmount.toLocaleString()}</p>
+                <p><strong>Created:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+              </div>
+              <div>
+                <h4 className="font-medium">Items:</h4>
+                <div className="space-y-2">
+                  {selectedOrder.items.map((item) => (
+                    <div key={item.product._id} className="flex items-center gap-3">
+                      <img 
+                        src={getImageUrl(item.product.images[0] || "/placeholder.svg")} 
+                        alt={item.product.name}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                      <div>
+                        <p className="font-medium text-sm">{item.product.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Qty: {item.quantity} × ₹{item.price.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
