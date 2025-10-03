@@ -173,7 +173,7 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
               </div>
               <div>
                 <span className="font-medium">Colors:</span>
-                <p className="text-muted-foreground">{product.colors.join(", ")}</p>
+                <p className="text-muted-foreground">{product.colors?.join(", ") || "N/A"}</p>
               </div>
             </div>
 

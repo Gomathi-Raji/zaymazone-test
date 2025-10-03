@@ -1,25 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, CreditCard, Truck, MapPin, User, Mail, Phone } from "lucide-react";
+import { ShoppingCart, CreditCard, Truck, MapPin, User, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isGuest, setIsGuest] = useState(true);
+  const { cart, isLoading: cartLoading, clearCart } = useCart();
+  const { user } = useAuth();
+  
+  const [isGuest, setIsGuest] = useState(!user);
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
+    email: user?.email || "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -29,25 +36,100 @@ export default function Checkout() {
     pincode: "",
   });
 
-  // Sample cart items
-  const cartItems = [
-    { id: 1, name: "Handwoven Kashmiri Shawl", price: 4500, quantity: 1, image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200&h=200&fit=crop" },
-    { id: 2, name: "Blue Pottery Tea Set", price: 2200, quantity: 2, image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=200&h=200&fit=crop" },
-  ];
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (!cartLoading && (!cart || cart.items.length === 0)) {
+      toast({
+        title: "Cart is empty",
+        description: "Add some items to cart before checkout",
+        variant: "destructive",
+      });
+      navigate('/products');
+    }
+  }, [cart, cartLoading, navigate, toast]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 200;
+  const subtotal = cart?.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0) || 0;
+  const shipping = subtotal > 2000 ? 0 : 200; // Free shipping above ₹2000
   const total = subtotal + shipping;
 
-  const handlePlaceOrder = () => {
-    toast({
-      title: "Order Placed Successfully!",
-      description: "Redirecting to confirmation page...",
-    });
-    setTimeout(() => {
-      navigate('/order-success');
-    }, 1500);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const validateForm = () => {
+    const required = ['firstName', 'lastName', 'phone', 'address', 'city', 'state', 'pincode'];
+    if (isGuest && !formData.email) required.push('email');
+    
+    const missing = required.filter(field => !formData[field]);
+    if (missing.length > 0) {
+      toast({
+        title: "Missing required fields",
+        description: `Please fill in: ${missing.join(', ')}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!validateForm()) return;
+    
+    setIsPlacingOrder(true);
+    try {
+      const orderData = {
+        items: cart!.items.map(item => ({
+          productId: item.productId.id,
+          quantity: item.quantity,
+        })),
+        shippingAddress: {
+          fullName: `${formData.firstName} ${formData.lastName}`,
+          street: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.pincode,
+          country: 'India',
+          phone: formData.phone,
+        },
+        paymentMethod: paymentMethod as 'cod' | 'razorpay' | 'upi',
+      };
+
+      const order = await api.createOrder(orderData);
+      
+      // Clear cart after successful order
+      await clearCart();
+      
+      toast({
+        title: "Order Placed Successfully!",
+        description: `Order ID: ${order.id}`,
+      });
+      
+      // Redirect to order success page
+      navigate('/order-success', { 
+        state: { 
+          orderId: order.id,
+          totalAmount: total 
+        }
+      });
+    } catch (error) {
+      console.error('Error placing order:', error);
+      toast({
+        title: "Failed to place order",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +169,7 @@ export default function Checkout() {
                             type="email"
                             placeholder="your@email.com"
                             value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
                           />
                         </div>
                       </div>
@@ -117,60 +199,70 @@ export default function Checkout() {
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="firstName">First Name</Label>
+                      <Label htmlFor="firstName">First Name *</Label>
                       <Input
                         id="firstName"
                         value={formData.firstName}
-                        onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Last Name</Label>
+                      <Label htmlFor="lastName">Last Name *</Label>
                       <Input
                         id="lastName"
                         value={formData.lastName}
-                        onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                        required
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone">Phone Number *</Label>
                       <Input
                         id="phone"
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="+91 1234567890"
+                        required
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label htmlFor="address">Address</Label>
+                      <Label htmlFor="address">Address *</Label>
                       <Input
                         id="address"
                         placeholder="Street address, apartment, suite, etc."
                         value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="city">City *</Label>
                       <Input
                         id="city"
                         value={formData.city}
-                        onChange={(e) => setFormData({...formData, city: e.target.value})}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="state">State *</Label>
                       <Input
                         id="state"
                         value={formData.state}
-                        onChange={(e) => setFormData({...formData, state: e.target.value})}
+                        onChange={(e) => handleInputChange('state', e.target.value)}
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="pincode">PIN Code</Label>
+                      <Label htmlFor="pincode">PIN Code *</Label>
                       <Input
                         id="pincode"
                         value={formData.pincode}
-                        onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                        onChange={(e) => handleInputChange('pincode', e.target.value)}
+                        pattern="[0-9]{6}"
+                        placeholder="123456"
+                        required
                       />
                     </div>
                   </div>
@@ -239,20 +331,20 @@ export default function Checkout() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Cart Items */}
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3">
+                  {cart?.items.map((item) => (
+                    <div key={item.productId.id} className="flex gap-3">
                       <img 
-                        src={item.image} 
-                        alt={item.name}
+                        src={item.productId.images[0] || "/placeholder.svg"} 
+                        alt={item.productId.name}
                         className="w-16 h-16 object-cover rounded-md"
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{item.name}</h4>
+                        <h4 className="font-medium text-sm truncate">{item.productId.name}</h4>
                         <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                        <p className="text-sm font-medium">₹{item.price.toLocaleString()}</p>
+                        <p className="text-sm font-medium">₹{(item.productId.price * item.quantity).toLocaleString()}</p>
                       </div>
                     </div>
-                  ))}
+                  )) || []}
                   
                   <Separator />
                   
@@ -281,8 +373,16 @@ export default function Checkout() {
                     onClick={handlePlaceOrder}
                     className="w-full btn-hero mt-6"
                     size="lg"
+                    disabled={isPlacingOrder}
                   >
-                    Place Order
+                    {isPlacingOrder ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Placing Order...
+                      </>
+                    ) : (
+                      'Place Order'
+                    )}
                   </Button>
 
                   <div className="text-xs text-muted-foreground text-center mt-4">

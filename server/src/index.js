@@ -9,8 +9,18 @@ import mongoose from 'mongoose'
 import authRouter from './routes/auth.js'
 import productsRouter from './routes/products.js'
 import artisansRouter from './routes/artisans.js'
+import ordersRouter from './routes/orders.js'
+import cartRouter from './routes/cart.js'
+import reviewsRouter from './routes/reviews.js'
+import wishlistRouter from './routes/wishlist.js'
+import blogRouter from './routes/blog.js'
+import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
+import { sanitize } from './middleware/validation.js'
 
 const app = express()
+
+// Trust proxy for rate limiting
+app.set('trust proxy', 1)
 
 // Security & parsing
 app.use(helmet({ contentSecurityPolicy: false }))
@@ -20,6 +30,8 @@ app.use(cors({
 }))
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan('combined'))
+app.use(requestLogger)
+app.use(sanitize)
 
 // Global rate limit
 app.use(rateLimit({
@@ -30,12 +42,18 @@ app.use(rateLimit({
 // Health
 app.get('/', (_req, res) => res.json({
 	name: 'Zaymazone API',
+	version: '1.0.0',
 	status: 'ok',
 	endpoints: {
 		health: 'GET /health',
 		auth: ['POST /api/auth/signup', 'POST /api/auth/signin'],
 		products: ['GET /api/products', 'GET /api/products/:id', 'POST /api/products', 'PUT /api/products/:id', 'DELETE /api/products/:id'],
-		artisans: ['GET /api/artisans', 'GET /api/artisans/:id', 'POST /api/artisans', 'PUT /api/artisans/:id', 'DELETE /api/artisans/:id']
+		artisans: ['GET /api/artisans', 'GET /api/artisans/:id', 'POST /api/artisans', 'PUT /api/artisans/:id', 'DELETE /api/artisans/:id'],
+		orders: ['GET /api/orders/my-orders', 'GET /api/orders/:id', 'POST /api/orders', 'PATCH /api/orders/:id/cancel'],
+		cart: ['GET /api/cart', 'POST /api/cart/add', 'PATCH /api/cart/item/:productId', 'DELETE /api/cart/item/:productId'],
+		reviews: ['GET /api/reviews/product/:productId', 'GET /api/reviews/my-reviews', 'POST /api/reviews', 'PATCH /api/reviews/:id'],
+		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear'],
+		blog: ['GET /api/blog', 'GET /api/blog/:id', 'GET /api/blog/featured', 'GET /api/blog/categories', 'POST /api/blog', 'PUT /api/blog/:id', 'PATCH /api/blog/:id/like']
 	}
 }))
 app.get('/health', (_req, res) => res.json({ ok: true }))
@@ -44,6 +62,15 @@ app.get('/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/artisans', artisansRouter)
+app.use('/api/orders', ordersRouter)
+app.use('/api/cart', cartRouter)
+app.use('/api/reviews', reviewsRouter)
+app.use('/api/wishlist', wishlistRouter)
+app.use('/api/blog', blogRouter)
+
+// Error handling middleware (must be last)
+app.use(notFoundHandler)
+app.use(errorHandler)
 
 // DB and server
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zaymazone'

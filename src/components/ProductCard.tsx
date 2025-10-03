@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart, Star, MapPin, BarChart3 } from "lucide-react";
+import { Heart, Star, MapPin, BarChart3, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/data/products";
 import { QuickViewDialog } from "./QuickViewDialog";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
@@ -14,6 +17,26 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product, onQuickView, onAddToComparison }: ProductCardProps) => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const { addToCart, isLoading: cartLoading } = useCart();
+  const { isAuthenticated } = useAuth();
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to add items to cart');
+      return;
+    }
+    
+    if (product.stockCount === 0) {
+      toast.error('This item is out of stock');
+      return;
+    }
+
+    try {
+      await addToCart(product.id, 1);
+    } catch (error) {
+      // Error is already handled in the cart context
+    }
+  };
   
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -117,13 +140,16 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
         {/* Add to Cart Button */}
         <Button 
           className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300"
-          disabled={!product.inStock}
+          disabled={!product.inStock || cartLoading || product.stockCount === 0}
+          onClick={handleAddToCart}
         >
-          {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {cartLoading ? 'Adding...' : 
+           !product.inStock || product.stockCount === 0 ? 'Out of Stock' : 'Add to Cart'}
         </Button>
 
         {/* Stock info */}
-        {product.inStock && product.stockCount <= 5 && (
+        {product.inStock && product.stockCount <= 5 && product.stockCount > 0 && (
           <p className="text-xs text-destructive mt-2 text-center">
             Only {product.stockCount} left in stock!
           </p>
