@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import ScrollRestoration from "@/components/ScrollRestoration";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
@@ -57,6 +58,7 @@ const App = () => (
           <Sonner />
           <GoogleAnalytics />
           <BrowserRouter>
+          <ScrollRestoration />
           <MobileBottomNav />
           <Routes>
             <Route path="/" element={<Index />} />
