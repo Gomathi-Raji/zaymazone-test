@@ -13,6 +13,9 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getImageUrl } from "@/lib/api";
 import { toast } from "sonner";
+import { analytics } from "@/lib/analytics";
+import { useEffect } from "react";
+import SocialShare from "@/components/SocialShare";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -23,6 +26,18 @@ const ProductDetail = () => {
   const { data: product, isLoading, error } = useProduct(id || '');
   const { addToCart, isLoading: cartLoading } = useCart();
   const { isAuthenticated } = useAuth();
+
+  // Track product view - moved to top before any conditional returns
+  useEffect(() => {
+    if (product) {
+      analytics.viewProduct({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price
+      });
+    }
+  }, [product]);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -37,6 +52,13 @@ const ProductDetail = () => {
 
     try {
       await addToCart(product.id, quantity);
+      // Track add to cart event
+      analytics.addToCart({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price
+      }, quantity);
     } catch (error) {
       // Error is already handled in the cart context
     }
@@ -94,7 +116,7 @@ const ProductDetail = () => {
     );
   }
 
-  const discountPercentage = product.originalPrice 
+  const discountPercentage = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
@@ -274,9 +296,13 @@ const ProductDetail = () => {
                 <Button variant="outline" size="icon">
                   <Heart className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="icon">
-                  <Share2 className="w-4 h-4" />
-                </Button>
+                <SocialShare
+                  title={`${product.name} - Zaymazone`}
+                  description={product.description}
+                  hashtags={["handcrafted", product.category.toLowerCase()]}
+                  size="sm"
+                  className="ml-2"
+                />
               </div>
             </div>
 

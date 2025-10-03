@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, getImageUrl } from "@/lib/api";
 import { artisanAnimations } from "@/lib/animations";
 import { AnimatedInput } from "@/components/AnimatedInput";
+import { analytics } from "@/lib/analytics";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -50,6 +51,16 @@ export default function Checkout() {
       navigate('/products');
     }
   }, [cart, cartLoading, navigate, toast]);
+
+  // Track begin checkout event
+  useEffect(() => {
+    if (cart && cart.items.length > 0) {
+      analytics.beginCheckout(
+        cart.items,
+        cart.total
+      );
+    }
+  }, [cart]);
 
   const subtotal = cart?.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0) || 0;
   const shipping = subtotal > 2000 ? 0 : 200; // Free shipping above ₹2000

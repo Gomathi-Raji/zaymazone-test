@@ -10,6 +10,7 @@ import { CheckCircle, XCircle, Clock, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import type { Order } from "@/lib/api";
+import { analytics } from "@/lib/analytics";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -43,6 +44,15 @@ export default function PaymentSuccess() {
 
         if (verificationResult.success) {
           setPaymentStatus(verificationResult.paymentStatus === 'paid' ? 'success' : 'failed');
+          
+          // Track purchase event for successful payments
+          if (verificationResult.paymentStatus === 'paid') {
+            analytics.purchase(
+              zohoOrderId || 'unknown',
+              0, // We'll need to get the actual amount from somewhere else
+              [] // We'll need to get the actual items from somewhere else
+            );
+          }
           
           // Fetch order details
           try {

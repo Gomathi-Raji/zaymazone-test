@@ -46,10 +46,12 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
         </Label>
         <motion.div
           animate={{
-            borderColor: isFocused ? "hsl(var(--primary))" : "hsl(var(--border))",
             boxShadow: isFocused ? "0 0 0 2px hsl(var(--primary) / 0.2)" : "none",
           }}
           transition={{ duration: 0.2 }}
+          className={`border transition-colors duration-200 ${
+            isFocused ? "border-primary" : "border-border"
+          }`}
         >
           <Input
             ref={ref}

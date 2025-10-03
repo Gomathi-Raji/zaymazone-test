@@ -9,11 +9,17 @@ class ZohoPaymentsService {
     this.clientId = process.env.ZOHO_PAYMENTS_CLIENT_ID;
     this.clientSecret = process.env.ZOHO_PAYMENTS_CLIENT_SECRET;
     this.webhookSecret = process.env.ZOHO_PAYMENTS_WEBHOOK_SECRET;
-    
+
     // Environment check
     this.isProduction = process.env.NODE_ENV === 'production';
     if (!this.isProduction) {
       this.baseURL = process.env.ZOHO_PAYMENTS_SANDBOX_URL || 'https://payments-sandbox.zoho.com/api/v1';
+    }
+
+    // Check if we have real credentials or should use mock mode
+    this.useMock = !this.clientId || !this.clientSecret || process.env.USE_MOCK_PAYMENTS === 'true';
+    if (this.useMock) {
+      console.log('🔧 Using Mock Zoho Payments for development/testing');
     }
   }
 
@@ -48,12 +54,16 @@ class ZohoPaymentsService {
   }
 
   /**
-   * Create a payment order in Zoho Payments
+   * Create a payment order in Zoho Payments (with mock support)
    */
   async createPaymentOrder(orderData) {
+    if (this.useMock) {
+      return this.createMockPaymentOrder(orderData);
+    }
+
     try {
       const accessToken = await this.getAccessToken();
-      
+
       const paymentOrderData = {
         amount: orderData.amount * 100, // Convert to paisa/cents
         currency: orderData.currency || 'INR',
@@ -96,7 +106,7 @@ class ZohoPaymentsService {
       }
 
       const responseData = await response.json();
-      
+
       return {
         zohoOrderId: responseData.id,
         amount: responseData.amount,
@@ -110,6 +120,29 @@ class ZohoPaymentsService {
       console.error('Create Zoho payment order error:', error);
       throw new Error(`Failed to create payment order: ${error.message}`);
     }
+  }
+
+  /**
+   * Create a mock payment order for development/testing
+   */
+  createMockPaymentOrder(orderData) {
+    console.log('🎭 Creating mock payment order:', orderData);
+
+    // Generate a mock order ID
+    const mockOrderId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Mock payment URL that simulates the payment flow
+    const mockPaymentUrl = `${process.env.CLIENT_URL || 'http://localhost:8080'}/mock-payment?orderId=${orderData.orderId}&mockOrderId=${mockOrderId}&amount=${orderData.amount}`;
+
+    return {
+      zohoOrderId: mockOrderId,
+      amount: orderData.amount,
+      currency: orderData.currency || 'INR',
+      status: 'created',
+      paymentUrl: mockPaymentUrl,
+      receipt: orderData.orderNumber,
+      isMock: true
+    };
   }
 
   /**

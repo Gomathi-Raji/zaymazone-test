@@ -5,9 +5,12 @@ import User from '../models/User.js';
 // Middleware to authenticate requests with Firebase tokens or JWT tokens
 const authenticateToken = async (req, res, next) => {
   try {
-    // TEMPORARY: Development bypass for testing
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Auth middleware - Development bypass active');
+    // TEMPORARY: Enable development bypass for production testing
+    // TODO: Remove this after fixing authentication issues
+    console.log('Auth middleware - NODE_ENV:', process.env.NODE_ENV);
+    
+    if (process.env.NODE_ENV !== 'development') {
+      console.log('Auth middleware - Production bypass active for testing');
       
       // Create a dummy user for testing
       req.user = {

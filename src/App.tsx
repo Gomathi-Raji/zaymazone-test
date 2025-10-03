@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ShopWithBackend from "./pages/ShopWithBackend";
@@ -32,6 +33,7 @@ import Orders from "./pages/Orders";
 import OrderSuccess from "./pages/OrderSuccess";
 import SellerOnboarding from "./pages/SellerOnboarding";
 import ArtisanDetail from "./pages/ArtisanDetail";
+import ArtisanDetailWithBackend from "./pages/ArtisanDetailWithBackend";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import APITestPage from "./pages/APITestPage";
@@ -41,6 +43,7 @@ import SignInArtisan from "./pages/SignInArtisan";
 import SignUpArtisan from "./pages/SignUpArtisan";
 import Dashboard from "./pages/Dashboard";
 import ArtisanDashboard from "./pages/ArtisanDashboard";
+import MockPayment from "./pages/MockPayment";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +55,7 @@ const App = () => (
           <TooltipProvider>
           <Toaster />
           <Sonner />
+          <GoogleAnalytics />
           <BrowserRouter>
           <MobileBottomNav />
           <Routes>
@@ -60,7 +64,7 @@ const App = () => (
             <Route path="/shop-mock" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/artisans" element={<Artisans />} />
-            <Route path="/artisan/:id" element={<ArtisanDetail />} />
+            <Route path="/artisan/:id" element={<ArtisanDetailWithBackend />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/profile" element={<Profile />} />
@@ -83,7 +87,8 @@ const App = () => (
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/api-test" element={<APITestPage />} />
-            
+            <Route path="/mock-payment" element={<MockPayment />} />
+
             {/* Authentication Routes */}
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />

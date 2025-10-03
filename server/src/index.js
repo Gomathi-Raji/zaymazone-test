@@ -99,6 +99,22 @@ app.get('/', (_req, res) => res.json({
 }))
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
+// Database seeding endpoint (for development/production setup)
+app.post('/api/seed', async (_req, res) => {
+	try {
+		console.log('🌱 Starting database seeding via API...')
+
+		// Import seed function dynamically
+		const { seedDatabase } = await import('../scripts/seed.js')
+		await seedDatabase()
+
+		res.json({ message: 'Database seeded successfully' })
+	} catch (error) {
+		console.error('Error seeding database:', error)
+		res.status(500).json({ error: 'Failed to seed database' })
+	}
+})
+
 // Routes
 app.use('/api/auth', authRouter)
 app.use('/api/firebase-auth', firebaseAuthRouter)
@@ -153,15 +169,29 @@ async function uploadTeamImagesOnStartup() {
 }
 
 async function start() {
-	await mongoose.connect(mongoUri)
-	initGridFS() // Initialize GridFS after database connection
+	try {
+		console.log('🔌 Connecting to MongoDB...');
+		await mongoose.connect(mongoUri)
+		console.log('✅ Connected to MongoDB');
+		
+		initGridFS() // Initialize GridFS after database connection
+		console.log('✅ GridFS initialized');
 
-	// Upload team images if they exist
-	await uploadTeamImagesOnStartup()
+		// Upload team images if they exist
+		await uploadTeamImagesOnStartup()
+		console.log('✅ Team images checked');
 
-	app.listen(port, () => {
-		console.log(`API listening on http://localhost:${port}`)
-	})
+		app.listen(port, '0.0.0.0', () => {
+			console.log(`🚀 API listening on http://localhost:${port}`)
+			console.log(`📡 Server started successfully at ${new Date().toISOString()}`)
+		}).on('error', (err) => {
+			console.error('❌ Server failed to start:', err)
+			process.exit(1)
+		})
+	} catch (error) {
+		console.error('❌ Failed to start server:', error)
+		process.exit(1)
+	}
 }
 
 start().catch((err) => {

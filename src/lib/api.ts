@@ -246,6 +246,31 @@ export interface Review {
 	createdAt: string;
 }
 
+export interface Artisan {
+	_id: string;
+	name: string;
+	bio: string;
+	location: {
+		city: string;
+		state: string;
+		country: string;
+	};
+	avatar: string;
+	coverImage: string;
+	specialties: string[];
+	experience: number;
+	rating: number;
+	totalRatings: number;
+	totalProducts: number;
+	totalSales: number;
+	verification: {
+		isVerified: boolean;
+		verifiedAt?: Date;
+	};
+	isActive: boolean;
+	joinedDate: Date;
+}
+
 // API Functions
 export const authApi = {
 	signUp: (data: { name: string; email: string; password: string }) =>
@@ -557,6 +582,30 @@ export const reviewsApi = {
 		}),
 };
 
+export const artisansApi = {
+	getAll: (params?: { 
+		page?: number; 
+		limit?: number; 
+		q?: string;
+		location?: string;
+		specialty?: string;
+	}) => {
+		const searchParams = new URLSearchParams();
+		if (params) {
+			Object.entries(params).forEach(([key, value]) => {
+				if (value !== undefined) {
+					searchParams.append(key, value.toString());
+				}
+			});
+		}
+		const queryString = searchParams.toString();
+		return apiRequest<Artisan[]>(`/api/artisans${queryString ? `?${queryString}` : ''}`);
+	},
+	
+	getById: (id: string) =>
+		apiRequest<Artisan>(`/api/artisans/${id}`),
+};
+
 // Unified API export
 export const api = {
 	// Auth
@@ -596,6 +645,10 @@ export const api = {
 	updateReview: reviewsApi.update,
 	deleteReview: reviewsApi.delete,
 	
+	// Artisans
+	getArtisans: artisansApi.getAll,
+	getArtisan: artisansApi.getById,
+	
 	// Wishlist
 	getWishlist: () => apiRequest<any[]>('/api/wishlist', { auth: true }),
 	addToWishlist: (productId: string) => 
@@ -630,7 +683,7 @@ export function getImageUrl(path: string): string {
     return `${API_BASE_URL}${path}`;
   }
 
-  // For all other paths (assets, uploads, etc.), serve from database via API
+  // For all other paths (including /assets/ paths), serve from database via API
   // Extract filename from path
   const filename = path.split('/').pop() || path;
   return `${API_BASE_URL}/api/images/${filename}`;

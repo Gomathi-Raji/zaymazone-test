@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Star, Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Product, getImageUrl } from "@/lib/api";
 
 interface ProductComparisonProps {
@@ -46,6 +46,7 @@ export const ProductComparison = ({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Compare Products</DialogTitle>
+          <DialogDescription>Compare features and specifications of selected products side by side</DialogDescription>
         </DialogHeader>
 
         {products.length === 0 ? (

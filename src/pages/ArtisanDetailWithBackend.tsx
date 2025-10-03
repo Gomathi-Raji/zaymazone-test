@@ -30,7 +30,7 @@ import {
   Facebook
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { api, type Artisan, type Product } from "@/lib/api";
+import { api, type Artisan, type Product, getImageUrl } from "@/lib/api";
 
 const ArtisanDetailWithBackend = () => {
   const { id } = useParams<{ id: string }>();
@@ -154,7 +154,7 @@ const ArtisanDetailWithBackend = () => {
           <div className="h-64 bg-gradient-to-r from-primary/20 to-primary/10 relative">
             {artisan.coverImage && (
               <img 
-                src={artisan.coverImage} 
+                src={getImageUrl(artisan.coverImage)} 
                 alt={`${artisan.name} cover`}
                 className="w-full h-full object-cover"
               />
@@ -167,7 +167,7 @@ const ArtisanDetailWithBackend = () => {
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between -mt-16">
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 mb-6 lg:mb-0">
                 <Avatar className="w-32 h-32 border-4 border-white shadow-xl relative z-10">
-                  <AvatarImage src={artisan.avatar} alt={artisan.name} />
+                  <AvatarImage src={getImageUrl(artisan.avatar)} alt={artisan.name} />
                   <AvatarFallback className="text-2xl font-bold">
                     {artisan.name.charAt(0)}
                   </AvatarFallback>

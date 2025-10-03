@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+import { api, getImageUrl } from '@/lib/api'
 
 export interface Artisan {
   _id: string
@@ -53,8 +52,8 @@ function transformArtisan(artisan: Artisan): ArtisanForDisplay {
     experience: `${artisan.experience} years`,
     rating: artisan.rating,
     products: artisan.totalProducts,
-    image: `${API_BASE_URL}/images/${artisan.coverImage}`,
-    avatar: `${API_BASE_URL}/images/${artisan.avatar}`,
+    image: getImageUrl(artisan.coverImage),
+    avatar: getImageUrl(artisan.avatar),
     description: artisan.bio,
     achievements: ['Verified Artisan', `${artisan.totalProducts} Products`, `${artisan.experience}+ Years Experience`],
     joinedYear: new Date(artisan.joinedDate).getFullYear().toString(),
@@ -66,13 +65,7 @@ export const useArtisans = () => {
   return useQuery({
     queryKey: ['artisans'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/artisans`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch artisans')
-      }
-      
-      const artisans: Artisan[] = await response.json()
+      const artisans = await api.getArtisans()
       return artisans.map(transformArtisan)
     }
   })
@@ -82,13 +75,7 @@ export const useArtisan = (id: string) => {
   return useQuery({
     queryKey: ['artisan', id],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/artisans/${id}`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch artisan')
-      }
-      
-      const artisan: Artisan = await response.json()
+      const artisan = await api.getArtisan(id)
       return transformArtisan(artisan)
     },
     enabled: !!id
