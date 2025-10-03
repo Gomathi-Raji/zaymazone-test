@@ -23,6 +23,7 @@ const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
@@ -57,7 +58,8 @@ const ShopWithBackend = () => {
       q: searchQuery || undefined,
       minPrice: priceRange.min,
       maxPrice: priceRange.max,
-      sortBy
+      sortBy,
+      availability: availabilityFilter !== 'all' ? availabilityFilter : undefined
     }],
     queryFn: () => productsApi.getAll({
       page,
@@ -65,7 +67,9 @@ const ShopWithBackend = () => {
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       q: searchQuery || undefined,
       minPrice: priceRange.min,
-      maxPrice: priceRange.max
+      maxPrice: priceRange.max,
+      sortBy,
+      availability: availabilityFilter !== 'all' ? availabilityFilter : undefined
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -98,7 +102,9 @@ const ShopWithBackend = () => {
   const clearFilters = () => {
     setSearchQuery("");
     setCategoryFilter("all");
+    setAvailabilityFilter("all");
     setPriceRange({});
+    setSortBy("newest");
     setPage(1);
   };
 
@@ -153,10 +159,11 @@ const ShopWithBackend = () => {
             <Button type="submit">Search</Button>
           </form>
 
-          {/* Filter Controls */}
-          <div className="flex flex-wrap gap-4 items-center">
+          {/* Enhanced Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -169,28 +176,88 @@ const ShopWithBackend = () => {
               </SelectContent>
             </Select>
 
-            {/* Price Range Filters */}
-            <div className="flex flex-wrap gap-2">
-              {priceRanges.map((range, index) => (
-                <Button
-                  key={index}
-                  variant={
-                    priceRange.min === range.min && priceRange.max === range.max
-                      ? "default"
-                      : "outline"
-                  }
-                  size="sm"
-                  onClick={() => handlePriceFilter(range.min, range.max)}
-                >
-                  {range.label}
-                </Button>
-              ))}
-            </div>
+            {/* Sort Filter */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="price_low">Price: Low to High</SelectItem>
+                <SelectItem value="price_high">Price: High to Low</SelectItem>
+                <SelectItem value="rating">Customer Rating</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="popular">Most Popular</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <Button variant="ghost" onClick={clearFilters}>
+            {/* Availability Filter */}
+            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Availability" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Products</SelectItem>
+                <SelectItem value="instock">In Stock Only</SelectItem>
+                <SelectItem value="outofstock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters Button */}
+            <Button variant="outline" onClick={clearFilters} className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
               Clear Filters
             </Button>
           </div>
+
+          {/* Price Range Filters */}
+          <div className="flex flex-wrap gap-2">
+            {priceRanges.map((range, index) => (
+              <Button
+                key={index}
+                variant={
+                  priceRange.min === range.min && priceRange.max === range.max
+                    ? "default"
+                    : "outline"
+                }
+                size="sm"
+                onClick={() => handlePriceFilter(range.min, range.max)}
+              >
+                {range.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Active Filters Display */}
+          {(categoryFilter !== "all" || Object.keys(priceRange).length > 0 || availabilityFilter !== "all" || searchQuery) && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {categoryFilter !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Category: {categoryFilter}
+                  <button onClick={() => setCategoryFilter("all")} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+              {Object.keys(priceRange).length > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  Price: ₹{priceRange.min?.toLocaleString()} - ₹{priceRange.max?.toLocaleString()}
+                  <button onClick={() => setPriceRange({})} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+              {availabilityFilter !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  {availabilityFilter === "instock" ? "In Stock" : "Out of Stock"}
+                  <button onClick={() => setAvailabilityFilter("all")} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Results Summary */}
@@ -241,7 +308,7 @@ const ShopWithBackend = () => {
             )}
 
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+              className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6 mb-8"
               variants={artisanAnimations.container}
               initial="hidden"
               animate="visible"

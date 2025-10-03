@@ -837,8 +837,37 @@ All colors MUST be HSL.
   .mobile-card {
     border-radius: 0.75rem;
     padding: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* Mobile image fixes for product cards */
+  .product-card-mobile {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .product-image-mobile {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: center;
+    aspect-ratio: 1 / 1; /* Force square aspect ratio */
+    max-height: 100%;
+  }
+
+  /* Mobile grid layout */
+  .mobile-grid-products {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  @media (max-width: 480px) {
+    .mobile-grid-products {
+      gap: 0.5rem;
+      padding: 0.25rem;
+    }
   }
 
   .mobile-grid {

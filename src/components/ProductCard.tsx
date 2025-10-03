@@ -112,21 +112,22 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
   return (
     <motion.div
-      className="group bg-card mobile-card overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300"
+      className="group bg-card rounded-xl overflow-hidden shadow-soft hover:shadow-elegant transition-all duration-300 w-full max-w-full"
       whileHover={{ y: -4, scale: 1.02 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-gray-100">
         <Link to={`/product/${product.id}`}>
           <motion.img
             src={getImageUrl(product.images[0])}
             alt={product.name}
-            className="w-full h-full object-cover cursor-pointer"
+            className="w-full h-full object-cover object-center cursor-pointer"
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            loading="lazy"
           />
         </Link>
         
@@ -241,10 +242,10 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
       </div>
 
       {/* Product Info */}
-      <div className="mobile-container">
+      <div className="p-4 space-y-3">
         <div className="flex items-start justify-between mb-2">
           <Link to={`/product/${product.id}`}>
-            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer mobile-body">
+            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors cursor-pointer text-sm sm:text-base">
               {product.name}
             </h3>
           </Link>
@@ -271,9 +272,9 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
 
         {/* Price */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="mobile-heading text-foreground">₹{product.price.toLocaleString()}</span>
+          <span className="text-lg font-bold text-foreground">₹{product.price.toLocaleString()}</span>
           {product.originalPrice && (
-            <span className="mobile-body text-muted-foreground line-through">
+            <span className="text-sm text-muted-foreground line-through">
               ₹{product.originalPrice.toLocaleString()}
             </span>
           )}
