@@ -7,9 +7,9 @@ import { useProductComparison } from "@/hooks/useProductComparison";
 export const FeaturedProducts = () => {
   const { addToComparison } = useProductComparison();
   
-  // Get products from API and filter featured ones client-side
+  // Get products from API - show first 6 as featured since backend doesn't support featured filtering
   const { data: productsData, isLoading } = useProducts({ limit: 6 });
-  const featuredProducts = (productsData?.products || []).filter(product => product.featured);
+  const featuredProducts = productsData?.products || [];
 
   return (
     <section className="py-16 bg-gradient-subtle">

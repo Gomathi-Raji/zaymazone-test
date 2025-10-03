@@ -54,25 +54,27 @@ export const HeroSection = () => {
           </motion.p>
 
           <motion.div
-            className="mobile-gap sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-md sm:max-w-none mx-auto"
             variants={artisanAnimations.heroText}
             custom={3}
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              className="w-full sm:w-auto"
             >
-              <Button className="mobile-btn btn-hero" asChild>
+              <Button className="w-full sm:w-auto px-8 py-3 text-base font-semibold btn-hero" asChild>
                 <Link to="/shop">Shop Now</Link>
               </Button>
             </motion.div>
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              className="w-full sm:w-auto"
             >
               <Button
                 variant="outline"
-                className="mobile-btn bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
+                className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
                 asChild
               >
                 <Link to="/seller-onboarding">Start Selling</Link>

@@ -292,6 +292,33 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* Hide scrollbars globally while maintaining functionality */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* Hide scrollbars for webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  /* Hide horizontal scrollbar specifically */
+  body::-webkit-scrollbar:horizontal {
+    display: none;
+  }
+
+  /* Ensure all elements don't cause overflow */
+  * {
+    box-sizing: border-box;
+  }
 }
 
 @layer components {
@@ -919,6 +946,47 @@ All colors MUST be HSL.
     }
   }
 
+  /* Ensure mobile shop products are visible */
+  @media (max-width: 768px) {
+    .shop-products-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 0.5rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .shop-products-grid .mobile-product-card {
+      width: 100% !important;
+      min-height: 300px !important;
+      display: block !important;
+      visibility: visible !important;
+    }
+
+    /* Ensure product images are visible on mobile */
+    .shop-products-grid .mobile-product-card img {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    /* Hero section button improvements */
+    .hero-buttons {
+      flex-direction: column;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+      gap: 0.75rem;
+    }
+
+    .hero-buttons .btn-hero {
+      width: 100%;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+  }
+
   /* Mobile product detail page styles */
   @media (max-width: 768px) {
     /* Ensure mobile containment for product detail pages */
@@ -929,13 +997,14 @@ All colors MUST be HSL.
       box-sizing: border-box;
     }
 
-    .mobile-product-detail * {
+    /* Only apply max-width to main content area, not navigation or footer */
+    .mobile-product-detail main * {
       max-width: 100%;
       box-sizing: border-box;
     }
 
-    /* Product images should never overflow */
-    .mobile-product-detail img {
+    /* Product images should never overflow - only in main content */
+    .mobile-product-detail main img {
       width: 100% !important;
       height: auto !important;
       max-width: 100% !important;
@@ -943,15 +1012,15 @@ All colors MUST be HSL.
       display: block !important;
     }
 
-    /* Text content should wrap properly */
-    .mobile-product-detail h1,
-    .mobile-product-detail h2,
-    .mobile-product-detail h3,
-    .mobile-product-detail p,
-    .mobile-product-detail span,
-    .mobile-product-detail dt,
-    .mobile-product-detail dd,
-    .mobile-product-detail li {
+    /* Text content should wrap properly - only in main content */
+    .mobile-product-detail main h1,
+    .mobile-product-detail main h2,
+    .mobile-product-detail main h3,
+    .mobile-product-detail main p,
+    .mobile-product-detail main span,
+    .mobile-product-detail main dt,
+    .mobile-product-detail main dd,
+    .mobile-product-detail main li {
       word-wrap: break-word;
       overflow-wrap: break-word;
       -webkit-hyphens: auto;
@@ -959,35 +1028,35 @@ All colors MUST be HSL.
       max-width: 100%;
     }
 
-    /* Flex containers should not overflow */
-    .mobile-product-detail .flex {
+    /* Flex containers should not overflow - only in main content */
+    .mobile-product-detail main .flex {
       flex-wrap: wrap;
       min-width: 0;
     }
 
-    /* Grid containers should be contained */
-    .mobile-product-detail .grid {
+    /* Grid containers should be contained - only in main content */
+    .mobile-product-detail main .grid {
       width: 100%;
       max-width: 100%;
       overflow: hidden;
     }
 
-    /* Tab content should be contained */
-    .mobile-product-detail [data-radix-tabs-content] {
+    /* Tab content should be contained - only in main content */
+    .mobile-product-detail main [data-radix-tabs-content] {
       width: 100%;
       max-width: 100%;
       overflow-x: hidden;
     }
 
-    /* Button containers should wrap */
-    .mobile-product-detail .space-y-3,
-    .mobile-product-detail .space-y-4 {
+    /* Button containers should wrap - only in main content */
+    .mobile-product-detail main .space-y-3,
+    .mobile-product-detail main .space-y-4 {
       width: 100%;
       max-width: 100%;
     }
 
-    /* Ensure all divs are contained */
-    .mobile-product-detail div {
+    /* Ensure main content divs are contained */
+    .mobile-product-detail main div {
       max-width: 100%;
       box-sizing: border-box;
     }
@@ -1177,4 +1246,37 @@ All colors MUST be HSL.
   .transition-opacity {
     transition: none;
   }
+}
+
+/* Additional overflow prevention */
+.container, 
+main, 
+#root,
+[data-radix-popper-content-wrapper] {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Prevent specific components from causing overflow */
+.product-grid,
+.grid,
+.flex,
+.flex-row {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Hide any remaining scrollbars completely */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Additional webkit scrollbar hiding */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
 }

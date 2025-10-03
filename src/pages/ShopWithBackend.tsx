@@ -267,7 +267,7 @@ const ShopWithBackend = () => {
             )}
 
             <motion.div
-              className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5 xl:gap-6 mb-8 px-2 sm:px-0"
+              className="shop-products-grid grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5 xl:gap-6 mb-8 px-2 sm:px-0"
               variants={artisanAnimations.container}
               initial="hidden"
               animate="visible"
