@@ -35,7 +35,7 @@ export const useProducts = (params: UseProductsParams = {}) => {
   const queryString = queryParams.toString();
   // Use relative path in development (Vite proxy), else use configured backend URL
   const host = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || '');
-  const url = `${host}/api/products${queryString ? `?${queryString}` : ''}`;
+  const url = `${host}${import.meta.env.DEV ? '/api' : ''}/products${queryString ? `?${queryString}` : ''}`;
 
   return useQuery<ProductsResponse>({
     queryKey: ['products', params],
@@ -55,7 +55,7 @@ export const useProduct = (id: string) => {
   return useQuery<Product>({
     queryKey: ['product', id],
     queryFn: async () => {
-      const response = await fetch(`${host}/api/products/${id}`);
+      const response = await fetch(`${host}${import.meta.env.DEV ? '/api' : ''}/products/${id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch product');
       }
