@@ -5,11 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import ScrollRestoration from "@/components/ScrollRestoration";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ShopWithBackend from "./pages/ShopWithBackend";
 import Artisans from "./pages/Artisans";
-import ArtisansWithBackend from "./pages/ArtisansWithBackend";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Categories from "./pages/Categories";
@@ -26,6 +29,8 @@ import SellerDashboard from "./pages/SellerDashboard";
 import SellerSuccess from "./pages/SellerSuccess";
 import UserDashboard from "./pages/UserDashboard";
 import Checkout from "./pages/Checkout";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import Orders from "./pages/Orders";
 import OrderSuccess from "./pages/OrderSuccess";
 import SellerOnboarding from "./pages/SellerOnboarding";
 import ArtisanDetail from "./pages/ArtisanDetail";
@@ -39,6 +44,9 @@ import SignInArtisan from "./pages/SignInArtisan";
 import SignUpArtisan from "./pages/SignUpArtisan";
 import Dashboard from "./pages/Dashboard";
 import ArtisanDashboard from "./pages/ArtisanDashboard";
+import MockPayment from "./pages/MockPayment";
+import Wishlist from "./pages/Wishlist";
+import Addresses from "./pages/Addresses";
 
 const queryClient = new QueryClient();
 
@@ -46,21 +54,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CartProvider>
-        <TooltipProvider>
+        <WishlistProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
+          <GoogleAnalytics />
           <BrowserRouter>
+          <ScrollRestoration />
+          <MobileBottomNav />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/shop" element={<ShopWithBackend />} />
             <Route path="/shop-mock" element={<Shop />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/artisans" element={<ArtisansWithBackend />} />
-            <Route path="/artisans-mock" element={<Artisans />} />
+            <Route path="/artisans" element={<Artisans />} />
             <Route path="/artisan/:id" element={<ArtisanDetailWithBackend />} />
-            <Route path="/artisan-mock/:id" element={<ArtisanDetail />} />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/help" element={<Help />} />
             <Route path="/sustainability" element={<Sustainability />} />
@@ -74,12 +84,15 @@ const App = () => (
             <Route path="/seller-onboarding" element={<SellerOnboarding />} />
             <Route path="/account" element={<UserDashboard />} />
             <Route path="/account/orders" element={<UserDashboard />} />
+            <Route path="/orders" element={<Orders />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/api-test" element={<APITestPage />} />
-            
+            <Route path="/mock-payment" element={<MockPayment />} />
+
             {/* Authentication Routes */}
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
@@ -90,12 +103,15 @@ const App = () => (
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/addresses" element={<Addresses />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </WishlistProvider>
       </CartProvider>
     </AuthProvider>
   </QueryClientProvider>

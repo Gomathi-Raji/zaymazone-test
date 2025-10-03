@@ -108,12 +108,10 @@ router.get('/categories', async (req, res) => {
 			{ $sort: { count: -1 } }
 		])
 		
-		const formattedCategories = categories.map(cat => ({
-			name: cat._id,
-			count: cat.count
-		}))
+		// Return just category names for the frontend
+		const categoryNames = categories.map(cat => cat._id)
 		
-		res.json(formattedCategories)
+		res.json(categoryNames)
 	} catch (error) {
 		res.status(500).json({ error: error.message })
 	}

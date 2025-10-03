@@ -2,8 +2,8 @@ import { useState } from "react";
 import { X, Star, Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Product } from "@/data/products";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Product, getImageUrl } from "@/lib/api";
 
 interface ProductComparisonProps {
   products: Product[];
@@ -46,6 +46,7 @@ export const ProductComparison = ({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Compare Products</DialogTitle>
+          <DialogDescription>Compare features and specifications of selected products side by side</DialogDescription>
         </DialogHeader>
 
         {products.length === 0 ? (
@@ -74,14 +75,16 @@ export const ProductComparison = ({
                         </Button>
                         
                         <img 
-                          src={product.images[0]} 
+                          src={getImageUrl(product.images[0])} 
                           alt={product.name}
                           className="w-24 h-24 object-cover rounded-lg mx-auto mb-2"
                         />
                         <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          by {product.artisan.name}
-                        </p>
+                        {product.artisan && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            by {product.artisan.name}
+                          </p>
+                        )}
                         
                         <div className="flex gap-2 mt-3">
                           <Button

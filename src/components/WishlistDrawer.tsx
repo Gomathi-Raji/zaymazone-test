@@ -2,39 +2,36 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Heart, Star, MapPin, X } from "lucide-react";
-import { mockProducts } from "@/data/products";
+import { Heart, Star, MapPin, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { getImageUrl } from "@/lib/api";
 
 export const WishlistDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState([
-    mockProducts[1], // Kashmiri Pashmina Shawl
-    mockProducts[5]  // Brass Decorative Bowl
-  ]);
+  const { wishlist, isLoading, removeFromWishlist, getTotalItems } = useWishlist();
+  const { isAuthenticated } = useAuth();
 
-  const removeFromWishlist = (productId: string) => {
-    setWishlistItems(items => items.filter(item => item.id !== productId));
-    toast.success("Removed from wishlist");
-  };
-
-  const moveToCart = (productId: string) => {
-    const product = wishlistItems.find(item => item.id === productId);
-    if (product) {
-      removeFromWishlist(productId);
-      toast.success(`${product.name} added to cart`);
+  const handleRemoveFromWishlist = async (productId: string) => {
+    try {
+      await removeFromWishlist(productId);
+    } catch (error) {
+      // Error is handled in wishlist context
     }
   };
+
+  const itemCount = getTotalItems();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
           <Heart className="h-5 w-5" />
-          {wishlistItems.length > 0 && (
+          {itemCount > 0 && (
             <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs bg-primary flex items-center justify-center">
-              {wishlistItems.length}
+              {itemCount}
             </Badge>
           )}
         </Button>
@@ -43,14 +40,30 @@ export const WishlistDrawer = () => {
         <SheetHeader className="p-6 pb-4">
           <SheetTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5" />
-            Your Wishlist ({wishlistItems.length})
+            Your Wishlist ({itemCount})
           </SheetTitle>
         </SheetHeader>
         
         <div className="flex flex-col h-full">
           {/* Wishlist Items */}
           <div className="flex-1 overflow-auto px-6">
-            {wishlistItems.length === 0 ? (
+            {!isAuthenticated ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center">
+                <Heart className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-2">Please sign in to view your wishlist</p>
+                <Button 
+                  className="mt-2" 
+                  onClick={() => setIsOpen(false)}
+                >
+                  Sign In
+                </Button>
+              </div>
+            ) : isLoading ? (
+              <div className="flex flex-col items-center justify-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground mt-2">Loading wishlist...</p>
+              </div>
+            ) : (!wishlist || !wishlist.products || wishlist.products.length === 0) ? (
               <div className="flex flex-col items-center justify-center h-40 text-center">
                 <Heart className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Your wishlist is empty</p>
@@ -63,61 +76,46 @@ export const WishlistDrawer = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {wishlistItems.map((product) => (
-                  <div key={product.id} className="flex gap-4 p-4 border rounded-lg">
+                {wishlist.products.map((item) => (
+                  <div key={item.productId._id} className="flex gap-4 p-4 border rounded-lg">
                     <Link 
-                      to={`/product/${product.id}`}
+                      to={`/product/${item.productId._id}`}
                       onClick={() => setIsOpen(false)}
                       className="flex-shrink-0"
                     >
                       <img 
-                        src={product.images[0]} 
-                        alt={product.name}
+                        src={getImageUrl(item.productId.images[0])} 
+                        alt={item.productId.name}
                         className="w-20 h-20 object-cover rounded-md"
                       />
                     </Link>
                     <div className="flex-1 min-w-0">
                       <Link 
-                        to={`/product/${product.id}`}
+                        to={`/product/${item.productId._id}`}
                         onClick={() => setIsOpen(false)}
                       >
                         <h4 className="font-medium text-sm line-clamp-2 hover:text-primary transition-colors">
-                          {product.name}
+                          {item.productId.name}
                         </h4>
                       </Link>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>{product.artisan.name}</span>
-                      </div>
                       <div className="flex items-center gap-1 mb-2">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs">{product.rating}</span>
-                        <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
+                        <span className="text-xs">{item.productId.rating}</span>
+                        <span className="text-xs text-muted-foreground">({item.productId.reviewCount})</span>
                       </div>
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="font-semibold text-sm">₹{product.price.toLocaleString()}</span>
-                        {product.originalPrice && (
-                          <span className="text-xs text-muted-foreground line-through">
-                            ₹{product.originalPrice.toLocaleString()}
-                          </span>
-                        )}
+                        <span className="font-semibold text-sm">₹{item.productId.price.toLocaleString()}</span>
                       </div>
-                      
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 text-xs"
-                          onClick={() => moveToCart(product.id)}
-                        >
-                          Add to Cart
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => removeFromWishlist(product.id)}
-                          className="px-2"
+                          onClick={() => handleRemoveFromWishlist(item.productId._id)}
+                          disabled={isLoading}
+                          className="flex-1"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="w-3 h-3 mr-1" />
+                          Remove
                         </Button>
                       </div>
                     </div>
@@ -128,17 +126,8 @@ export const WishlistDrawer = () => {
           </div>
 
           {/* Action Buttons */}
-          {wishlistItems.length > 0 && (
+          {itemCount > 0 && (
             <div className="border-t p-6 space-y-3">
-              <Button 
-                className="w-full bg-gradient-primary hover:shadow-glow"
-                onClick={() => {
-                  wishlistItems.forEach(product => moveToCart(product.id));
-                }}
-              >
-                Add All to Cart
-              </Button>
-              
               <Button 
                 variant="outline" 
                 className="w-full"

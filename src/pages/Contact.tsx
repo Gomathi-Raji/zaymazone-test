@@ -54,8 +54,8 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold">Visit Us</h3>
                       <p className="text-sm text-muted-foreground">
-                        123 Craft Street<br />
-                        Delhi, India 110001
+                        123 Craftman St<br />
+                        Porur, Chennai - 600116
                       </p>
                     </div>
                   </div>
@@ -71,7 +71,8 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold">Call Us</h3>
                       <p className="text-sm text-muted-foreground">
-                        +91 98765 43210<br />
+                        +91 63804 56410 <br />
+                        +91 93447 86408<br />
                         Mon-Fri 9AM-6PM IST
                       </p>
                     </div>
@@ -88,7 +89,7 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold">Email Us</h3>
                       <p className="text-sm text-muted-foreground">
-                        hello@zaymazone.com<br />
+                        admin@thenamsoftwaresolutions.com<br />
                         support@zaymazone.com
                       </p>
                     </div>

@@ -8,10 +8,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Settings, Package, LogOut, Heart, Palette, BarChart3 } from "lucide-react";
+import { User, Package, LogOut, Palette, BarChart3, Heart, MapPin } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { getImageUrl } from "@/lib/api";
 
 export const UserMenu = () => {
   const { user, signOut } = useAuth();
@@ -35,10 +36,10 @@ export const UserMenu = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.avatar} alt={user?.name} />
+        <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={getImageUrl(user?.avatar)} alt={user?.name} />
             <AvatarFallback className={user?.role === 'artisan' ? 'bg-orange-600 text-white' : 'bg-primary text-primary-foreground'}>
               {user ? getInitials(user.name) : <User className="h-4 w-4" />}
             </AvatarFallback>
@@ -99,13 +100,19 @@ export const UserMenu = () => {
                 <span>Wishlist</span>
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" asChild>
+              <Link to="/addresses">
+                <MapPin className="mr-2 h-4 w-4" />
+                <span>Addresses</span>
+              </Link>
+            </DropdownMenuItem>
           </>
         )}
 
         <DropdownMenuItem className="cursor-pointer" asChild>
           <Link to="/profile">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

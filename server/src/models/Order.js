@@ -19,35 +19,61 @@ const orderSchema = new mongoose.Schema({
 	discount: { type: Number, default: 0, min: 0 },
 	total: { type: Number, required: true, min: 0 },
 	
-	// Shipping Address
+	// Shipping Address - Enhanced
 	shippingAddress: {
 		fullName: { type: String, required: true },
-		street: { type: String, required: true },
+		phone: { type: String, required: true },
+		email: { type: String, required: true },
+		addressLine1: { type: String, required: true },
+		addressLine2: { type: String },
 		city: { type: String, required: true },
 		state: { type: String, required: true },
 		zipCode: { type: String, required: true },
 		country: { type: String, default: 'India' },
-		phone: { type: String, required: true }
+		landmark: { type: String },
+		addressType: { type: String, enum: ['home', 'office', 'other'], default: 'home' }
 	},
 	
-	// Payment
+	// Billing Address
+	billingAddress: {
+		fullName: { type: String, required: true },
+		phone: { type: String, required: true },
+		email: { type: String, required: true },
+		addressLine1: { type: String, required: true },
+		addressLine2: { type: String },
+		city: { type: String, required: true },
+		state: { type: String, required: true },
+		zipCode: { type: String, required: true },
+		country: { type: String, default: 'India' },
+		landmark: { type: String },
+		addressType: { type: String, enum: ['home', 'office', 'other'], default: 'home' }
+	},
+	
+	// Payment - Enhanced for Zoho Payments
 	paymentMethod: { 
 		type: String, 
 		required: true, 
-		enum: ['cod', 'razorpay', 'upi'] 
+		enum: ['cod', 'zoho_card', 'zoho_upi', 'zoho_netbanking', 'zoho_wallet', 'razorpay', 'upi'] 
 	},
 	paymentStatus: { 
 		type: String, 
 		default: 'pending', 
-		enum: ['pending', 'paid', 'failed', 'refunded'] 
+		enum: ['pending', 'processing', 'paid', 'failed', 'refunded', 'cancelled'] 
 	},
-	paymentId: { type: String }, // Razorpay payment ID
+	paymentId: { type: String }, // Zoho/Razorpay payment ID
+	zohoPaymentId: { type: String }, // Zoho specific payment ID
+	zohoOrderId: { type: String }, // Zoho order reference
+	paymentGatewayResponse: { type: mongoose.Schema.Types.Mixed }, // Store gateway response
+	paidAt: { type: Date },
+	refundedAt: { type: Date },
+	refundAmount: { type: Number, min: 0 },
+	refundReason: { type: String },
 	
-	// Order Status
+	// Order Status - Enhanced with more statuses
 	status: { 
 		type: String, 
 		default: 'placed', 
-		enum: ['placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] 
+		enum: ['placed', 'confirmed', 'processing', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned', 'refunded'] 
 	},
 	statusHistory: [{
 		status: { type: String, required: true },
@@ -55,9 +81,11 @@ const orderSchema = new mongoose.Schema({
 		note: { type: String }
 	}],
 	
-	// Tracking
+	// Tracking - Enhanced
 	trackingNumber: { type: String },
+	courierService: { type: String }, // e.g., "Blue Dart", "DTDC"
 	estimatedDelivery: { type: Date },
+	actualDelivery: { type: Date },
 	deliveredAt: { type: Date },
 	cancelledAt: { type: Date },
 	cancellationReason: { type: String },
@@ -68,19 +96,102 @@ const orderSchema = new mongoose.Schema({
 	giftMessage: { type: String, maxLength: 200 }
 }, { timestamps: true })
 
-// Pre-save middleware to generate order number
+// Pre-save middleware to generate order number and update status history
 orderSchema.pre('save', async function(next) {
 	if (!this.orderNumber) {
-		const count = await mongoose.model('Order').countDocuments()
-		this.orderNumber = `ZM${Date.now().toString().slice(-8)}${(count + 1).toString().padStart(4, '0')}`
+		const year = new Date().getFullYear()
+		const count = await mongoose.model('Order').countDocuments({
+			createdAt: {
+				$gte: new Date(year, 0, 1),
+				$lt: new Date(year + 1, 0, 1)
+			}
+		})
+		this.orderNumber = `ZM-${year}-${String(count + 1).padStart(6, '0')}`
 	}
+	
+	// Update status history when status changes
+	if (this.isModified('status') && this.status) {
+		const existingStatus = this.statusHistory.find(h => h.status === this.status)
+		if (!existingStatus) {
+			this.statusHistory.push({
+				status: this.status,
+				timestamp: new Date(),
+				note: `Order status updated to ${this.status}`
+			})
+		}
+	}
+	
+	// Set timestamps based on status
+	if (this.status === 'delivered' && !this.deliveredAt) {
+		this.deliveredAt = new Date()
+		this.actualDelivery = new Date()
+	}
+	
+	if (this.status === 'cancelled' && !this.cancelledAt) {
+		this.cancelledAt = new Date()
+	}
+	
 	next()
 })
 
-// Indexes
+// Instance methods
+orderSchema.methods.updateStatus = function(newStatus, note = '', updatedBy = null) {
+	this.status = newStatus
+	this.statusHistory.push({
+		status: newStatus,
+		timestamp: new Date(),
+		note: note || `Order status updated to ${newStatus}`,
+		updatedBy: updatedBy
+	})
+	return this.save()
+}
+
+orderSchema.methods.canBeCancelled = function() {
+	return ['placed', 'confirmed', 'processing'].includes(this.status)
+}
+
+orderSchema.methods.canBeReturned = function() {
+	return this.status === 'delivered' && 
+		   this.deliveredAt && 
+		   (new Date() - this.deliveredAt) <= (7 * 24 * 60 * 60 * 1000) // 7 days
+}
+
+// Static methods
+orderSchema.statics.findByUser = function(userId, options = {}) {
+	const { page = 1, limit = 10, status } = options
+	const query = { userId }
+	
+	if (status) {
+		query.status = status
+	}
+	
+	return this.find(query)
+		.sort({ createdAt: -1 })
+		.skip((page - 1) * limit)
+		.limit(limit)
+		.populate('items.productId', 'name images category')
+		.populate('userId', 'name email')
+}
+
+orderSchema.statics.getOrderStats = function(userId) {
+	return this.aggregate([
+		{ $match: { userId: new mongoose.Types.ObjectId(userId) } },
+		{
+			$group: {
+				_id: '$status',
+				count: { $sum: 1 },
+				totalAmount: { $sum: '$total' }
+			}
+		}
+	])
+}
+
+// Indexes - Enhanced
 orderSchema.index({ userId: 1, createdAt: -1 })
-// orderNumber already has unique index from pre-save middleware, no need for additional index
 orderSchema.index({ status: 1 })
+orderSchema.index({ paymentStatus: 1 })
 orderSchema.index({ 'items.artisanId': 1 })
+orderSchema.index({ zohoPaymentId: 1 })
+orderSchema.index({ zohoOrderId: 1 })
 
 export default mongoose.model('Order', orderSchema)

@@ -1,25 +1,23 @@
 import { Link } from "react-router-dom";
-import potteryImage from "@/assets/pottery-hero.jpg";
-import textilesImage from "@/assets/textiles-hero.jpg";
-import craftsImage from "@/assets/crafts-hero.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const categories = [
   {
     title: "Pottery mastery.",
     subtitle: "Handcrafted ceramics reflecting tradition and artistry.",
-    image: potteryImage,
+    image: getImageUrl('/assets/pottery-hero.jpg'),
     href: "/shop?category=pottery"
   },
   {
     title: "Textile tales.",
     subtitle: "Vibrant fabrics woven with heritage and skill.",
-    image: textilesImage,
+    image: getImageUrl('/assets/textiles-hero.jpg'),
     href: "/shop?category=textiles"
   },
   {
     title: "Playful crafts.",
     subtitle: "Ethical toys and decor that spark creativity.",
-    image: craftsImage,
+    image: getImageUrl('/assets/crafts-hero.jpg'),
     href: "/shop?category=crafts"
   }
 ];

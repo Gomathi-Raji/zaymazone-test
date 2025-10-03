@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCard } from "@/components/ProductCard";
+import { getImageUrl } from "@/lib/api";
 import { 
   MapPin, 
   Star, 
@@ -121,7 +122,7 @@ export default function ArtisanDetail() {
       const mockArtisan: Artisan = {
         id: id!,
         name: "Meera Devi",
-        avatar: "/src/assets/artisan-avatar-1.jpg",
+        avatar: getImageUrl('artisan-avatar-1.jpg'),
         coverImage: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=400&fit=crop",
         location: {
           city: "Srinagar",
@@ -401,10 +402,10 @@ export default function ArtisanDetail() {
                   <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleShare}>
+                <Button variant="outline" size="icon" onClick={handleShare} aria-label="Share artisan profile">
                   <Share2 className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" aria-label="Send message">
                   <MessageCircle className="w-4 h-4" />
                 </Button>
               </div>

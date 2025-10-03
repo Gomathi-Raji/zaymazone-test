@@ -4,9 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, Star, Award } from "lucide-react";
 import { Link } from "react-router-dom";
-import artisan1 from "@/assets/artisan-1.jpg";
-import artisan2 from "@/assets/artisan-2.jpg";
-import artisan3 from "@/assets/artisan-3.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const featuredArtisans = [
   {
@@ -17,7 +15,7 @@ const featuredArtisans = [
     experience: "15+ years",
     rating: 4.9,
     speciality: "Blue Pottery",
-    image: artisan1,
+    image: getImageUrl("/assets/artisan-1.jpg"),
     description: "Master of traditional Rajasthani blue pottery with intricate hand-painted designs passed down through generations.",
     products: 24,
     achievements: ["UNESCO Recognition", "National Award Winner"]
@@ -30,7 +28,7 @@ const featuredArtisans = [
     experience: "20+ years",
     rating: 4.8,
     speciality: "Temple Ornaments",
-    image: artisan2,
+    image: getImageUrl("/assets/artisan-2.jpg"),
     description: "Renowned for creating exquisite brass temple ornaments and decorative pieces using ancient casting techniques.",
     products: 18,
     achievements: ["Heritage Craftsman", "Export Excellence"]
@@ -43,7 +41,7 @@ const featuredArtisans = [
     experience: "12+ years",
     rating: 4.9,
     speciality: "Kashmiri Shawls",
-    image: artisan3,
+    image: getImageUrl("/assets/artisan-3.jpg"),
     description: "Expert in weaving luxurious Kashmiri shawls with traditional patterns and premium pashmina wool.",
     products: 31,
     achievements: ["Master Weaver", "Cultural Heritage Award"]
@@ -195,6 +193,7 @@ export const ArtisanSpotlight = () => {
                     setCurrentIndex(index);
                     setIsAutoPlaying(false);
                   }}
+                  aria-label={`Go to artisan ${index + 1}`}
                   className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     index === currentIndex
                       ? "bg-primary scale-125"

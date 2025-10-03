@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Plus, Minus, X, Loader2, Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getImageUrl } from "@/lib/api";
 
 export const CartDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -92,7 +93,7 @@ export const CartDrawer = () => {
                 {cart.items.map((item) => (
                   <div key={item.productId.id} className="flex gap-4 p-4 border rounded-lg">
                     <img 
-                      src={item.productId.images[0]} 
+                      src={getImageUrl(item.productId.images[0])} 
                       alt={item.productId.name}
                       className="w-16 h-16 object-cover rounded-md"
                     />

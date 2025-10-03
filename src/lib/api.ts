@@ -1,7 +1,33 @@
 import { logEvent } from "./security";
 
-const API_BASE_URL = "http://localhost:4001";
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // Check for explicit API URL from environment
+  if ((import.meta as any).env.VITE_API_URL) {
+    return ((import.meta as any).env.VITE_API_URL as string).replace('/api', '');
+  }
+
+  // In development, use localhost
+  if ((import.meta as any).env.DEV) {
+    return "http://localhost:4000";
+  }
+
+  // For production/mobile, use the current origin or a configured backend URL
+  // This allows the app to work when served from different domains
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+
+  if (isLocalhost) {
+    return "http://localhost:4000";
+  }
+
+  // For production deployments, assume backend is on the same domain or use environment variable
+  return (import.meta as any).env.VITE_BACKEND_URL || `${currentOrigin}/api`.replace('/api/api', '/api');
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const TOKEN_KEY = "auth_token";
+const FIREBASE_TOKEN_KEY = "firebase_id_token";
 
 export function getAuthToken(): string | null {
 	try {
@@ -20,6 +46,23 @@ export function setAuthToken(token: string | null): void {
 	}
 }
 
+export function getFirebaseToken(): string | null {
+	try {
+		return localStorage.getItem(FIREBASE_TOKEN_KEY);
+	} catch {
+		return null;
+	}
+}
+
+export function setFirebaseToken(token: string | null): void {
+	try {
+		if (token) localStorage.setItem(FIREBASE_TOKEN_KEY, token);
+		else localStorage.removeItem(FIREBASE_TOKEN_KEY);
+	} catch {
+		// ignore
+	}
+}
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export async function apiRequest<T>(path: string, options: {
@@ -30,7 +73,10 @@ export async function apiRequest<T>(path: string, options: {
 	const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
 	const headers: Record<string, string> = { "Content-Type": "application/json" };
 	if (options.auth) {
-		const token = getAuthToken();
+		// Prefer Firebase token over JWT token
+		const firebaseToken = getFirebaseToken();
+		const jwtToken = getAuthToken();
+		const token = firebaseToken || jwtToken;
 		if (token) headers["Authorization"] = `Bearer ${token}`;
 	}
 	const res = await fetch(url, {
@@ -70,6 +116,16 @@ export interface User {
 		zipCode: string;
 		country: string;
 	};
+	preferences?: {
+		newsletter: boolean;
+		notifications: boolean;
+		language: string;
+	};
+	isEmailVerified?: boolean;
+	authProvider?: 'firebase' | 'local';
+	firebaseUid?: string;
+	lastLogin?: string;
+	createdAt?: string;
 }
 
 export interface Product {
@@ -80,25 +136,28 @@ export interface Product {
 	originalPrice?: number;
 	images: string[];
 	category: string;
-	subcategory?: string;
+	subcategory: string;
 	materials: string[];
-	dimensions?: {
-		length: number;
-		width: number;
-		height: number;
-		unit: string;
-	};
-	weight?: number;
+	dimensions: string;
+	weight: string;
 	colors: string[];
-	tags: string[];
-	stock: number;
-	isHandmade: boolean;
-	shippingTime: string;
+	inStock: boolean;
+	stockCount: number;
+	artisan: {
+		id: string;
+		name: string;
+		location: string;
+		bio: string;
+		avatar: string;
+		rating: number;
+		totalProducts: number;
+	} | null;
 	rating: number;
 	reviewCount: number;
-	artisanId: string;
-	isFeatured: boolean;
-	isActive: boolean;
+	tags: string[];
+	isHandmade: boolean;
+	shippingTime: string;
+	featured: boolean;
 }
 
 export interface CartItem {
@@ -115,6 +174,7 @@ export interface Cart {
 }
 
 export interface Order {
+	_id: string;
 	id: string;
 	orderNumber: string;
 	items: Array<{
@@ -131,21 +191,40 @@ export interface Order {
 	total: number;
 	shippingAddress: {
 		fullName: string;
-		street: string;
+		street?: string;
+		addressLine1?: string;
+		addressLine2?: string;
 		city: string;
 		state: string;
 		zipCode: string;
 		country: string;
 		phone: string;
+		email?: string;
 	};
-	paymentMethod: 'cod' | 'razorpay' | 'upi';
-	paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-	status: 'placed' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+	billingAddress?: {
+		fullName: string;
+		street?: string;
+		addressLine1?: string;
+		addressLine2?: string;
+		city: string;
+		state: string;
+		zipCode: string;
+		country: string;
+		phone: string;
+		email?: string;
+	};
+	paymentMethod: 'cod' | 'zoho_card' | 'zoho_upi' | 'zoho_netbanking' | 'zoho_wallet' | 'razorpay' | 'upi';
+	paymentStatus: 'pending' | 'processing' | 'paid' | 'failed' | 'refunded';
+	status: 'placed' | 'confirmed' | 'processing' | 'packed' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned' | 'refunded';
 	statusHistory: Array<{
 		status: string;
 		timestamp: string;
 		note?: string;
 	}>;
+	trackingNumber?: string;
+	courierService?: string;
+	zohoOrderId?: string;
+	zohoPaymentId?: string;
 	createdAt: string;
 }
 
@@ -169,7 +248,6 @@ export interface Review {
 
 export interface Artisan {
 	_id: string;
-	userId: string;
 	name: string;
 	bio: string;
 	location: {
@@ -178,28 +256,19 @@ export interface Artisan {
 		country: string;
 	};
 	avatar: string;
-	coverImage?: string;
+	coverImage: string;
 	specialties: string[];
 	experience: number;
-	socials?: {
-		instagram?: string;
-		facebook?: string;
-		website?: string;
-	};
-	verification: {
-		isVerified: boolean;
-		documentType?: string;
-		documentNumber?: string;
-		verifiedAt?: string;
-	};
 	rating: number;
 	totalRatings: number;
 	totalProducts: number;
 	totalSales: number;
+	verification: {
+		isVerified: boolean;
+		verifiedAt?: Date;
+	};
 	isActive: boolean;
-	joinedDate: string;
-	createdAt: string;
-	updatedAt: string;
+	joinedDate: Date;
 }
 
 // API Functions
@@ -213,6 +282,36 @@ export const authApi = {
 		apiRequest<{ token: string; user: User }>(
 			"/api/auth/signin",
 			{ method: "POST", body: data }
+		),
+};
+
+// Firebase Auth API Functions
+export const firebaseAuthApi = {
+	syncUser: (data: { idToken: string; role?: 'user' | 'artisan' }) =>
+		apiRequest<{ message: string; user: User }>(
+			"/api/firebase-auth/sync",
+			{ method: "POST", body: data }
+		),
+	getCurrentUser: (idToken: string) =>
+		apiRequest<{ user: User }>(
+			"/api/firebase-auth/me",
+			{ method: "GET", auth: true }
+		),
+	updateProfile: (data: { 
+		name?: string; 
+		phone?: string; 
+		address?: Partial<User['address']>; 
+		preferences?: Partial<User['preferences']>;
+		avatar?: string;
+	}, idToken: string) =>
+		apiRequest<{ message: string; user: User }>(
+			"/api/firebase-auth/profile",
+			{ method: "PATCH", body: data, auth: true }
+		),
+	deleteAccount: (idToken: string) =>
+		apiRequest<{ message: string }>(
+			"/api/firebase-auth/account",
+			{ method: "DELETE", auth: true }
 		),
 };
 
@@ -260,6 +359,35 @@ export const productsApi = {
 			method: "DELETE", 
 			auth: true 
 		}),
+};
+
+export const imagesApi = {
+	upload: (file: File) => {
+		const url = `${API_BASE_URL}/api/images/upload`;
+		const form = new FormData();
+		form.append('image', file);
+
+		// Attach auth token if available
+		const headers: Record<string, string> = {};
+		try {
+			const firebaseToken = getFirebaseToken();
+			const jwt = getAuthToken();
+			const token = firebaseToken || jwt;
+			if (token) headers['Authorization'] = `Bearer ${token}`;
+		} catch {}
+
+		return fetch(url, {
+			method: 'POST',
+			body: form,
+			headers,
+		}).then(async (res) => {
+			if (!res.ok) {
+				const text = await res.text().catch(() => 'Upload failed');
+				throw new Error(text || `Upload failed: ${res.status}`);
+			}
+			return res.json();
+		});
+	}
 };
 
 export const cartApi = {
@@ -313,8 +441,12 @@ export const ordersApi = {
 	create: (data: {
 		items: Array<{ productId: string; quantity: number }>;
 		shippingAddress: Order['shippingAddress'];
+		billingAddress?: Order['billingAddress'];
+		useShippingAsBilling?: boolean;
 		paymentMethod: Order['paymentMethod'];
 		paymentId?: string;
+		zohoPaymentId?: string;
+		zohoOrderId?: string;
 		notes?: string;
 		isGift?: boolean;
 		giftMessage?: string;
@@ -328,6 +460,84 @@ export const ordersApi = {
 	cancel: (id: string) =>
 		apiRequest<{ message: string; order: Order }>(`/api/orders/${id}/cancel`, {
 			method: "PATCH",
+			auth: true
+		}),
+};
+
+export const paymentsApi = {
+	createPaymentOrder: (data: { orderId: string }) =>
+		apiRequest<{
+			success: boolean;
+			paymentOrder: {
+				zohoOrderId: string;
+				amount: number;
+				currency: string;
+				paymentUrl: string;
+				orderNumber: string;
+			};
+		}>("/api/payments/create-order", {
+			method: "POST",
+			body: data,
+			auth: true
+		}),
+	
+	verifyPayment: (data: { 
+		zohoPaymentId: string;
+		zohoOrderId: string;
+		paymentStatus: string;
+	}) =>
+		apiRequest<{
+			success: boolean;
+			paymentStatus: string;
+			orderStatus: string;
+			message: string;
+		}>("/api/payments/verify", {
+			method: "POST",
+			body: data,
+			auth: true
+		}),
+	
+	getPaymentMethods: () =>
+		apiRequest<{
+			success: boolean;
+			paymentMethods: Array<{
+				id: string;
+				name: string;
+				description: string;
+				fees?: string;
+			}>;
+		}>("/api/payments/methods"),
+	
+	getPaymentStatus: (orderId: string) =>
+		apiRequest<{
+			success: boolean;
+			payment: {
+				paymentStatus: string;
+				paymentMethod: string;
+				zohoPaymentId?: string;
+				zohoOrderId?: string;
+				paidAt?: string;
+				refundedAt?: string;
+				refundAmount?: number;
+			};
+		}>(`/api/payments/order/${orderId}/status`, { auth: true }),
+	
+	processRefund: (data: {
+		orderId: string;
+		refundAmount?: number;
+		reason?: string;
+	}) =>
+		apiRequest<{
+			success: boolean;
+			refund: {
+				refundId: string;
+				amount: number;
+				status: string;
+			};
+			message: string;
+		}>("/api/payments/refund", {
+			method: "POST",
+			body: data,
 			auth: true
 		}),
 };
@@ -402,6 +612,105 @@ export const reviewsApi = {
 		}),
 };
 
+export const artisansApi = {
+	getAll: (params?: { 
+		page?: number; 
+		limit?: number; 
+		q?: string;
+		location?: string;
+		specialty?: string;
+	}) => {
+		const searchParams = new URLSearchParams();
+		if (params) {
+			Object.entries(params).forEach(([key, value]) => {
+				if (value !== undefined) {
+					searchParams.append(key, value.toString());
+				}
+			});
+		}
+		const queryString = searchParams.toString();
+		return apiRequest<Artisan[]>(`/api/artisans${queryString ? `?${queryString}` : ''}`);
+	},
+	
+	getById: (id: string) =>
+		apiRequest<Artisan>(`/api/artisans/${id}`),
+};
+
+export const addressesApi = {
+	getAll: () => apiRequest<any[]>('/api/addresses', { auth: true }),
+	
+	add: (address: any) => 
+		apiRequest<{ address: any }>('/api/addresses', {
+			method: 'POST',
+			body: address,
+			auth: true
+		}),
+	
+	update: (id: string, address: any) => 
+		apiRequest<{ address: any }>(`/api/addresses/${id}`, {
+			method: 'PUT',
+			body: address,
+			auth: true
+		}),
+	
+	delete: (id: string) => 
+		apiRequest<{ message: string }>(`/api/addresses/${id}`, {
+			method: 'DELETE',
+			auth: true
+		}),
+	
+	setDefault: (id: string) => 
+		apiRequest<{ message: string }>(`/api/addresses/${id}/default`, {
+			method: 'PUT',
+			auth: true
+		}),
+};
+
+export const blogApi = {
+	getAll: (params?: {
+		page?: number;
+		limit?: number;
+		category?: string;
+		tag?: string;
+		search?: string;
+		featured?: boolean;
+	}) => {
+		const searchParams = new URLSearchParams();
+		if (params) {
+			Object.entries(params).forEach(([key, value]) => {
+				if (value !== undefined) {
+					searchParams.append(key, value.toString());
+				}
+			});
+		}
+		const queryString = searchParams.toString();
+		return apiRequest<{
+			posts: any[];
+			pagination: any;
+		}>(`/api/blog${queryString ? `?${queryString}` : ''}`);
+	},
+
+	getById: (id: string) =>
+		apiRequest<any>(`/api/blog/${id}`),
+
+	getCategories: () =>
+		apiRequest<string[]>('/api/blog/categories'),
+
+	getTags: () =>
+		apiRequest<string[]>('/api/blog/tags'),
+
+	getFeatured: () =>
+		apiRequest<any[]>('/api/blog/featured'),
+
+	like: (id: string) =>
+		apiRequest<{ message: string; likes: number }>(`/api/blog/${id}/like`, {
+			method: 'PATCH'
+		}),
+
+	getRelated: (id: string) =>
+		apiRequest<any[]>(`/api/blog/${id}/related`),
+};
+
 // Unified API export
 export const api = {
 	// Auth
@@ -428,11 +737,24 @@ export const api = {
 	createOrder: ordersApi.create,
 	cancelOrder: ordersApi.cancel,
 	
+	// Payments
+	createPaymentOrder: paymentsApi.createPaymentOrder,
+	verifyPayment: paymentsApi.verifyPayment,
+	getPaymentMethods: paymentsApi.getPaymentMethods,
+	getPaymentStatus: paymentsApi.getPaymentStatus,
+	processRefund: paymentsApi.processRefund,
+	
 	// Reviews
 	getProductReviews: reviewsApi.getForProduct,
 	createReview: reviewsApi.create,
 	updateReview: reviewsApi.update,
 	deleteReview: reviewsApi.delete,
+	
+	// Artisans
+	getArtisans: artisansApi.getAll,
+	getArtisan: artisansApi.getById,
+	// Images
+	uploadImage: imagesApi.upload,
 	
 	// Wishlist
 	getWishlist: () => apiRequest<any[]>('/api/wishlist', { auth: true }),
@@ -442,8 +764,50 @@ export const api = {
 			body: { productId },
 			auth: true
 		}),
-		
-	// Artisans
-	getArtisans: () => apiRequest<any[]>('/api/artisans'),
-	getArtisan: (id: string) => apiRequest<any>(`/api/artisans/${id}`),
+	removeFromWishlist: (productId: string) => 
+		apiRequest<{ message: string }>(`/api/wishlist/item/${productId}`, {
+			method: 'DELETE',
+			auth: true
+		}),
+	clearWishlist: () => 
+		apiRequest<{ message: string }>('/api/wishlist/clear', {
+			method: 'DELETE',
+			auth: true
+		}),
+	
+	// Addresses
+	getUserAddresses: addressesApi.getAll,
+	addAddress: addressesApi.add,
+	updateAddress: addressesApi.update,
+	deleteAddress: addressesApi.delete,
+	setDefaultAddress: addressesApi.setDefault,
+
+	// Blog
+	getBlogPosts: blogApi.getAll,
+	getBlogPost: blogApi.getById,
+	getBlogCategories: blogApi.getCategories,
+	getBlogTags: blogApi.getTags,
+	getFeaturedBlogPosts: blogApi.getFeatured,
+	likeBlogPost: blogApi.like,
+	getRelatedBlogPosts: blogApi.getRelated,
 };
+
+// Utility function to handle image URLs
+export function getImageUrl(path: string): string {
+  if (!path) return '/placeholder.svg';
+
+  // If it's already a full URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  // If it's already an API image path, use it directly
+  if (path.startsWith('/api/images/')) {
+    return `${API_BASE_URL}${path}`;
+  }
+
+  // For all other paths (including /assets/ paths), serve from database via API
+  // Extract filename from path
+  const filename = path.split('/').pop() || path;
+  return `${API_BASE_URL}/api/images/${filename}`;
+}

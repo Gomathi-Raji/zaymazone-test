@@ -8,16 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    cors: {
-      origin: [
-        /^(http:\/\/)?localhost:\d+$/,
-        /^(http:\/\/)?127\.0\.0\.1:\d+$/
-      ],
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-      credentials: true,
-      maxAge: 600,
-    },
+    // Proxy API requests to local mock server in development, production backend otherwise
+    proxy: {
+      '/api': {
+        target: mode === 'development' ? 'http://localhost:4000' : 'https://zaymazone-backend.onrender.com',
+        changeOrigin: true,
+        secure: mode !== 'development',
+      }
+    }
   },
   plugins: [
     react(),

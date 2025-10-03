@@ -17,7 +17,7 @@ interface Product {
   artisan: {
     name: string;
     location: string;
-  };
+  } | null;
   featured?: boolean;
   badge?: string;
 }
@@ -112,7 +112,7 @@ export const EnhancedProductShowcase = ({
                             exit={{ scale: 0, rotate: 180 }}
                             transition={{ duration: 0.3 }}
                           >
-                            <Button size="sm" variant="secondary" className="h-10 w-10 p-0">
+                            <Button size="sm" variant="secondary" className="h-10 w-10 p-0" aria-label="Add to wishlist">
                               <Heart className="w-4 h-4" />
                             </Button>
                           </motion.div>
@@ -122,7 +122,7 @@ export const EnhancedProductShowcase = ({
                             exit={{ scale: 0, rotate: 180 }}
                             transition={{ duration: 0.3, delay: 0.1 }}
                           >
-                            <Button size="sm" variant="secondary" className="h-10 w-10 p-0">
+                            <Button size="sm" variant="secondary" className="h-10 w-10 p-0" aria-label="Quick view">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </motion.div>
@@ -132,7 +132,7 @@ export const EnhancedProductShowcase = ({
                             exit={{ scale: 0, rotate: 180 }}
                             transition={{ duration: 0.3, delay: 0.2 }}
                           >
-                            <Button size="sm" className="h-10 w-10 p-0">
+                            <Button size="sm" className="h-10 w-10 p-0" aria-label="Add to cart">
                               <ShoppingCart className="w-4 h-4" />
                             </Button>
                           </motion.div>
@@ -153,9 +153,11 @@ export const EnhancedProductShowcase = ({
                         {product.title}
                       </Link>
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      by {product.artisan.name} • {product.artisan.location}
-                    </p>
+                    {product.artisan && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        by {product.artisan.name} • {product.artisan.location}
+                      </p>
+                    )}
                   </div>
 
                   {/* Rating and Price */}

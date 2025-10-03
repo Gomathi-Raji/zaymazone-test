@@ -4,16 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Award, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
-import potteryHero from "@/assets/pottery-hero.jpg";
-import textilesHero from "@/assets/textiles-hero.jpg";
-import craftsHero from "@/assets/crafts-hero.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const skills = [
   {
     id: 1,
     title: "Pottery & Ceramics",
     description: "Master the ancient art of clay shaping and ceramic glazing techniques passed down through generations.",
-    image: potteryHero,
+    image: getImageUrl('/assets/pottery-hero.jpg'),
     artisans: 156,
     experience: "2000+ years",
     techniques: ["Wheel throwing", "Hand building", "Glazing", "Firing"],
@@ -24,7 +22,7 @@ const skills = [
     id: 2,
     title: "Handloom Weaving",
     description: "Create stunning textiles using traditional looms and time-honored weaving patterns.",
-    image: textilesHero,
+    image: getImageUrl('/assets/textiles-hero.jpg'),
     artisans: 243,
     experience: "3000+ years",
     techniques: ["Plain weave", "Twill", "Jacquard", "Ikat"],
@@ -35,7 +33,7 @@ const skills = [
     id: 3,
     title: "Metal Crafting",
     description: "Forge beautiful objects using traditional metalworking techniques and modern innovations.",
-    image: craftsHero,
+    image: getImageUrl('/assets/crafts-hero.jpg'),
     artisans: 89,
     experience: "4000+ years",
     techniques: ["Dhokra casting", "Repoussé", "Chasing", "Patina"],

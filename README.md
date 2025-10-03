@@ -1,6 +1,6 @@
 # Zaymazone
 
-![Zaymazone Logo](public/lovable-uploads/ec11dd45-921b-40e9-a539-00c89f7436ab.png)
+![Zaymazone Logo](public/logo.png)
 
 Zaymazone is a **modern artisan e-commerce platform** connecting buyers with local artisans, empowering creators to showcase and sell their handcrafted products online.  
 The project focuses on **cultural authenticity**, **user-friendly design**, and **seamless shopping and selling experiences**.
@@ -167,10 +167,26 @@ Endpoints:
 - Auth: `POST /api/auth/signup`, `POST /api/auth/signin`
 - Products: `GET /api/products`, `GET /api/products/:id`, `POST|PUT|DELETE` (auth required)
 - Artisans: `GET /api/artisans`, `GET /api/artisans/:id`, `POST|PUT|DELETE` (auth required)
+- Orders: `GET /api/orders/my-orders`, `GET /api/orders/:id`, `POST /api/orders`, `PATCH /api/orders/:id/cancel`
+- Payments: `POST /api/payments/create-order`, `POST /api/payments/verify`, `GET /api/payments/order/:orderId/status`
+- Images: `POST /api/images/upload` (auth required)
+- Firebase Auth: `POST /api/firebase-auth/sync`, `PATCH /api/firebase-auth/profile`
 
 Notes:
 - Server applies Helmet, CORS, rate limiting, and logging.
 - Ensure MongoDB is running locally or update `MONGODB_URI`.
+- For production, set `VITE_API_URL=https://zaymazone-backend.onrender.com` in `.env`.
+
+### Real-Time Dashboard Integration
+
+The dashboard (`/dashboard`) now connects to the live backend API for real-time data:
+- **Profile Management**: Edit name, phone, address, and upload avatar via `PATCH /api/firebase-auth/profile`.
+- **Orders**: View orders with polling every 30s; cancel orders; initiate payments.
+- **Payments**: "Pay Now" redirects to Zoho payment URL; payment status updates in real-time.
+- **Order Details Modal**: Shows full order info with payment status polling every 10s.
+
+Environment Variables:
+- `VITE_API_URL=https://zaymazone-backend.onrender.com/` (production backend)
 
 ---
 

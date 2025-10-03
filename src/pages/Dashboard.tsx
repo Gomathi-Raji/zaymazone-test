@@ -1,14 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Heart, MapPin, User, Star, Package } from 'lucide-react';
+import { ShoppingBag, Heart, MapPin, User, Star, Package, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    wishlistItems: 0,
+    rewardPoints: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [ordersData, wishlistData] = await Promise.all([
+        api.getUserOrders().catch(() => ({ orders: [] })),
+        api.getWishlist().catch(() => [])
+      ]);
+
+      // Ensure wishlistData is an array
+      const wishlistItems = Array.isArray(wishlistData)
+        ? wishlistData
+        : (wishlistData && Array.isArray((wishlistData as any).products)
+           ? (wishlistData as any).products
+           : []);
+      // Calculate reward points based on total spent (simplified calculation)
+      const totalSpent = (ordersData.orders || []).reduce((sum: number, order: any) => sum + (order.total || 0), 0);
+      const rewardPoints = Math.floor(totalSpent / 10); // 1 point per 10 rupees spent
+
+      setStats({
+        totalOrders: ordersData.orders?.length || 0,
+        wishlistItems: wishlistItems.length || 0,
+        rewardPoints
+      });
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const dashboardItems = [
     {
@@ -61,6 +104,21 @@ const Dashboard = () => {
     }
   ];
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Please sign in</h2>
+            <p className="text-muted-foreground">You need to be logged in to access your dashboard</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -69,7 +127,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, {user?.name || 'Guest'}!
+            Welcome back, {user.name}!
           </h1>
           <p className="text-muted-foreground">
             Manage your account and explore amazing handcrafted products
@@ -83,7 +141,11 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                  <p className="text-2xl font-bold">12</p>
+                  {loading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                  )}
                 </div>
                 <ShoppingBag className="w-8 h-8 text-blue-600" />
               </div>
@@ -95,7 +157,11 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Wishlist Items</p>
-                  <p className="text-2xl font-bold">8</p>
+                  {loading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <p className="text-2xl font-bold">{stats.wishlistItems}</p>
+                  )}
                 </div>
                 <Heart className="w-8 h-8 text-red-600" />
               </div>
@@ -107,7 +173,11 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Reward Points</p>
-                  <p className="text-2xl font-bold">2,456</p>
+                  {loading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <p className="text-2xl font-bold">{stats.rewardPoints.toLocaleString()}</p>
+                  )}
                 </div>
                 <Star className="w-8 h-8 text-yellow-600" />
               </div>

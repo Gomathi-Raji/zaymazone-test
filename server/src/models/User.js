@@ -1,9 +1,11 @@
 import mongoose from 'mongoose'
 
 const userSchema = new mongoose.Schema({
+	firebaseUid: { type: String, unique: true, sparse: true, index: true }, // Firebase UID for Firebase Auth users
 	name: { type: String, required: true, trim: true, maxLength: 120 },
 	email: { type: String, required: true, unique: true, lowercase: true, index: true, maxLength: 254 },
-	passwordHash: { type: String, required: true },
+	passwordHash: { type: String }, // Optional - only for non-Firebase users
+	authProvider: { type: String, enum: ['firebase', 'local'], default: 'firebase' }, // Track auth method
 	role: { type: String, enum: ['user', 'artisan', 'admin'], default: 'user' },
 	avatar: { type: String, default: '' },
 	phone: { type: String, trim: true },
@@ -18,6 +20,12 @@ const userSchema = new mongoose.Schema({
 	emailVerificationToken: { type: String },
 	passwordResetToken: { type: String },
 	passwordResetExpires: { type: Date },
+	refreshTokens: [{ 
+		token: { type: String, required: true },
+		createdAt: { type: Date, default: Date.now },
+		expiresAt: { type: Date, required: true },
+		deviceInfo: { type: String } // Optional device/browser info
+	}],
 	preferences: {
 		newsletter: { type: Boolean, default: true },
 		notifications: { type: Boolean, default: true },

@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, Globe, Users, Leaf, Award, Target } from "lucide-react";
-import team1 from "@/assets/team-1.jpg";
-import team2 from "@/assets/team-2.jpg";
-import team3 from "@/assets/team-3.jpg";
+import { getImageUrl } from "@/lib/api";
 
 const About = () => {
   return (
@@ -171,16 +169,39 @@ const About = () => {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
-                    src={team1} 
-                    alt="Anita Sharma"
+                  <img
+                    src={getImageUrl('team1.jpg')}
+                    alt="Harishwaran"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
-                <h3 className="font-semibold text-lg">Anita Sharma</h3>
+                <h3 className="font-semibold text-lg">Harishwaran P</h3>
+                <p className="text-primary text-sm mb-2">Chief Executive Officer</p>
+                <p className="text-xs text-muted-foreground">
+                  Chief Executive Officer with a vision to empower artisans and preserve heritage
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                  <img
+                    src={getImageUrl('team2.png')}
+                    alt="Jayamurugan"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+                <h3 className="font-semibold text-lg">Jayamurugan V</h3>
                 <p className="text-primary text-sm mb-2">Founder & CEO</p>
                 <p className="text-xs text-muted-foreground">
-                  Former textile designer with 15 years of experience in traditional crafts
+                  Founder with a passion for traditional crafts and sustainable development
                 </p>
               </CardContent>
             </Card>
@@ -188,33 +209,19 @@ const About = () => {
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
-                    src={team2} 
-                    alt="Rajesh Kumar"
+                  <img
+                    src={getImageUrl('team3.jpg')}
+                    alt="Dinesh"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
-                <h3 className="font-semibold text-lg">Rajesh Kumar</h3>
-                <p className="text-primary text-sm mb-2">Head of Artisan Relations</p>
+                <h3 className="font-semibold text-lg">Dinesh S</h3>
+                <p className="text-primary text-sm mb-2">Chief Technology Officer</p>
                 <p className="text-xs text-muted-foreground">
-                  Building bridges between traditional artisans and modern markets
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img 
-                    src={team3} 
-                    alt="Priya Patel"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="font-semibold text-lg">Priya Patel</h3>
-                <p className="text-primary text-sm mb-2">Head of Quality</p>
-                <p className="text-xs text-muted-foreground">
-                  Ensuring every product meets our highest standards of craftsmanship
+                  CTO driving tech innovations to connect artisans with the world.
                 </p>
               </CardContent>
             </Card>

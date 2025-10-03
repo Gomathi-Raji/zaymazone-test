@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Filter, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
@@ -12,13 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductComparison } from "@/hooks/useProductComparison";
-import { api, Product } from "@/lib/api";
-import { mockProducts } from "@/data/products";
-import { toast } from "sonner";
+import { productsApi, Product } from "@/lib/api";
+import { artisanAnimations } from "@/lib/animations";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+
+import { SkeletonGrid } from "@/components/SkeletonCard";
 
 const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
   const [page, setPage] = useState(1);
@@ -35,40 +37,36 @@ const ShopWithBackend = () => {
     comparisonCount
   } = useProductComparison();
 
-  // Use mock data instead of backend
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const productsData = useMemo(() => {
-    let filtered = mockProducts;
-    if (categoryFilter && categoryFilter !== 'all') {
-      filtered = filtered.filter(p => p.category === categoryFilter);
-    }
-    if (searchQuery) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (priceRange.min !== undefined) {
-      filtered = filtered.filter(p => p.price >= priceRange.min!);
-    }
-    if (priceRange.max !== undefined) {
-      filtered = filtered.filter(p => p.price <= priceRange.max!);
-    }
-    // Pagination
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = filtered.slice(start, end);
-    return {
-      products: paginated,
-      pagination: {
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit),
-        hasPrev: page > 1,
-        hasNext: end < filtered.length
-      }
-    };
-  }, [categoryFilter, searchQuery, priceRange, page, limit]);
+  // Pull-to-refresh functionality
+  const handleRefresh = async () => {
+    await refetch();
+  };
+
+  const { containerRef, isRefreshing, pullProgress, handlers } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+  });
+
+  // Use backend API instead of mock data
+  const { data: productsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['products', { 
+      page, 
+      limit, 
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      q: searchQuery || undefined,
+      minPrice: priceRange.min,
+      maxPrice: priceRange.max
+    }],
+    queryFn: () => productsApi.getAll({
+      page,
+      limit,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      q: searchQuery || undefined,
+      minPrice: priceRange.min,
+      maxPrice: priceRange.max
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Remove backend artisan fetch for now
 
@@ -126,13 +124,13 @@ const ShopWithBackend = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 overflow-hidden">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+        <div className="mb-6 text-center px-2">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
             Shop Artisan Crafts
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
             Discover authentic handcrafted treasures from skilled artisans across India
           </p>
         </div>
@@ -153,10 +151,11 @@ const ShopWithBackend = () => {
             <Button type="submit">Search</Button>
           </form>
 
-          {/* Filter Controls */}
-          <div className="flex flex-wrap gap-4 items-center">
+          {/* Enhanced Filter Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -169,28 +168,55 @@ const ShopWithBackend = () => {
               </SelectContent>
             </Select>
 
-            {/* Price Range Filters */}
-            <div className="flex flex-wrap gap-2">
-              {priceRanges.map((range, index) => (
-                <Button
-                  key={index}
-                  variant={
-                    priceRange.min === range.min && priceRange.max === range.max
-                      ? "default"
-                      : "outline"
-                  }
-                  size="sm"
-                  onClick={() => handlePriceFilter(range.min, range.max)}
-                >
-                  {range.label}
-                </Button>
-              ))}
-            </div>
-
-            <Button variant="ghost" onClick={clearFilters}>
+            {/* Clear Filters Button */}
+            <Button variant="outline" onClick={clearFilters} className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
               Clear Filters
             </Button>
           </div>
+
+          {/* Price Range Filters */}
+          <div className="flex flex-wrap gap-2">
+            {priceRanges.map((range, index) => (
+              <Button
+                key={index}
+                variant={
+                  priceRange.min === range.min && priceRange.max === range.max
+                    ? "default"
+                    : "outline"
+                }
+                size="sm"
+                onClick={() => handlePriceFilter(range.min, range.max)}
+              >
+                {range.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Active Filters Display */}
+          {(categoryFilter !== "all" || Object.keys(priceRange).length > 0 || searchQuery) && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {categoryFilter !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  Category: {categoryFilter}
+                  <button onClick={() => setCategoryFilter("all")} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+              {Object.keys(priceRange).length > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  Price: ₹{priceRange.min?.toLocaleString()} - ₹{priceRange.max?.toLocaleString()}
+                  <button onClick={() => setPriceRange({})} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-destructive">×</button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Results Summary */}
@@ -222,54 +248,47 @@ const ShopWithBackend = () => {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading products...</p>
-          </div>
+          <SkeletonGrid count={8} />
         )}
 
-        {/* Product Grid */}
+        {/* Product Grid with Pull-to-Refresh */}
         {!isLoading && productsData && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {productsData.products.map((product) => (
-                <ProductCard
+          <div
+            ref={containerRef}
+            {...handlers}
+            className="relative"
+          >
+            {/* Pull-to-refresh indicator */}
+            {isRefreshing && (
+              <div className="mobile-pull-refresh refreshing">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                Refreshing...
+              </div>
+            )}
+
+            <motion.div
+              className="shop-products-grid grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5 xl:grid-cols-5 xl:gap-6 mb-8 px-2 sm:px-0"
+              variants={artisanAnimations.container}
+              initial="hidden"
+              animate="visible"
+              style={{
+                transform: pullProgress > 0 ? `translateY(${pullProgress * 60}px)` : 'none',
+                transition: isRefreshing ? 'none' : 'transform 0.2s ease-out'
+              }}
+            >
+              {productsData.products.map((product, index) => (
+                <motion.div
                   key={product.id}
-                  product={{
-                    id: product.id,
-                    name: product.name,
-                    description: product.description,
-                    price: product.price,
-                    originalPrice: product.originalPrice,
-                    images: product.images,
-                    category: product.category,
-                    subcategory: product.subcategory,
-                    rating: product.rating,
-                    reviewCount: product.reviewCount,
-                    artisan: {
-                      id: product.artisan.id,
-                      name: product.artisan.name,
-                      location: product.artisan.location,
-                      bio: product.artisan.bio,
-                      avatar: product.artisan.avatar,
-                      rating: product.artisan.rating,
-                      totalProducts: product.artisan.totalProducts
-                    },
-                    stockCount: product.stockCount,
-                    isHandmade: product.isHandmade,
-                    featured: product.featured,
-                    materials: product.materials || [],
-                    tags: product.tags || [],
-                    colors: product.colors || [],
-                    dimensions: product.dimensions || '',
-                    weight: product.weight || '',
-                    inStock: product.inStock,
-                    shippingTime: product.shippingTime || '3-5 days'
-                  }}
-                  onAddToComparison={addToComparison}
-                />
+                  variants={artisanAnimations.gridItem}
+                  custom={index}
+                >
+                  <ProductCard
+                    product={product}
+                    onAddToComparison={addToComparison}
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Pagination */}
             {productsData.pagination.totalPages > 1 && (
@@ -281,7 +300,7 @@ const ShopWithBackend = () => {
                 >
                   Previous
                 </Button>
-                
+
                 <div className="flex items-center gap-2">
                   {[...Array(productsData.pagination.totalPages)].map((_, i) => (
                     <Button
@@ -304,7 +323,7 @@ const ShopWithBackend = () => {
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* No Results */}
@@ -323,7 +342,8 @@ const ShopWithBackend = () => {
       {comparisonCount > 0 && (
         <ComparisonFloatingButton
           count={comparisonCount}
-          onClick={openComparison}
+          onOpen={openComparison}
+          onClear={clearComparison}
         />
       )}
 
@@ -331,8 +351,7 @@ const ShopWithBackend = () => {
         products={comparisonProducts}
         isOpen={isComparisonOpen}
         onClose={closeComparison}
-        onRemove={removeFromComparison}
-        onClear={clearComparison}
+        onRemoveProduct={removeFromComparison}
       />
 
       <Footer />

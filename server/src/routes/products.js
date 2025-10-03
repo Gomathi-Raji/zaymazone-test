@@ -19,16 +19,13 @@ const upsertSchema = z.object({
 	materials: z.array(z.string()).optional().default([]),
 	colors: z.array(z.string()).optional().default([]),
 	tags: z.array(z.string()).optional().default([]),
-	stock: z.number().int().nonnegative().optional().default(0),
-	dimensions: z.object({
-		length: z.number().optional(),
-		width: z.number().optional(),
-		height: z.number().optional(),
-		unit: z.enum(['cm', 'inch']).optional()
-	}).optional(),
-	weight: z.number().optional(),
+	stockCount: z.number().int().nonnegative().optional().default(0),
+	inStock: z.boolean().optional().default(true),
+	dimensions: z.string().optional(),
+	weight: z.string().optional(),
 	shippingTime: z.string().optional(),
-	isFeatured: z.boolean().optional().default(false)
+	featured: z.boolean().optional().default(false),
+	isHandmade: z.boolean().optional().default(true)
 })
 
 // Enhanced products listing with search, filter, and pagination
@@ -77,11 +74,11 @@ router.get('/',
 			}
 
 			if (inStock) {
-				filter.stock = { $gt: 0 }
+				filter.stockCount = { $gt: 0 }
 			}
 
 			if (featured !== undefined) {
-				filter.isFeatured = featured
+				filter.featured = featured
 			}
 
 			// Build sort
@@ -99,15 +96,48 @@ router.get('/',
 					.sort(sort)
 					.skip(skip)
 					.limit(limit)
-					.populate('artisanId', 'name location rating')
+					.populate('artisanId', 'name location.city location.state bio avatar rating totalProducts')
 					.lean(),
 				Product.countDocuments(filter)
 			])
 
+			// Transform products to match frontend interface
+			const transformedProducts = products.map(product => ({
+				id: product._id.toString(),
+				name: product.name,
+				description: product.description,
+				price: product.price,
+				originalPrice: product.originalPrice,
+				images: Array.isArray(product.images) ? product.images : [],
+				category: product.category,
+				subcategory: product.subcategory,
+				materials: Array.isArray(product.materials) ? product.materials : [],
+				dimensions: product.dimensions,
+				weight: product.weight,
+				colors: Array.isArray(product.colors) ? product.colors : [],
+				inStock: product.inStock,
+				stockCount: product.stockCount,
+				artisan: product.artisanId ? {
+					id: product.artisanId._id.toString(), 
+					name: product.artisanId.name,
+					location: `${product.artisanId.location.city}, ${product.artisanId.location.state}`,
+					bio: product.artisanId.bio,
+					avatar: product.artisanId.avatar,
+					rating: product.artisanId.rating,
+					totalProducts: product.artisanId.totalProducts
+				} : null,
+				rating: product.rating,
+				reviewCount: product.reviewCount,
+				tags: Array.isArray(product.tags) ? product.tags : [],
+				isHandmade: product.isHandmade,
+				shippingTime: product.shippingTime,
+				featured: product.featured
+			}))
+
 			const totalPages = Math.ceil(total / limit)
 
 			return res.json({
-				products,
+				products: transformedProducts,
 				pagination: {
 					page,
 					limit,
@@ -128,17 +158,50 @@ router.get('/',
 router.get('/:id', optionalAuth, async (req, res) => {
 	try {
 		const product = await Product.findById(req.params.id)
-			.populate('artisanId', 'name bio location rating totalRatings avatar specialties')
+			.populate('artisanId', 'name bio location.city location.state rating totalProducts avatar')
 			.lean()
 
 		if (!product || !product.isActive) {
 			return res.status(404).json({ error: 'Product not found' })
 		}
 
+		// Transform product to match frontend interface
+		const transformedProduct = {
+			id: product._id.toString(),
+			name: product.name,
+			description: product.description,
+			price: product.price,
+			originalPrice: product.originalPrice,
+			images: Array.isArray(product.images) ? product.images : [],
+			category: product.category,
+			subcategory: product.subcategory,
+			materials: Array.isArray(product.materials) ? product.materials : [],
+			dimensions: product.dimensions,
+			weight: product.weight,
+			colors: Array.isArray(product.colors) ? product.colors : [],
+			inStock: product.inStock,
+			stockCount: product.stockCount,
+			artisan: product.artisanId ? {
+				id: product.artisanId._id.toString(),
+				name: product.artisanId.name,
+				location: `${product.artisanId.location.city}, ${product.artisanId.location.state}`,
+				bio: product.artisanId.bio,
+				avatar: product.artisanId.avatar,
+				rating: product.artisanId.rating,
+				totalProducts: product.artisanId.totalProducts
+			} : null,
+			rating: product.rating,
+			reviewCount: product.reviewCount,
+			tags: Array.isArray(product.tags) ? product.tags : [],
+			isHandmade: product.isHandmade,
+			shippingTime: product.shippingTime,
+			featured: product.featured
+		}
+
 		// Increment view count (fire and forget)
 		Product.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } }).exec()
 
-		return res.json(product)
+		return res.json(transformedProduct)
 	} catch (error) {
 		console.error('Get product error:', error)
 		return res.status(500).json({ error: 'Server error' })
@@ -169,5 +232,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 })
 
 export default router
+
+
 
 

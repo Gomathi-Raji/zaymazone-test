@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import Cart from '../models/Cart.js'
 import Product from '../models/Product.js'
-import { requireAuth, requireActiveUser } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/firebase-auth.js'
 import { validate, idSchema } from '../middleware/validation.js'
 
 const router = Router()
@@ -18,11 +18,10 @@ const updateCartItemSchema = z.object({
 
 // Get user's cart
 router.get('/',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	async (req, res) => {
 		try {
-			const cart = await Cart.findOne({ userId: req.user.sub })
+			const cart = await Cart.findOne({ userId: req.user._id })
 				.populate({
 					path: 'items.productId',
 					select: 'name price images stock isActive artisanId',
@@ -40,7 +39,14 @@ router.get('/',
 			// Filter out inactive products and calculate totals
 			const activeItems = cart.items.filter(item => 
 				item.productId && item.productId.isActive
-			)
+			).map(item => ({
+				...item,
+				productId: {
+					...item.productId,
+					id: item.productId._id.toString(),
+					_id: undefined // Remove _id to match frontend interface
+				}
+			}))
 			
 			const total = activeItems.reduce((sum, item) => 
 				sum + (item.productId.price * item.quantity), 0
@@ -63,13 +69,12 @@ router.get('/',
 
 // Add item to cart
 router.post('/add',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(addToCartSchema),
 	async (req, res) => {
 		try {
 			const { productId, quantity } = req.validatedBody
-			const userId = req.user.sub
+			const userId = req.user._id
 			
 			// Verify product exists and is active
 			const product = await Product.findOne({ 
@@ -100,7 +105,7 @@ router.post('/add',
 			)
 			
 			if (existingItemIndex > -1) {
-				// Update quantity
+				// Update quantity and price
 				const newQuantity = cart.items[existingItemIndex].quantity + quantity
 				
 				if (newQuantity > product.stock) {
@@ -116,9 +121,10 @@ router.post('/add',
 				}
 				
 				cart.items[existingItemIndex].quantity = newQuantity
+				cart.items[existingItemIndex].price = product.price // Update to current price
 			} else {
 				// Add new item
-				cart.items.push({ productId, quantity })
+				cart.items.push({ productId, quantity, price: product.price })
 			}
 			
 			await cart.save()
@@ -135,16 +141,25 @@ router.post('/add',
 				})
 				.lean()
 			
-			const total = updatedCart.items.reduce((sum, item) => 
+			const transformedItems = updatedCart.items.map(item => ({
+				...item,
+				productId: {
+					...item.productId,
+					id: item.productId._id.toString(),
+					_id: undefined
+				}
+			}))
+			
+			const total = transformedItems.reduce((sum, item) => 
 				sum + (item.productId.price * item.quantity), 0
 			)
 			
-			const itemCount = updatedCart.items.reduce((sum, item) => sum + item.quantity, 0)
+			const itemCount = transformedItems.reduce((sum, item) => sum + item.quantity, 0)
 			
 			res.json({
 				message: 'Item added to cart',
 				cart: {
-					items: updatedCart.items,
+					items: transformedItems,
 					total,
 					itemCount,
 					updatedAt: updatedCart.updatedAt
@@ -159,15 +174,14 @@ router.post('/add',
 
 // Update cart item quantity
 router.patch('/item/:productId',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(z.object({ productId: idSchema }), 'params'),
 	validate(updateCartItemSchema),
 	async (req, res) => {
 		try {
 			const { productId } = req.validatedParams
 			const { quantity } = req.validatedBody
-			const userId = req.user.sub
+			const userId = req.user._id
 			
 			const cart = await Cart.findOne({ userId })
 			
@@ -217,16 +231,25 @@ router.patch('/item/:productId',
 				})
 				.lean()
 			
-			const total = updatedCart.items.reduce((sum, item) => 
+			const transformedItems = updatedCart.items.map(item => ({
+				...item,
+				productId: {
+					...item.productId,
+					id: item.productId._id.toString(),
+					_id: undefined
+				}
+			}))
+			
+			const total = transformedItems.reduce((sum, item) => 
 				sum + (item.productId.price * item.quantity), 0
 			)
 			
-			const itemCount = updatedCart.items.reduce((sum, item) => sum + item.quantity, 0)
+			const itemCount = transformedItems.reduce((sum, item) => sum + item.quantity, 0)
 			
 			res.json({
 				message: quantity === 0 ? 'Item removed from cart' : 'Cart updated',
 				cart: {
-					items: updatedCart.items,
+					items: transformedItems,
 					total,
 					itemCount,
 					updatedAt: updatedCart.updatedAt
@@ -241,13 +264,12 @@ router.patch('/item/:productId',
 
 // Remove item from cart
 router.delete('/item/:productId',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	validate(z.object({ productId: idSchema }), 'params'),
 	async (req, res) => {
 		try {
 			const { productId } = req.validatedParams
-			const userId = req.user.sub
+			const userId = req.user._id
 			
 			const cart = await Cart.findOne({ userId })
 			
@@ -276,12 +298,11 @@ router.delete('/item/:productId',
 
 // Clear entire cart
 router.delete('/clear',
-	requireAuth,
-	requireActiveUser,
+	authenticateToken,
 	async (req, res) => {
 		try {
 			await Cart.findOneAndUpdate(
-				{ userId: req.user.sub },
+				{ userId: req.user._id },
 				{ $set: { items: [] } },
 				{ upsert: true }
 			)

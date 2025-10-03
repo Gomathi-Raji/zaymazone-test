@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Star, MapPin, Truck, Shield, ArrowLeft, ArrowRight } from "lucide-react";
-import { Product } from "@/data/products";
+import { Product, getImageUrl } from "@/lib/api";
 import { toast } from "sonner";
+import { AnimatedDialog } from "./AnimatedDialog";
 
 interface QuickViewDialogProps {
   product: Product;
@@ -39,15 +40,20 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-          {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-              <img 
-                src={product.images[currentImageIndex]} 
-                alt={product.name}
+    <AnimatedDialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title={product.name}
+      description={`Product details for ${product.name}`}
+      className="max-w-4xl max-h-[90vh] overflow-auto"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Image Gallery */}
+        <div className="space-y-4">
+          <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <img 
+              src={getImageUrl(product.images[currentImageIndex])} 
+              alt={product.name}
                 className="w-full h-full object-cover"
               />
               
@@ -96,12 +102,13 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
+                    aria-label={`Select image ${index + 1} of ${product.images.length}`}
                     className={`flex-1 aspect-square rounded-md overflow-hidden border-2 ${
                       index === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
                     <img 
-                      src={image} 
+                      src={getImageUrl(image)} 
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -117,12 +124,14 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
               <h1 className="text-2xl font-bold text-foreground mb-2">{product.name}</h1>
               
               {/* Artisan Info */}
-              <div className="flex items-center gap-2 text-muted-foreground mb-4">
-                <MapPin className="w-4 h-4" />
-                <span className="font-medium">{product.artisan.name}</span>
-                <span>•</span>
-                <span>{product.artisan.location}</span>
-              </div>
+              {product.artisan && (
+                <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">{product.artisan.name}</span>
+                  <span>•</span>
+                  <span>{product.artisan.location}</span>
+                </div>
+              )}
 
               {/* Rating */}
               <div className="flex items-center gap-2 mb-4">
@@ -239,7 +248,6 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </AnimatedDialog>
   );
 };

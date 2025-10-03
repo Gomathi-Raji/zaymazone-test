@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Star, MapPin } from "lucide-react";
 import { mockProducts } from "@/data/products";
+import { getImageUrl } from "@/lib/api";
 import { Link } from "react-router-dom";
 
 export const SearchDialog = () => {
@@ -16,7 +17,7 @@ export const SearchDialog = () => {
     product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    product.artisan.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (product.artisan?.name.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   const recentSearches = ["pottery", "handwoven textiles", "brass items", "wooden toys"];
@@ -29,6 +30,10 @@ export const SearchDialog = () => {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] p-0">
+        <DialogHeader className="px-6 pt-6">
+          <DialogTitle>Search Products</DialogTitle>
+          <DialogDescription>Find your perfect handcrafted item</DialogDescription>
+        </DialogHeader>
         <div className="p-6">
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -90,16 +95,18 @@ export const SearchDialog = () => {
                       className="flex gap-4 p-3 rounded-lg hover:bg-muted transition-colors"
                     >
                       <img 
-                        src={product.images[0]} 
+                        src={getImageUrl(product.images[0])} 
                         alt={product.name}
                         className="w-16 h-16 object-cover rounded-lg"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground line-clamp-1">{product.name}</h4>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{product.artisan.name}</span>
-                        </div>
+                        {product.artisan && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{product.artisan.name}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-foreground">₹{product.price.toLocaleString()}</span>
                           <div className="flex items-center gap-1">

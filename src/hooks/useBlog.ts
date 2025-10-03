@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001/api';
+import { api, getImageUrl } from '../lib/api';
 
 export interface Author {
   name: string;
@@ -53,6 +52,18 @@ export interface BlogFilters {
   featured?: boolean;
 }
 
+// Helper function to transform blog post image URLs
+const transformBlogPost = (post: any): BlogPost => {
+  return {
+    ...post,
+    featuredImage: getImageUrl(post.featuredImage),
+    author: {
+      ...post.author,
+      avatar: getImageUrl(post.author.avatar)
+    }
+  };
+};
+
 export const useBlogPosts = (filters: BlogFilters = {}) => {
   const [data, setData] = useState<BlogResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,24 +75,22 @@ export const useBlogPosts = (filters: BlogFilters = {}) => {
         setLoading(true);
         setError(null);
 
-        const queryParams = new URLSearchParams();
+        const params: any = {};
+        if (filters.category) params.category = filters.category;
+        if (filters.tag) params.tag = filters.tag;
+        if (filters.search) params.search = filters.search;
+        if (filters.page) params.page = filters.page;
+        if (filters.limit) params.limit = filters.limit;
+        if (filters.featured !== undefined) params.featured = filters.featured;
+
+        const result = await api.getBlogPosts(params);
         
-        if (filters.category) queryParams.append('category', filters.category);
-        if (filters.tag) queryParams.append('tag', filters.tag);
-        if (filters.search) queryParams.append('search', filters.search);
-        if (filters.page) queryParams.append('page', filters.page.toString());
-        if (filters.limit) queryParams.append('limit', filters.limit.toString());
-        if (filters.featured !== undefined) queryParams.append('featured', filters.featured.toString());
-
-        const url = `${API_BASE_URL}/blog${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch blog posts: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        setData(result);
+        // Transform image URLs for all posts
+        const transformedPosts = result.posts.map(transformBlogPost);
+        setData({
+          ...result,
+          posts: transformedPosts
+        });
       } catch (err) {
         console.error('Error fetching blog posts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch blog posts');
@@ -109,14 +118,8 @@ export const useBlogPost = (slug: string) => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${API_BASE_URL}/blog/${slug}`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch blog post: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        setPost(result);
+        const result = await api.getBlogPost(slug);
+        setPost(transformBlogPost(result));
       } catch (err) {
         console.error('Error fetching blog post:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch blog post');
@@ -142,14 +145,8 @@ export const useFeaturedBlogPosts = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${API_BASE_URL}/blog/featured`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch featured posts: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        setPosts(result);
+        const result = await api.getFeaturedBlogPosts();
+        setPosts(result.map(transformBlogPost));
       } catch (err) {
         console.error('Error fetching featured posts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch featured posts');
@@ -175,13 +172,7 @@ export const useBlogCategories = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${API_BASE_URL}/blog/categories`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch categories: ${response.statusText}`);
-        }
-
-        const result = await response.json();
+        const result = await api.getBlogCategories();
         setCategories(result);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -208,13 +199,7 @@ export const useBlogTags = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${API_BASE_URL}/blog/tags`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch tags: ${response.statusText}`);
-        }
-
-        const result = await response.json();
+        const result = await api.getBlogTags();
         setTags(result);
       } catch (err) {
         console.error('Error fetching tags:', err);
@@ -233,18 +218,7 @@ export const useBlogTags = () => {
 // Blog actions
 export const likeBlogPost = async (postId: string): Promise<{ success: boolean; likes: number }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/blog/${postId}/like`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to like post');
-    }
-
-    const result = await response.json();
+    const result = await api.likeBlogPost(postId);
     return { success: true, likes: result.likes };
   } catch (error) {
     console.error('Error liking post:', error);
@@ -254,14 +228,8 @@ export const likeBlogPost = async (postId: string): Promise<{ success: boolean; 
 
 export const getRelatedPosts = async (postId: string): Promise<BlogPost[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/blog/${postId}/related`);
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch related posts');
-    }
-
-    const result = await response.json();
-    return result;
+    const result = await api.getRelatedBlogPosts(postId);
+    return result.map(transformBlogPost);
   } catch (error) {
     console.error('Error fetching related posts:', error);
     return [];
