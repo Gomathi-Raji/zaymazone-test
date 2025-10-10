@@ -33,7 +33,6 @@ app.set('trust proxy', 1)
 
 // Security & parsing
 // Disable cross-origin resource policy to allow images to be loaded from other origins
-// Disable default cross-origin policies to allow images to be loaded from any origin
 app.use(helmet({
 	contentSecurityPolicy: false,
 	crossOriginResourcePolicy: false,
@@ -48,7 +47,8 @@ const allowedOrigins = [
 	'http://localhost:5173',
 	'https://zaymazone-dev.netlify.app',
 	'https://zaymazone.netlify.app',
-	'https://zaymazone-taupe.vercel.app'
+	'https://zaymazone-taupe.vercel.app',
+	'https://zaymazone.up.railway.app'
 ]
 
 app.use(cors({
