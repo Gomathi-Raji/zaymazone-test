@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["zaymazone.up.railway.app"],
     // Proxy API requests to local mock server in development, production backend otherwise
     proxy: {
       '/api': {
