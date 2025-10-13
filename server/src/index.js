@@ -54,7 +54,8 @@ const allowedOrigins = [
 	'https://zaymazone-dev.netlify.app',
 	'https://zaymazone.netlify.app',
 	'https://zaymazone-taupe.vercel.app',
-	'https://zaymazone-backend.onrender.com'
+	'https://zaymazone-backend.onrender.com',
+	'https://zaymazone-test.vercel.app'
 ]
 
 app.use(cors({
