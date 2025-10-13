@@ -14,6 +14,8 @@ import { InteractiveStats } from "@/components/InteractiveStats";
 import { SkillShowcase } from "@/components/SkillShowcase";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { useProductComparison } from "@/hooks/useProductComparison";
+import SEO from "@/components/SEO";
+import LogoLaunchCountdown from "@/components/LogoLaunchCountdown";
 
 const Index = () => {
   const {
@@ -28,6 +30,24 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background artisan-pattern">
+      <SEO
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Zaymazone",
+          "description": "Discover authentic handcrafted products from talented artisans. Zaymazone connects you with local creators, supporting traditional crafts and cultural heritage.",
+          "url": window.location.origin,
+          "logo": `${window.location.origin}/assets/logo.png`,
+          "sameAs": [
+            // Add social media URLs when available
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-XXXXXXXXXX", // Add actual contact when available
+            "contactType": "customer service"
+          }
+        }}
+      />
       <Navigation />
       <HeroSection />
       <AnimatedSection>
@@ -69,6 +89,7 @@ const Index = () => {
         onClose={closeComparison}
         onRemoveProduct={removeFromComparison}
       />
+      <LogoLaunchCountdown />
     </div>
   );
 };

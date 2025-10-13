@@ -20,6 +20,8 @@ import wishlistRouter from './routes/wishlist.js'
 import addressesRouter from './routes/addresses.js'
 import imagesRouter from './routes/images.js'
 import usersRouter from './routes/users.js'
+import verifyRouter from './routes/verify.js'
+import sellerOnboardingRouter from './routes/seller-onboarding.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
 import { initGridFS } from './services/imageService.js'
@@ -33,6 +35,7 @@ app.set('trust proxy', 1)
 
 // Security & parsing
 // Disable cross-origin resource policy to allow images to be loaded from other origins
+// Disable default cross-origin policies to allow images to be loaded from any origin
 app.use(helmet({
 	contentSecurityPolicy: false,
 	crossOriginResourcePolicy: false,
@@ -44,11 +47,14 @@ app.use(helmet({
 const allowedOrigins = [
 	'http://localhost:8080', 
 	'http://localhost:8081', 
+	'http://127.0.0.1:8081', 
 	'http://localhost:5173',
+	'https://zaymazone.com',
+	'https://www.zaymazone.com',
 	'https://zaymazone-dev.netlify.app',
 	'https://zaymazone.netlify.app',
 	'https://zaymazone-taupe.vercel.app',
-	'https://zaymazone.up.railway.app'
+	'https://zaymazone-backend.onrender.com'
 ]
 
 app.use(cors({
@@ -56,7 +62,7 @@ app.use(cors({
 		// Allow requests with no origin (like mobile apps or curl requests)
 		if (!origin) return callback(null, true)
 		
-		if (allowedOrigins.indexOf(origin) !== -1) {
+		if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('github.dev')) {
 			callback(null, true)
 		} else {
 			console.log('CORS blocked for origin:', origin)
@@ -95,7 +101,9 @@ app.get('/', (_req, res) => res.json({
 		cart: ['GET /api/cart', 'POST /api/cart/add', 'PATCH /api/cart/item/:productId', 'DELETE /api/cart/item/:productId'],
 		reviews: ['GET /api/reviews/product/:productId', 'GET /api/reviews/my-reviews', 'POST /api/reviews', 'PATCH /api/reviews/:id'],
 		wishlist: ['GET /api/wishlist', 'POST /api/wishlist/add', 'DELETE /api/wishlist/item/:productId', 'DELETE /api/wishlist/clear'],
-		images: ['GET /api/images/:filename', 'GET /api/images/:filename/info']
+		images: ['GET /api/images/:filename', 'GET /api/images/:filename/info'],
+		verify: ['GET /api/verify/bank-account', 'POST /api/verify/bank-account'],
+		sellerOnboarding: ['POST /api/seller-onboarding']
 	}
 }))
 app.get('/health', (_req, res) => res.json({ ok: true }))
@@ -130,9 +138,21 @@ app.use('/api/wishlist', wishlistRouter)
 app.use('/api/addresses', addressesRouter)
 app.use('/api/images', imagesRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/verify', verifyRouter)
+app.use('/api/seller-onboarding', sellerOnboardingRouter)
+
+// Import and use admin routes
+import adminRouter from './routes/admin.js'
+app.use('/api/admin', adminRouter)
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // All assets are now served from database via /api/images/ endpoint
 // Removed static asset serving middleware
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler)

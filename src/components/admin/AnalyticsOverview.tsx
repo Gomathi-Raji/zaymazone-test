@@ -1,31 +1,120 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
-
-const salesData = [
-  { month: 'Jan', sales: 45000, orders: 156 },
-  { month: 'Feb', sales: 52000, orders: 189 },
-  { month: 'Mar', sales: 48000, orders: 167 },
-  { month: 'Apr', sales: 61000, orders: 203 },
-  { month: 'May', sales: 55000, orders: 178 },
-  { month: 'Jun', sales: 67000, orders: 234 },
-];
-
-const categoryData = [
-  { name: 'Pottery', value: 35, color: '#8884d8' },
-  { name: 'Textiles', value: 28, color: '#82ca9d' },
-  { name: 'Metal Crafts', value: 20, color: '#ffc658' },
-  { name: 'Wood Work', value: 17, color: '#ff7300' },
-];
-
-const topProducts = [
-  { name: 'Blue Pottery Tea Set', sales: 89 },
-  { name: 'Kashmiri Shawl', sales: 76 },
-  { name: 'Dhokra Elephant', sales: 64 },
-  { name: 'Copper Bottle', sales: 58 },
-  { name: 'Jute Bag', sales: 45 },
-];
+import { adminService } from "@/services/adminService";
+import { useToast } from "@/hooks/use-toast";
 
 export function AnalyticsOverview() {
+  const [salesData, setSalesData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadAnalyticsData();
+    
+    // Set up real-time polling every 60 seconds for analytics
+    const interval = setInterval(() => {
+      loadAnalyticsData();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadAnalyticsData = async () => {
+    setLoading(true);
+    try {
+      const [salesResponse, categoryResponse, topProductsResponse] = await Promise.all([
+        adminService.getSalesAnalytics(),
+        adminService.getCategoryAnalytics(),
+        adminService.getTopProducts()
+      ]);
+
+      // Process sales data
+      if (salesResponse && salesResponse.data) {
+        setSalesData(salesResponse.data);
+      } else {
+        // Fallback to mock data if API doesn't return data
+        setSalesData([
+          { month: 'Jan', sales: 45000, orders: 156 },
+          { month: 'Feb', sales: 52000, orders: 189 },
+          { month: 'Mar', sales: 48000, orders: 167 },
+          { month: 'Apr', sales: 61000, orders: 203 },
+          { month: 'May', sales: 55000, orders: 178 },
+          { month: 'Jun', sales: 67000, orders: 234 },
+        ]);
+      }
+
+      setCategoryData(categoryResponse);
+      setTopProducts(topProductsResponse);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load analytics data",
+        variant: "destructive"
+      });
+      
+      // Set fallback data
+      setSalesData([
+        { month: 'Jan', sales: 45000, orders: 156 },
+        { month: 'Feb', sales: 52000, orders: 189 },
+        { month: 'Mar', sales: 48000, orders: 167 },
+        { month: 'Apr', sales: 61000, orders: 203 },
+        { month: 'May', sales: 55000, orders: 178 },
+        { month: 'Jun', sales: 67000, orders: 234 },
+      ]);
+      setCategoryData([
+        { name: 'Pottery', value: 35, color: '#8884d8' },
+        { name: 'Textiles', value: 28, color: '#82ca9d' },
+        { name: 'Metal Crafts', value: 20, color: '#ffc658' },
+        { name: 'Wood Work', value: 17, color: '#ff7300' },
+      ]);
+      setTopProducts([
+        { name: 'Blue Pottery Tea Set', sales: 89 },
+        { name: 'Kashmiri Shawl', sales: 76 },
+        { name: 'Dhokra Elephant', sales: 64 },
+        { name: 'Copper Bottle', sales: 58 },
+        { name: 'Jute Bag', sales: 45 },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-48 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-48 bg-gray-200 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>

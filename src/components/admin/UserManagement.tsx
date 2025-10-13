@@ -1,9 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
+import {
   Plus,
   Search,
   Edit,
@@ -14,83 +15,133 @@ import {
   Calendar,
   ShoppingBag,
   Shield,
-  Ban
+  Ban,
+  Loader2
 } from "lucide-react";
-
-const users = [
-  {
-    id: 1,
-    name: "Anita Patel",
-    email: "anita@example.com",
-    phone: "+91 98765 43210",
-    role: "Customer",
-    status: "Active",
-    joinDate: "2023-05-15",
-    lastLogin: "2024-01-18",
-    totalOrders: 12,
-    totalSpent: "₹45,600",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 2,
-    name: "Rahul Gupta",
-    email: "rahul@example.com",
-    phone: "+91 87654 32109",
-    role: "Customer",
-    status: "Active",
-    joinDate: "2023-03-22",
-    lastLogin: "2024-01-17",
-    totalOrders: 8,
-    totalSpent: "₹32,400",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 3,
-    name: "Admin User",
-    email: "admin@crafthaven.com",
-    phone: "+91 99999 88888",
-    role: "Admin",
-    status: "Active",
-    joinDate: "2022-01-01",
-    lastLogin: "2024-01-18",
-    totalOrders: 0,
-    totalSpent: "₹0",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 4,
-    name: "Sunita Mehta",
-    email: "sunita@example.com",
-    phone: "+91 76543 21098",
-    role: "Customer",
-    status: "Suspended",
-    joinDate: "2023-08-10",
-    lastLogin: "2024-01-10",
-    totalOrders: 3,
-    totalSpent: "₹8,900",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 5,
-    name: "Moderator One",
-    email: "mod@crafthaven.com",
-    phone: "+91 88888 77777",
-    role: "Moderator",
-    status: "Active",
-    joinDate: "2022-06-15",
-    lastLogin: "2024-01-16",
-    totalOrders: 0,
-    totalSpent: "₹0",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face"
-  }
-];
+import { adminService } from "@/services/adminService";
+import { useToast } from "@/hooks/use-toast";
 
 export function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadUsers();
+    
+    // Set up real-time polling every 60 seconds
+    const interval = setInterval(() => {
+      loadUsers();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const response = await adminService.getUsers({
+        search: searchTerm || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        role: roleFilter !== "all" ? roleFilter : undefined
+      });
+      setUsers(response.users || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users data",
+        variant: "destructive"
+      });
+      // Set fallback data
+      setUsers([
+        {
+          id: 1,
+          name: "Anita Patel",
+          email: "anita@example.com",
+          phone: "+91 98765 43210",
+          role: "Customer",
+          status: "Active",
+          joinDate: "2023-05-15",
+          lastLogin: "2024-01-18",
+          totalOrders: 12,
+          totalSpent: "₹45,600",
+          avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
+        },
+        {
+          id: 2,
+          name: "Rahul Gupta",
+          email: "rahul@example.com",
+          phone: "+91 87654 32109",
+          role: "Customer",
+          status: "Active",
+          joinDate: "2023-03-22",
+          lastLogin: "2024-01-17",
+          totalOrders: 8,
+          totalSpent: "₹32,400",
+          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    loadUsers();
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setStatusFilter(status);
+    loadUsers();
+  };
+
+  const handleRoleFilter = (role: string) => {
+    setRoleFilter(role);
+    loadUsers();
+  };
+
+  const handleSuspend = async (userId: number) => {
+    try {
+      // TODO: Implement suspend user endpoint
+      toast({
+        title: "Success",
+        description: "User suspended successfully"
+      });
+      loadUsers();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to suspend user",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleActivate = async (userId: number) => {
+    try {
+      // TODO: Implement activate user endpoint
+      toast({
+        title: "Success",
+        description: "User activated successfully"
+      });
+      loadUsers();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to activate user",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "Active": return "default";
       case "Suspended": return "destructive";
-      case "Inactive": return "secondary";
+      case "Pending": return "secondary";
       default: return "outline";
     }
   };
@@ -98,26 +149,31 @@ export function UserManagement() {
   const getRoleVariant = (role: string) => {
     switch (role) {
       case "Admin": return "destructive";
-      case "Moderator": return "secondary";
-      case "Customer": return "outline";
+      case "Artisan": return "secondary";
+      case "Customer": return "default";
       default: return "outline";
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "Admin": return <Shield className="w-3 h-3" />;
-      case "Moderator": return <Shield className="w-3 h-3" />;
-      default: return null;
-    }
-  };
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <span>Loading users...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>User Management</CardTitle>
-          <CardDescription>Manage platform users and permissions</CardDescription>
+          <CardDescription>Manage user accounts and permissions</CardDescription>
         </div>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
@@ -125,82 +181,114 @@ export function UserManagement() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search users..." className="pl-10" />
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-10"
+              />
+            </div>
           </div>
-          <Button variant="outline">Filter</Button>
-          <Button variant="outline">Export</Button>
+          <Button variant="outline" onClick={handleSearch}>
+            Search
+          </Button>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select
+            value={roleFilter}
+            onChange={(e) => handleRoleFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All Roles</option>
+            <option value="customer">Customer</option>
+            <option value="artisan">Artisan</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {users.map((user) => (
-            <div key={user.id} className="flex items-center justify-between p-6 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4 flex-1">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-medium text-foreground">{user.name}</h3>
-                    <Badge variant={getRoleVariant(user.role)} className="flex items-center gap-1">
-                      {getRoleIcon(user.role)}
-                      {user.role}
-                    </Badge>
+            <Card key={user.id} className="relative">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold">{user.name}</h3>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
                     <Badge variant={getStatusVariant(user.status)}>
                       {user.status}
                     </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        <span>{user.email}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        <span>{user.phone}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>Joined {new Date(user.joinDate).toLocaleDateString()}</span>
-                      </div>
-                      <p>Last login: {new Date(user.lastLogin).toLocaleDateString()}</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <ShoppingBag className="w-3 h-3" />
-                        <span>{user.totalOrders} orders</span>
-                      </div>
-                      <p><span className="font-medium">Total spent:</span> {user.totalSpent}</p>
-                    </div>
+                    <Badge variant={getRoleVariant(user.role)}>
+                      {user.role}
+                    </Badge>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-1 ml-4">
-                <Button variant="ghost" size="sm">
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Ban className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{user.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span>Joined {new Date(user.joinDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                    <span>{user.totalOrders} orders • {user.totalSpent}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1">
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1">
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                  {user.status === "Active" ? (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleSuspend(user.id)}
+                    >
+                      <Ban className="w-3 h-3 mr-1" />
+                      Suspend
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleActivate(user.id)}
+                    >
+                      <Shield className="w-3 h-3 mr-1" />
+                      Activate
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </CardContent>

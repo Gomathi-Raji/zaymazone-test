@@ -2,18 +2,36 @@ import { logEvent } from "./security";
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  // Check for explicit API URL from environment
-  if ((import.meta as any).env.VITE_API_URL) {
-    return ((import.meta as any).env.VITE_API_URL as string).replace('/api', '');
+  // Sanitize and validate environment variable
+  let apiUrl = import.meta.env.VITE_API_URL;
+  
+  // Handle potential malformed URLs with comma-separated values
+  if (apiUrl && typeof apiUrl === 'string') {
+    // If there are multiple URLs (comma-separated), take the first valid one
+    if (apiUrl.includes(',')) {
+      const urls = apiUrl.split(',').map(url => url.trim());
+      apiUrl = urls.find(url => 
+        url.startsWith('http') && 
+        !url.includes('%20') && 
+        url.includes('zaymazone-backend.onrender.com')
+      ) || urls[0];
+    }
+    
+    // Clean up URL
+    apiUrl = apiUrl.replace(/\s+/g, '').replace('/api', '');
+    
+    // Validate URL format
+    if (apiUrl.startsWith('http') && !apiUrl.includes('%20')) {
+      return apiUrl;
+    }
   }
 
   // In development, use localhost
-  if ((import.meta as any).env.DEV) {
+  if (import.meta.env.DEV) {
     return "http://localhost:4000";
   }
 
-  // For production/mobile, use the current origin or a configured backend URL
-  // This allows the app to work when served from different domains
+  // Fallback to localhost for development
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
 
@@ -21,8 +39,8 @@ const getApiBaseUrl = () => {
     return "http://localhost:4000";
   }
 
-  // For production deployments, assume backend is on the same domain or use environment variable
-  return (import.meta as any).env.VITE_BACKEND_URL || `${currentOrigin}/api`.replace('/api/api', '/api');
+  // Production fallback
+  return "https://zaymazone-backend.onrender.com";
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -246,6 +264,50 @@ export interface Review {
 	createdAt: string;
 }
 
+export interface Pagination {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+	hasNext: boolean;
+	hasPrev: boolean;
+}
+
+export interface Address {
+	fullName: string;
+	street?: string;
+	addressLine1?: string;
+	addressLine2?: string;
+	city: string;
+	state: string;
+	zipCode: string;
+	country: string;
+	phone: string;
+	email?: string;
+}
+
+export interface BlogPost {
+	id: string;
+	title: string;
+	slug: string;
+	content: string;
+	excerpt: string;
+	author: {
+		id: string;
+		name: string;
+		avatar?: string;
+	};
+	category: string;
+	tags: string[];
+	featuredImage?: string;
+	publishedAt: string;
+	updatedAt: string;
+	isPublished: boolean;
+	likes: number;
+	views: number;
+	readingTime: number;
+}
+
 export interface Artisan {
 	_id: string;
 	name: string;
@@ -334,7 +396,7 @@ export const productsApi = {
 			});
 		}
 		const queryString = searchParams.toString();
-		return apiRequest<{ products: Product[]; pagination: any }>(`/api/products${queryString ? `?${queryString}` : ''}`);
+		return apiRequest<{ products: Product[]; pagination: Pagination }>(`/api/products${queryString ? `?${queryString}` : ''}`);
 	},
 	
 	getById: (id: string) =>
@@ -374,7 +436,9 @@ export const imagesApi = {
 			const jwt = getAuthToken();
 			const token = firebaseToken || jwt;
 			if (token) headers['Authorization'] = `Bearer ${token}`;
-		} catch {}
+		} catch {
+			// Ignore localStorage errors in SSR or restricted environments
+		}
 
 		return fetch(url, {
 			method: 'POST',
@@ -432,7 +496,7 @@ export const ordersApi = {
 			});
 		}
 		const queryString = searchParams.toString();
-		return apiRequest<{ orders: Order[]; pagination: any }>(`/api/orders/my-orders${queryString ? `?${queryString}` : ''}`, { auth: true });
+		return apiRequest<{ orders: Order[]; pagination: Pagination }>(`/api/orders/my-orders${queryString ? `?${queryString}` : ''}`, { auth: true });
 	},
 	
 	getById: (id: string) =>
@@ -555,7 +619,7 @@ export const reviewsApi = {
 		const queryString = searchParams.toString();
 		return apiRequest<{ 
 			reviews: Review[]; 
-			pagination: any; 
+			pagination: Pagination; 
 			statistics: { 
 				averageRating: number; 
 				totalReviews: number; 
@@ -574,7 +638,7 @@ export const reviewsApi = {
 			});
 		}
 		const queryString = searchParams.toString();
-		return apiRequest<{ reviews: Review[]; pagination: any }>(`/api/reviews/my-reviews${queryString ? `?${queryString}` : ''}`, { auth: true });
+		return apiRequest<{ reviews: Review[]; pagination: Pagination }>(`/api/reviews/my-reviews${queryString ? `?${queryString}` : ''}`, { auth: true });
 	},
 	
 	create: (data: {
@@ -637,17 +701,17 @@ export const artisansApi = {
 };
 
 export const addressesApi = {
-	getAll: () => apiRequest<any[]>('/api/addresses', { auth: true }),
+	getAll: () => apiRequest<Address[]>('/api/addresses', { auth: true }),
 	
-	add: (address: any) => 
-		apiRequest<{ address: any }>('/api/addresses', {
+	add: (address: Address) => 
+		apiRequest<{ address: Address }>('/api/addresses', {
 			method: 'POST',
 			body: address,
 			auth: true
 		}),
 	
-	update: (id: string, address: any) => 
-		apiRequest<{ address: any }>(`/api/addresses/${id}`, {
+	update: (id: string, address: Address) => 
+		apiRequest<{ address: Address }>(`/api/addresses/${id}`, {
 			method: 'PUT',
 			body: address,
 			auth: true
@@ -685,13 +749,13 @@ export const blogApi = {
 		}
 		const queryString = searchParams.toString();
 		return apiRequest<{
-			posts: any[];
-			pagination: any;
+			posts: BlogPost[];
+			pagination: Pagination;
 		}>(`/api/blog${queryString ? `?${queryString}` : ''}`);
 	},
 
 	getById: (id: string) =>
-		apiRequest<any>(`/api/blog/${id}`),
+		apiRequest<BlogPost>(`/api/blog/${id}`),
 
 	getCategories: () =>
 		apiRequest<string[]>('/api/blog/categories'),
@@ -700,7 +764,7 @@ export const blogApi = {
 		apiRequest<string[]>('/api/blog/tags'),
 
 	getFeatured: () =>
-		apiRequest<any[]>('/api/blog/featured'),
+		apiRequest<BlogPost[]>('/api/blog/featured'),
 
 	like: (id: string) =>
 		apiRequest<{ message: string; likes: number }>(`/api/blog/${id}/like`, {
@@ -708,7 +772,7 @@ export const blogApi = {
 		}),
 
 	getRelated: (id: string) =>
-		apiRequest<any[]>(`/api/blog/${id}/related`),
+		apiRequest<BlogPost[]>(`/api/blog/${id}/related`),
 };
 
 // Unified API export
@@ -753,11 +817,101 @@ export const api = {
 	// Artisans
 	getArtisans: artisansApi.getAll,
 	getArtisan: artisansApi.getById,
+	getArtisanOrders: () => apiRequest<{
+		orders: Order[];
+		pagination: {
+			page: number;
+			limit: number;
+			total: number;
+			pages: number;
+		};
+	}>('/api/orders/artisan/my-orders', { auth: true }),
+	getArtisanAnalytics: (params?: { startDate?: string; endDate?: string }) => {
+		const queryParams = new URLSearchParams();
+		if (params?.startDate) queryParams.append('startDate', params.startDate);
+		if (params?.endDate) queryParams.append('endDate', params.endDate);
+		const queryString = queryParams.toString();
+		return apiRequest<{
+			totalOrders: number;
+			totalRevenue: number;
+			ordersByStatus: Array<{ _id: string; count: number }>;
+			monthlyRevenue: Array<{ _id: { year: number; month: number }; revenue: number; orders: number }>;
+			topProducts: Array<{ _id: string; name: string; totalSold: number; revenue: number }>;
+			dailyRevenue: Array<{ _id: string; revenue: number; orders: number }>;
+			dateRange: { startDate: string | null; endDate: string | null };
+		}>('/api/orders/artisan/analytics' + (queryString ? '?' + queryString : ''), { auth: true });
+	},
+	getArtisanProducts: () => apiRequest<{
+		products: Product[];
+		pagination: {
+			page: number;
+			limit: number;
+			total: number;
+			pages: number;
+		};
+	}>('/api/products/artisan/my-products', { auth: true }),
+	getArtisanCustomers: () => apiRequest<{
+		customers: Array<{
+			_id: string;
+			name: string;
+			email: string;
+			phone: string;
+			totalOrders: number;
+			totalSpent: number;
+			lastOrderDate: string;
+			firstOrderDate: string;
+			segment: string;
+			loyaltyScore: number;
+			daysSinceLastOrder: number;
+			daysSinceFirstOrder: number;
+			avgOrderValue: number;
+		}>;
+		pagination: {
+			page: number;
+			limit: number;
+			total: number;
+			pages: number;
+		};
+	}>('/api/orders/artisan/customers', { auth: true }),
+	getArtisanReviews: () => apiRequest<{
+		reviews: Array<{
+			_id: string;
+			rating: number;
+			title?: string;
+			comment: string;
+			images?: string[];
+			createdAt: string;
+			userId: {
+				name: string;
+				avatar?: string;
+			};
+			productId: {
+				name: string;
+				images: string[];
+			};
+			orderId: {
+				orderNumber: string;
+			};
+			response?: {
+				message: string;
+				respondedBy: {
+					name: string;
+				};
+				respondedAt: string;
+			};
+		}>;
+		pagination: {
+			page: number;
+			limit: number;
+			total: number;
+			pages: number;
+		};
+	}>('/api/reviews/artisan/my-reviews', { auth: true }),
 	// Images
 	uploadImage: imagesApi.upload,
 	
 	// Wishlist
-	getWishlist: () => apiRequest<any[]>('/api/wishlist', { auth: true }),
+	getWishlist: () => apiRequest<Product[]>('/api/wishlist', { auth: true }),
 	addToWishlist: (productId: string) => 
 		apiRequest<{ message: string }>('/api/wishlist/add', {
 			method: 'POST',
@@ -790,6 +944,65 @@ export const api = {
 	getFeaturedBlogPosts: blogApi.getFeatured,
 	likeBlogPost: blogApi.like,
 	getRelatedBlogPosts: blogApi.getRelated,
+
+	// Additional Artisan APIs
+	updateOrderStatus: (orderId: string, status: string) =>
+		apiRequest<Order>(`/api/orders/${orderId}/status`, {
+			method: 'PUT',
+			body: JSON.stringify({ status }),
+			auth: true
+		}),
+
+	getArtisanProfile: () =>
+		apiRequest<{
+			_id: string;
+			name: string;
+			email: string;
+			phone?: string;
+			avatar?: string;
+			bio?: string;
+			location?: { city: string; state: string; country: string };
+			specialization: string[];
+			experience: number;
+			languages: string[];
+			socialLinks?: { website?: string; instagram?: string; facebook?: string };
+			businessInfo?: {
+				businessName?: string;
+				gstNumber?: string;
+				panNumber?: string;
+				bankDetails?: { accountNumber?: string; ifscCode?: string; bankName?: string };
+			};
+			certifications: Array<{ name: string; issuer: string; year: number }>;
+			skills: string[];
+			workExperience: Array<{ role: string; organization: string; duration: string; description: string }>;
+			education: Array<{ degree: string; institution: string; year: number }>;
+			stats: { totalProducts: number; totalOrders: number; totalRevenue: number; averageRating: number; totalReviews: number };
+			createdAt: string;
+			updatedAt: string;
+		}>('/api/artisans/profile', { auth: true }),
+
+	updateArtisanProfile: (profileData: {
+		name?: string;
+		phone?: string;
+		bio?: string;
+		location?: { city: string; state: string; country: string };
+		specialization?: string[];
+		experience?: number;
+		languages?: string[];
+		socialLinks?: { website?: string; instagram?: string; facebook?: string };
+		businessInfo?: {
+			businessName?: string;
+			gstNumber?: string;
+			panNumber?: string;
+			bankDetails?: { accountNumber?: string; ifscCode?: string; bankName?: string };
+		};
+		skills?: string[];
+	}) =>
+		apiRequest<{ message: string }>('/api/artisans/profile', {
+			method: 'PUT',
+			body: JSON.stringify(profileData),
+			auth: true
+		}),
 };
 
 // Utility function to handle image URLs

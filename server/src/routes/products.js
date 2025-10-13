@@ -3,6 +3,7 @@ import { z } from 'zod'
 import Product from '../models/Product.js'
 import Artisan from '../models/Artisan.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/firebase-auth.js'
 import { validate, paginationSchema, searchSchema } from '../middleware/validation.js'
 
 const router = Router()
@@ -230,6 +231,49 @@ router.delete('/:id', requireAuth, async (req, res) => {
 	if (!deleted) return res.status(404).json({ error: 'Not found' })
 	return res.status(204).end()
 })
+
+// Artisan routes
+// Get artisan's products
+router.get('/artisan/my-products',
+	authenticateToken,
+	validate(paginationSchema, 'query'),
+	async (req, res) => {
+		try {
+			const { page, limit, sort, order } = req.validatedQuery
+			const skip = (page - 1) * limit
+			
+			const sortObj = {}
+			if (sort) {
+				sortObj[sort] = order === 'asc' ? 1 : -1
+			} else {
+				sortObj.createdAt = -1
+			}
+			
+			const products = await Product.find({ artisanId: req.user._id })
+				.sort(sortObj)
+				.skip(skip)
+				.limit(limit)
+				.populate('artisanId', 'name')
+				.select('-__v')
+				.lean()
+			
+			const total = await Product.countDocuments({ artisanId: req.user._id })
+			
+			res.json({
+				products,
+				pagination: {
+					page,
+					limit,
+					total,
+					pages: Math.ceil(total / limit)
+				}
+			})
+		} catch (error) {
+			console.error('Error fetching artisan products:', error)
+			res.status(500).json({ error: 'Failed to fetch products' })
+		}
+	}
+)
 
 export default router
 

@@ -30,11 +30,23 @@ export async function requireActiveUser(req, res, next) {
 }
 
 // Middleware to check admin role
-export function requireAdmin(req, res, next) {
-	if (req.userDoc?.role !== 'admin') {
-		return res.status(403).json({ error: 'Admin access required' })
+export async function requireAdmin(req, res, next) {
+	try {
+		if (!req.userDoc) {
+			const user = await User.findById(req.user.sub).select('role isActive')
+			if (!user || !user.isActive) {
+				return res.status(401).json({ error: 'Account deactivated' })
+			}
+			req.userDoc = user
+		}
+		
+		if (req.userDoc.role !== 'admin') {
+			return res.status(403).json({ error: 'Admin access required' })
+		}
+		next()
+	} catch (error) {
+		return res.status(500).json({ error: 'Server error' })
 	}
-	next()
 }
 
 // Middleware to check artisan role

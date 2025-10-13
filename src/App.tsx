@@ -9,46 +9,71 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
-import Index from "./pages/Index";
-import Shop from "./pages/Shop";
-import ShopWithBackend from "./pages/ShopWithBackend";
-import Artisans from "./pages/Artisans";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Categories from "./pages/Categories";
-import Profile from "./pages/Profile";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
-import Help from "./pages/Help";
-import Sustainability from "./pages/Sustainability";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import ProductDetail from "./pages/ProductDetail";
-import StartSelling from "./pages/StartSelling";
-import SellerDashboard from "./pages/SellerDashboard";
-import SellerSuccess from "./pages/SellerSuccess";
-import UserDashboard from "./pages/UserDashboard";
-import Checkout from "./pages/Checkout";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Orders from "./pages/Orders";
-import OrderSuccess from "./pages/OrderSuccess";
-import SellerOnboarding from "./pages/SellerOnboarding";
-import ArtisanDetail from "./pages/ArtisanDetail";
-import ArtisanDetailWithBackend from "./pages/ArtisanDetailWithBackend";
-import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
-import APITestPage from "./pages/APITestPage";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import SignInArtisan from "./pages/SignInArtisan";
-import SignUpArtisan from "./pages/SignUpArtisan";
-import Dashboard from "./pages/Dashboard";
-import ArtisanDashboard from "./pages/ArtisanDashboard";
-import MockPayment from "./pages/MockPayment";
-import Wishlist from "./pages/Wishlist";
-import Addresses from "./pages/Addresses";
+import { Suspense, lazy } from "react";
 
-const queryClient = new QueryClient();
+// Lazy load all page components for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Shop = lazy(() => import("./pages/Shop"));
+const ShopWithBackend = lazy(() => import("./pages/ShopWithBackend"));
+const Artisans = lazy(() => import("./pages/Artisans"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Categories = lazy(() => import("./pages/Categories"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const Help = lazy(() => import("./pages/Help"));
+const Sustainability = lazy(() => import("./pages/Sustainability"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const StartSelling = lazy(() => import("./pages/StartSelling"));
+const SellerDashboard = lazy(() => import("./pages/SellerDashboard"));
+const SellerSuccess = lazy(() => import("./pages/SellerSuccess"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const Orders = lazy(() => import("./pages/Orders"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const SellerOnboarding = lazy(() => import("./pages/SellerOnboarding"));
+const ArtisanDetail = lazy(() => import("./pages/ArtisanDetail"));
+const ArtisanDetailWithBackend = lazy(() => import("./pages/ArtisanDetailWithBackend"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Admin = lazy(() => import("./pages/Admin"));
+const APITestPage = lazy(() => import("./pages/APITestPage"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const SignUp = lazy(() => import("./pages/SignUp"));
+const SignInArtisan = lazy(() => import("./pages/SignInArtisan"));
+const SignUpArtisan = lazy(() => import("./pages/SignUpArtisan"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ArtisanDashboard = lazy(() => import("./pages/ArtisanDashboard"));
+const ArtisanProducts = lazy(() => import("./pages/ArtisanProducts"));
+const ArtisanOrders = lazy(() => import("./pages/ArtisanOrders"));
+const ArtisanProfile = lazy(() => import("./pages/ArtisanProfile"));
+const MockPayment = lazy(() => import("./pages/MockPayment"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Addresses = lazy(() => import("./pages/Addresses"));
+const ArtisanAnalytics = lazy(() => import("./pages/ArtisanAnalytics"));
+const ArtisanCustomers = lazy(() => import("./pages/ArtisanCustomers"));
+const ArtisanReviews = lazy(() => import("./pages/ArtisanReviews"));
+const AdminRoute = lazy(() => import("./components/AdminRoute").then(module => ({ default: module.AdminRoute })));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors
+        if (error instanceof Error && error.message.includes('4')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -62,6 +87,7 @@ const App = () => (
           <BrowserRouter>
           <ScrollRestoration />
           <MobileBottomNav />
+          <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div></div>}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/shop" element={<ShopWithBackend />} />
@@ -89,7 +115,11 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            } />
             <Route path="/api-test" element={<APITestPage />} />
             <Route path="/mock-payment" element={<MockPayment />} />
 
@@ -103,12 +133,19 @@ const App = () => (
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/artisan-dashboard" element={<ArtisanDashboard />} />
+            <Route path="/artisan/products" element={<ArtisanProducts />} />
+            <Route path="/artisan/orders" element={<ArtisanOrders />} />
+            <Route path="/artisan/profile" element={<ArtisanProfile />} />
+            <Route path="/artisan/analytics" element={<ArtisanAnalytics />} />
+            <Route path="/artisan/customers" element={<ArtisanCustomers />} />
+            <Route path="/artisan/reviews" element={<ArtisanReviews />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/addresses" element={<Addresses />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
           </TooltipProvider>
         </WishlistProvider>

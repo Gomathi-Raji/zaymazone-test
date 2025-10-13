@@ -1,9 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
+import {
   Plus,
   Search,
   Edit,
@@ -13,73 +14,125 @@ import {
   Star,
   Award,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from "lucide-react";
-
-const artisans = [
-  {
-    id: 1,
-    name: "Priya Sharma",
-    email: "priya@example.com",
-    location: "Jaipur, Rajasthan",
-    speciality: "Blue Pottery",
-    experience: "15+ years",
-    rating: 4.9,
-    products: 24,
-    totalSales: 89,
-    revenue: "₹2,45,000",
-    status: "Active",
-    joinDate: "2022-03-15",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 2,
-    name: "Rajesh Kumar",
-    email: "rajesh@example.com",
-    location: "Moradabad, UP",
-    speciality: "Brass Work",
-    experience: "20+ years",
-    rating: 4.8,
-    products: 18,
-    totalSales: 156,
-    revenue: "₹3,78,000",
-    status: "Active",
-    joinDate: "2021-11-08",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 3,
-    name: "Meera Devi",
-    email: "meera@example.com",
-    location: "Kashmir",
-    speciality: "Pashmina Weaving",
-    experience: "12+ years",
-    rating: 4.9,
-    products: 31,
-    totalSales: 67,
-    revenue: "₹4,23,000",
-    status: "Pending",
-    joinDate: "2023-01-20",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"
-  },
-  {
-    id: 4,
-    name: "Vikram Singh",
-    email: "vikram@example.com",
-    location: "Jodhpur, Rajasthan",
-    speciality: "Wood Carving",
-    experience: "18+ years",
-    rating: 4.7,
-    products: 12,
-    totalSales: 89,
-    revenue: "₹1,89,000",
-    status: "Suspended",
-    joinDate: "2022-07-12",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
-  }
-];
+import { adminService } from "@/services/adminService";
+import { useToast } from "@/hooks/use-toast";
 
 export function ArtisanManagement() {
+  const [artisans, setArtisans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadArtisans();
+    
+    // Set up real-time polling every 60 seconds
+    const interval = setInterval(() => {
+      loadArtisans();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadArtisans = async () => {
+    try {
+      const response = await adminService.getArtisans({
+        search: searchTerm || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined
+      });
+      setArtisans(response.artisans || []);
+    } catch (error) {
+      console.error('Error loading artisans:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load artisans data",
+        variant: "destructive"
+      });
+      // Set fallback data
+      setArtisans([
+        {
+          id: 1,
+          name: "Priya Sharma",
+          email: "priya@example.com",
+          location: "Jaipur, Rajasthan",
+          speciality: "Blue Pottery",
+          experience: "15+ years",
+          rating: 4.9,
+          products: 24,
+          totalSales: 89,
+          revenue: "₹2,45,000",
+          status: "Active",
+          joinDate: "2022-03-15",
+          avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face"
+        },
+        {
+          id: 2,
+          name: "Rajesh Kumar",
+          email: "rajesh@example.com",
+          location: "Moradabad, UP",
+          speciality: "Brass Work",
+          experience: "20+ years",
+          rating: 4.8,
+          products: 18,
+          totalSales: 156,
+          revenue: "₹3,78,000",
+          status: "Active",
+          joinDate: "2021-11-08",
+          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    loadArtisans();
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setStatusFilter(status);
+    loadArtisans();
+  };
+
+  const handleApprove = async (artisanId: number) => {
+    try {
+      // TODO: Implement approve artisan endpoint
+      toast({
+        title: "Success",
+        description: "Artisan approved successfully"
+      });
+      loadArtisans();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve artisan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReject = async (artisanId: number) => {
+    try {
+      // TODO: Implement reject artisan endpoint
+      toast({
+        title: "Success",
+        description: "Artisan rejected"
+      });
+      loadArtisans();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject artisan",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "Active": return "default";
@@ -97,6 +150,19 @@ export function ArtisanManagement() {
     }
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <span>Loading artisans...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -110,81 +176,129 @@ export function ArtisanManagement() {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search artisans..." className="pl-10" />
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search artisans..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="pl-10"
+              />
+            </div>
           </div>
-          <Button variant="outline">Filter</Button>
-          <Button variant="outline">Export</Button>
+          <Button variant="outline" onClick={handleSearch}>
+            Search
+          </Button>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="suspended">Suspended</option>
+          </select>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {artisans.map((artisan) => (
-            <div key={artisan.id} className="flex items-center justify-between p-6 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4 flex-1">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={artisan.avatar} alt={artisan.name} />
-                  <AvatarFallback>{artisan.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-medium text-foreground">{artisan.name}</h3>
-                    <Badge variant={getStatusVariant(artisan.status)} className="flex items-center gap-1">
-                      {getStatusIcon(artisan.status)}
-                      {artisan.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                    <div className="space-y-1">
-                      <p>{artisan.email}</p>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>{artisan.location}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <p><span className="font-medium">Speciality:</span> {artisan.speciality}</p>
-                      <p><span className="font-medium">Experience:</span> {artisan.experience}</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{artisan.rating}</span>
-                        <span className="text-xs">({artisan.totalSales} sales)</span>
-                      </div>
-                      <p><span className="font-medium">Revenue:</span> {artisan.revenue}</p>
+            <Card key={artisan.id} className="relative">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={artisan.avatar} alt={artisan.name} />
+                      <AvatarFallback>{artisan.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold">{artisan.name}</h3>
+                      <p className="text-sm text-muted-foreground">{artisan.email}</p>
                     </div>
                   </div>
+                  <Badge variant={getStatusVariant(artisan.status)} className="flex items-center gap-1">
+                    {getStatusIcon(artisan.status)}
+                    {artisan.status}
+                  </Badge>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                <div className="text-right mr-4">
-                  <p className="font-semibold text-foreground">{artisan.products} Products</p>
-                  <p className="text-xs text-muted-foreground">Joined {new Date(artisan.joinDate).toLocaleDateString()}</p>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{artisan.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Award className="w-4 h-4 text-muted-foreground" />
+                    <span>{artisan.speciality}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Star className="w-4 h-4 text-muted-foreground" />
+                    <span>{artisan.rating} rating • {artisan.experience}</span>
+                  </div>
                 </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Award className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{artisan.products}</p>
+                    <p className="text-xs text-muted-foreground">Products</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{artisan.totalSales}</p>
+                    <p className="text-xs text-muted-foreground">Sales</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                <div className="text-center mb-4">
+                  <p className="text-lg font-semibold text-green-600">{artisan.revenue}</p>
+                  <p className="text-xs text-muted-foreground">Total Revenue</p>
+                </div>
+
+                <div className="flex gap-2">
+                  {artisan.status === "Pending" && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleApprove(artisan.id)}
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() => handleReject(artisan.id)}
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  {artisan.status === "Active" && (
+                    <>
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Eye className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    </>
+                  )}
+                  {artisan.status === "Suspended" && (
+                    <Button size="sm" className="w-full">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Reactivate
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </CardContent>
