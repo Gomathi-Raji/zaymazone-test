@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://zaymazone-backend.onrender.com/api')
+const API_BASE_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://zaymazone-test.onrender.com/api')
 
 class AdminService {
   private getAuthHeaders() {
@@ -85,7 +85,7 @@ class AdminService {
   async getStats() {
     try {
       // Use live backend URLs
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       
       // Get real data from live backend
       const [productsResponse, artisansResponse] = await Promise.all([
@@ -178,7 +178,7 @@ class AdminService {
   // Approval Management (real data from live backend)
   async getPendingProducts() {
     try {
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const response = await fetch(`${LIVE_API}/products`)
       
       if (!response.ok) throw new Error('Failed to fetch products')
@@ -199,7 +199,7 @@ class AdminService {
 
   async getPendingArtisans() {
     try {
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const response = await fetch(`${LIVE_API}/artisans`)
       
       if (!response.ok) throw new Error('Failed to fetch artisans')
@@ -337,7 +337,7 @@ class AdminService {
 
   async getCategoryAnalytics() {
     try {
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const response = await fetch(`${LIVE_API}/products`)
       if (!response.ok) throw new Error('Failed to fetch products')
       
@@ -367,7 +367,7 @@ class AdminService {
 
   async getTopProducts(limit = 5) {
     try {
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const response = await fetch(`${LIVE_API}/products`)
       if (!response.ok) throw new Error('Failed to fetch products')
       
@@ -404,7 +404,7 @@ class AdminService {
       }
       
       // Fallback: Generate activities from recent data
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const [productsRes, artisansRes] = await Promise.all([
         fetch(`${LIVE_API}/products?limit=10`),
         fetch(`${LIVE_API}/artisans?limit=10`)
@@ -505,7 +505,7 @@ class AdminService {
 
   // Products Management
   async getProducts(params?: { page?: number; limit?: number; search?: string; status?: string; category?: string }) {
-    const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+    const LIVE_API = 'https://zaymazone-test.onrender.com/api'
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
@@ -558,7 +558,7 @@ class AdminService {
 
   // Artisans Management
   async getArtisans(params?: { page?: number; limit?: number; search?: string; status?: string }) {
-    const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+    const LIVE_API = 'https://zaymazone-test.onrender.com/api'
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
@@ -668,7 +668,7 @@ class AdminService {
       }
       
       // Fallback: Generate report from available data
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const [productsRes, ordersRes] = await Promise.all([
         fetch(`${LIVE_API}/products`),
         fetch(`${API_BASE_URL}/orders`, { headers: this.getAuthHeaders() }).catch(() => ({ ok: false }))
@@ -728,7 +728,7 @@ class AdminService {
 
   async getArtisanReport() {
     try {
-      const LIVE_API = 'https://zaymazone-backend.onrender.com/api'
+      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const response = await fetch(`${LIVE_API}/artisans`)
       
       if (!response.ok) throw new Error('Failed to fetch artisans')

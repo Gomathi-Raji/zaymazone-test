@@ -47,6 +47,7 @@ app.use(helmet({
 const allowedOrigins = [
 	'http://localhost:8080', 
 	'http://localhost:8081', 
+	'http://127.0.0.1:8080',
 	'http://127.0.0.1:8081', 
 	'http://localhost:5173',
 	'https://zaymazone.com',

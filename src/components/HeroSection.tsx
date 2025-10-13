@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { artisanAnimations } from "@/lib/animations";
-import { getImageUrl } from "@/lib/api";
 
 export const HeroSection = () => {
   const titleWords = ["Crafting Culture.", "Empowering Artisans."];
@@ -12,7 +11,7 @@ export const HeroSection = () => {
       {/* Background Image with Parallax */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${getImageUrl('/assets/hero-bg.jpg')})` }}
+        style={{ backgroundImage: `url(/assets/hero-bg.jpg)` }}
         initial={{ scale: 1.1 }}
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: [0.25, 0.46, 0.45, 0.94] }}

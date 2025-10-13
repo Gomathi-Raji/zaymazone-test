@@ -3,7 +3,7 @@ import path from 'path'
 import fetch from 'node-fetch'
 import FormData from 'form-data'
 
-const API_BASE_URL = 'https://zaymazone-backend.onrender.com/api'
+const API_BASE_URL = 'https://zaymazone-test.onrender.com/api'
 
 async function uploadTeamImage(imagePath, filename) {
   try {

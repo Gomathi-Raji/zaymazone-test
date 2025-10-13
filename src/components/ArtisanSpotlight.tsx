@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, Star, Award } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getImageUrl } from "@/lib/api";
 
 const featuredArtisans = [
   {
@@ -15,7 +14,7 @@ const featuredArtisans = [
     experience: "15+ years",
     rating: 4.9,
     speciality: "Blue Pottery",
-    image: getImageUrl("/assets/artisan-1.jpg"),
+    image: "/assets/artisan-1.jpg",
     description: "Master of traditional Rajasthani blue pottery with intricate hand-painted designs passed down through generations.",
     products: 24,
     achievements: ["UNESCO Recognition", "National Award Winner"]
@@ -28,7 +27,7 @@ const featuredArtisans = [
     experience: "20+ years",
     rating: 4.8,
     speciality: "Temple Ornaments",
-    image: getImageUrl("/assets/artisan-2.jpg"),
+    image: "/assets/artisan-2.jpg",
     description: "Renowned for creating exquisite brass temple ornaments and decorative pieces using ancient casting techniques.",
     products: 18,
     achievements: ["Heritage Craftsman", "Export Excellence"]
@@ -41,7 +40,7 @@ const featuredArtisans = [
     experience: "12+ years",
     rating: 4.9,
     speciality: "Kashmiri Shawls",
-    image: getImageUrl("/assets/artisan-3.jpg"),
+    image: "/assets/artisan-3.jpg",
     description: "Expert in weaving luxurious Kashmiri shawls with traditional patterns and premium pashmina wool.",
     products: 31,
     achievements: ["Master Weaver", "Cultural Heritage Award"]
