@@ -6,79 +6,47 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Palette, Lightbulb, ShirtIcon, Gift } from "lucide-react";
 import { getImageUrl } from "@/lib/api";
-
-const categoryData = [
-  {
-    id: "pottery",
-    name: "Pottery & Ceramics",
-    description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
-    image: getImageUrl('pottery-category.jpg'),
-    icon: Gift,
-    productCount: 48,
-    subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
-    featured: true,
-    artisanCount: 25
-  },
-  {
-    id: "textiles",
-    name: "Handwoven Textiles",
-    description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
-    image: getImageUrl('textiles-category.jpg'),
-    icon: ShirtIcon,
-    productCount: 85,
-    subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
-    featured: true,
-    artisanCount: 42
-  },
-  {
-    id: "crafts",
-    name: "Traditional Crafts",
-    description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
-    image: getImageUrl('crafts-category.jpg'),
-    icon: Palette,
-    productCount: 67,
-    subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
-    featured: true,
-    artisanCount: 38
-  },
-  {
-    id: "paintings",
-    name: "Folk Paintings",
-    description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
-    image: getImageUrl('crafts-category.jpg'),
-    icon: Palette,
-    productCount: 29,
-    subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
-    featured: false,
-    artisanCount: 18
-  },
-  {
-    id: "lighting",
-    name: "Decorative Lighting",
-    description: "Handcrafted lamps, lanterns, and lighting fixtures with traditional designs and modern functionality.",
-    image: getImageUrl('crafts-category.jpg'),
-    icon: Lightbulb,
-    productCount: 18,
-    subcategories: ["Table Lamps", "Wall Sconces", "Hanging Lamps", "Candle Holders"],
-    featured: false,
-    artisanCount: 12
-  },
-  {
-    id: "jewelry",
-    name: "Traditional Jewelry",
-    description: "Handcrafted jewelry featuring traditional techniques like Kundan, Meenakari, and tribal designs.",
-    image: getImageUrl('crafts-category.jpg'),
-    icon: Gift,
-    productCount: 34,
-    subcategories: ["Necklaces", "Earrings", "Bracelets", "Rings"],
-    featured: false,
-    artisanCount: 15
-  }
-];
+import { pageContentApi } from "@/services/api";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const Categories = () => {
-  const featuredCategories = categoryData.filter(cat => cat.featured);
-  const otherCategories = categoryData.filter(cat => !cat.featured);
+  const [categories, setCategories] = useState([]);
+  const [pageContent, setPageContent] = useState({ title: "Craft Categories", description: "Explore our diverse collection of traditional Indian crafts, each representing centuries of cultural heritage and artistic excellence passed down through generations of skilled artisans." });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [categoriesData, contentData] = await Promise.all([
+          pageContentApi.getCategories(),
+          pageContentApi.getPageContent('categories')
+        ]);
+        
+        setCategories(categoriesData.categories);
+        setPageContent(contentData);
+      } catch (error) {
+        console.warn('Failed to fetch categories or page content:', error);
+        // Keep default data
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const featuredCategories = categories.filter(cat => cat.featured);
+  const otherCategories = categories.filter(cat => !cat.featured);
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,10 +55,9 @@ const Categories = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Craft Categories</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">{pageContent.title}</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Explore our diverse collection of traditional Indian crafts, each representing centuries of cultural heritage 
-            and artistic excellence passed down through generations of skilled artisans.
+            {pageContent.description}
           </p>
         </div>
 

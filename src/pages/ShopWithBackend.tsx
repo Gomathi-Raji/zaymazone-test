@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Filter, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -16,6 +16,7 @@ import { useProductComparison } from "@/hooks/useProductComparison";
 import { productsApi, Product } from "@/lib/api";
 import { artisanAnimations } from "@/lib/animations";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { pageContentApi } from "@/services/api";
 
 import { SkeletonGrid } from "@/components/SkeletonCard";
 
@@ -23,6 +24,7 @@ const ShopWithBackend = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>({});
+  const [pageContent, setPageContent] = useState({ title: "Shop Artisan Crafts", description: "Discover authentic handcrafted treasures from skilled artisans across India" });
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
 
@@ -46,6 +48,21 @@ const ShopWithBackend = () => {
     onRefresh: handleRefresh,
     threshold: 80,
   });
+
+  // Fetch page content
+  useEffect(() => {
+    const fetchPageContent = async () => {
+      try {
+        const content = await pageContentApi.getPageContent('shop');
+        setPageContent(content);
+      } catch (error) {
+        console.warn('Failed to fetch shop page content:', error);
+        // Keep default content
+      }
+    };
+
+    fetchPageContent();
+  }, []);
 
   // Use backend API instead of mock data
   const { data: productsData, isLoading, error, refetch } = useQuery({
@@ -128,10 +145,10 @@ const ShopWithBackend = () => {
         {/* Header */}
         <div className="mb-6 text-center px-2">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-            Shop Artisan Crafts
+            {pageContent.title}
           </h1>
           <p className="text-sm sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover authentic handcrafted treasures from skilled artisans across India
+            {pageContent.description}
           </p>
         </div>
 

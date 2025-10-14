@@ -275,6 +275,100 @@ router.get('/artisan/my-products',
 	}
 )
 
+// Public endpoints for page content and categories
+router.get('/page-content/:pageId', async (req, res) => {
+	try {
+		const { pageId } = req.params
+		
+		// For now, return mock data. In production, this would come from a database
+		const pageContents = {
+			shop: {
+				title: "Shop Artisan Crafts",
+				description: "Discover authentic handcrafted treasures from skilled artisans across India"
+			},
+			artisans: {
+				title: "Meet Our Artisans",
+				description: "Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience and passion to their craft, preserving ancient traditions while creating contemporary masterpieces."
+			},
+			categories: {
+				title: "Explore Categories",
+				description: "Browse our curated collection of handcrafted products organized by traditional craft categories"
+			},
+			blog: {
+				title: "Craft Stories & Insights",
+				description: "Read about the stories behind the crafts, artisan journeys, and insights into India's rich craft heritage"
+			}
+		}
+
+		const content = pageContents[pageId]
+		if (!content) {
+			return res.status(404).json({ error: 'Page content not found' })
+		}
+
+		res.json(content)
+	} catch (error) {
+		console.error('Get page content error:', error)
+		res.status(500).json({ error: 'Failed to fetch page content' })
+	}
+})
+
+router.get('/categories', async (req, res) => {
+	try {
+		// For now, return mock data. In production, this would come from a database
+		const categories = [
+			{
+				id: "pottery",
+				name: "Pottery & Ceramics",
+				description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
+				image: "pottery-category.jpg",
+				icon: "Gift",
+				productCount: 48,
+				subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
+				featured: true,
+				artisanCount: 25
+			},
+			{
+				id: "textiles",
+				name: "Handwoven Textiles",
+				description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
+				image: "textiles-category.jpg",
+				icon: "ShirtIcon",
+				productCount: 85,
+				subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
+				featured: true,
+				artisanCount: 42
+			},
+			{
+				id: "crafts",
+				name: "Traditional Crafts",
+				description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
+				image: "crafts-category.jpg",
+				icon: "Palette",
+				productCount: 67,
+				subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
+				featured: true,
+				artisanCount: 38
+			},
+			{
+				id: "paintings",
+				name: "Folk Paintings",
+				description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
+				image: "crafts-category.jpg",
+				icon: "Palette",
+				productCount: 29,
+				subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
+				featured: false,
+				artisanCount: 18
+			}
+		]
+
+		res.json({ categories })
+	} catch (error) {
+		console.error('Get categories error:', error)
+		res.status(500).json({ error: 'Failed to fetch categories' })
+	}
+})
+
 export default router
 
 

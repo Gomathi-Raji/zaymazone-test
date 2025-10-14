@@ -4,9 +4,29 @@ import { ArtisanProfile } from "@/components/ArtisanProfile";
 import { Button } from "@/components/ui/button";
 import { useArtisans } from "@/hooks/useArtisans";
 import { Loader2 } from "lucide-react";
+import { pageContentApi } from "@/services/api";
+import { useState, useEffect } from "react";
 
 const Artisans = () => {
   const { data: artisans, isLoading, error } = useArtisans();
+  const [pageContent, setPageContent] = useState({ 
+    title: "Meet Our Artisans", 
+    description: "Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience and passion to their craft, preserving ancient traditions while creating contemporary masterpieces." 
+  });
+
+  useEffect(() => {
+    const fetchPageContent = async () => {
+      try {
+        const content = await pageContentApi.getPageContent('artisans');
+        setPageContent(content);
+      } catch (error) {
+        console.warn('Failed to fetch artisans page content:', error);
+        // Keep default content
+      }
+    };
+
+    fetchPageContent();
+  }, []);
 
   if (isLoading) {
     return (
@@ -34,10 +54,9 @@ const Artisans = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Meet Our Artisans</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">{pageContent.title}</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience 
-            and passion to their craft, preserving ancient traditions while creating contemporary masterpieces.
+            {pageContent.description}
           </p>
         </div>
 

@@ -18,6 +18,9 @@ import { CustomerSupport } from "@/components/admin/CustomerSupport";
 import { SellerAlerts } from "@/components/admin/SellerAlerts";
 import { ActivitiesAndNotifications } from "@/components/admin/ActivitiesAndNotifications";
 import { AdminLogin } from "@/components/AdminLogin";
+import { PageContentManagement } from "@/components/admin/PageContentManagement";
+import { CategoriesManagement } from "@/components/admin/CategoriesManagement";
+import { AuditLogManagement } from "@/components/admin/AuditLogManagement";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -181,6 +184,9 @@ export default function Admin() {
     { id: "orders", label: "Orders", icon: ShoppingCart },
     { id: "users", label: "Users", icon: UserCheck },
     { id: "blog", label: "Blog", icon: FileText },
+    { id: "page-content", label: "Page Content", icon: FileText },
+    { id: "categories", label: "Categories", icon: Package },
+    { id: "audit-logs", label: "Audit Logs", icon: Activity },
     { id: "reports", label: "Reports", icon: FileBarChart },
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "auth", label: "Auth Management", icon: Shield },
@@ -309,6 +315,9 @@ export default function Admin() {
           {activeTab === "orders" && <OrderManagement />}
           {activeTab === "users" && <UserManagement />}
           {activeTab === "blog" && <BlogManagement />}
+          {activeTab === "page-content" && <PageContentManagement />}
+          {activeTab === "categories" && <CategoriesManagement />}
+          {activeTab === "audit-logs" && <AuditLogManagement />}
           {activeTab === "reports" && <ReportsAndInvoices />}
           {activeTab === "payments" && <PaymentsManagement />}
           {activeTab === "auth" && <AuthManagement />}

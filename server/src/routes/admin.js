@@ -8,6 +8,35 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
+// Utility function to log admin actions
+const logAdminAction = (user, action, resource, resourceId, details, req) => {
+  const logEntry = {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    user: user?.email || 'admin@example.com',
+    action,
+    resource,
+    resourceId,
+    details,
+    ipAddress: req.ip || req.connection.remoteAddress,
+    userAgent: req.get('User-Agent')
+  }
+
+  // In production, this would be saved to a database
+  console.log('Admin Action Logged:', logEntry)
+
+  // For now, we'll store in memory (in production, use a database)
+  if (!global.auditLogs) {
+    global.auditLogs = []
+  }
+  global.auditLogs.unshift(logEntry)
+
+  // Keep only last 1000 entries
+  if (global.auditLogs.length > 1000) {
+    global.auditLogs = global.auditLogs.slice(0, 1000)
+  }
+}
+
 // Admin Statistics Endpoint
 router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
   try {
@@ -853,6 +882,330 @@ router.delete('/artisans/:id', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Admin artisan deletion error:', error)
     res.status(500).json({ error: 'Failed to delete artisan' })
+  }
+})
+
+// Page Content Management Endpoints
+router.get('/page-content', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // For now, return mock data. In production, this would come from a database
+    const pageContents = [
+      {
+        id: "shop",
+        page: "Shop",
+        title: "Shop Artisan Crafts",
+        description: "Discover authentic handcrafted treasures from skilled artisans across India",
+        lastUpdated: "2024-01-15",
+        updatedBy: "Admin"
+      },
+      {
+        id: "artisans",
+        page: "Artisans",
+        title: "Meet Our Artisans",
+        description: "Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience and passion to their craft, preserving ancient traditions while creating contemporary masterpieces.",
+        lastUpdated: "2024-01-15",
+        updatedBy: "Admin"
+      },
+      {
+        id: "categories",
+        page: "Categories",
+        title: "Explore Categories",
+        description: "Browse our curated collection of handcrafted products organized by traditional craft categories",
+        lastUpdated: "2024-01-15",
+        updatedBy: "Admin"
+      },
+      {
+        id: "blog",
+        page: "Blog",
+        title: "Craft Stories & Insights",
+        description: "Read about the stories behind the crafts, artisan journeys, and insights into India's rich craft heritage",
+        lastUpdated: "2024-01-15",
+        updatedBy: "Admin"
+      }
+    ]
+
+    res.json({ pageContents })
+  } catch (error) {
+    console.error('Get page content error:', error)
+    res.status(500).json({ error: 'Failed to fetch page content' })
+  }
+})
+
+router.put('/page-content/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { title, description } = req.body
+
+    // Validation
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({ error: 'Title is required and must be a non-empty string' })
+    }
+
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
+      return res.status(400).json({ error: 'Description is required and must be a non-empty string' })
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({ error: 'Title must be less than 200 characters' })
+    }
+
+    if (description.length > 1000) {
+      return res.status(400).json({ error: 'Description must be less than 1000 characters' })
+    }
+
+    // In production, this would update a database
+    // For now, just return success
+    const updatedContent = {
+      id,
+      title: title.trim(),
+      description: description.trim(),
+      lastUpdated: new Date().toISOString().split('T')[0],
+      updatedBy: req.user?.name || req.user?.email || 'Admin'
+    }
+
+    // Log the admin action
+    logAdminAction(req.user, 'UPDATE', 'page-content', id, `Updated ${id} page content`, req)
+
+    res.json({
+      message: 'Page content updated successfully',
+      content: updatedContent
+    })
+  } catch (error) {
+    console.error('Update page content error:', error)
+    res.status(500).json({ error: 'Failed to update page content' })
+  }
+})
+
+// Categories Management Endpoints
+router.get('/categories', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // For now, return mock data. In production, this would come from a database
+    const categories = [
+      {
+        id: "pottery",
+        name: "Pottery & Ceramics",
+        description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
+        image: "pottery-category.jpg",
+        icon: "Gift",
+        productCount: 48,
+        subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
+        featured: true,
+        artisanCount: 25
+      },
+      {
+        id: "textiles",
+        name: "Handwoven Textiles",
+        description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
+        image: "textiles-category.jpg",
+        icon: "ShirtIcon",
+        productCount: 85,
+        subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
+        featured: true,
+        artisanCount: 42
+      },
+      {
+        id: "crafts",
+        name: "Traditional Crafts",
+        description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
+        image: "crafts-category.jpg",
+        icon: "Palette",
+        productCount: 67,
+        subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
+        featured: true,
+        artisanCount: 38
+      },
+      {
+        id: "paintings",
+        name: "Folk Paintings",
+        description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
+        image: "crafts-category.jpg",
+        icon: "Palette",
+        productCount: 29,
+        subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
+        featured: false,
+        artisanCount: 18
+      }
+    ]
+
+    res.json({ categories })
+  } catch (error) {
+    console.error('Get categories error:', error)
+    res.status(500).json({ error: 'Failed to fetch categories' })
+  }
+})
+
+router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, description, image, icon, productCount, subcategories, featured, artisanCount } = req.body
+
+    // Validation
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Name is required and must be a non-empty string' })
+    }
+
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
+      return res.status(400).json({ error: 'Description is required and must be a non-empty string' })
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'Name must be less than 100 characters' })
+    }
+
+    if (description.length > 500) {
+      return res.status(400).json({ error: 'Description must be less than 500 characters' })
+    }
+
+    if (productCount !== undefined && (typeof productCount !== 'number' || productCount < 0)) {
+      return res.status(400).json({ error: 'Product count must be a non-negative number' })
+    }
+
+    if (artisanCount !== undefined && (typeof artisanCount !== 'number' || artisanCount < 0)) {
+      return res.status(400).json({ error: 'Artisan count must be a non-negative number' })
+    }
+
+    // In production, this would save to a database
+    const newCategory = {
+      id: `category-${Date.now()}`,
+      name: name.trim(),
+      description: description.trim(),
+      image: image || "",
+      icon: icon || "Palette",
+      productCount: productCount || 0,
+      subcategories: Array.isArray(subcategories) ? subcategories : [],
+      featured: Boolean(featured),
+      artisanCount: artisanCount || 0
+    }
+
+    // Log the admin action
+    logAdminAction(req.user, 'CREATE', 'categories', newCategory.id, `Created new category: ${name.trim()}`, req)
+
+    res.status(201).json({
+      message: 'Category created successfully',
+      category: newCategory
+    })
+  } catch (error) {
+    console.error('Create category error:', error)
+    res.status(500).json({ error: 'Failed to create category' })
+  }
+})
+
+router.put('/categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, description, image, icon, productCount, subcategories, featured, artisanCount } = req.body
+
+    // Validation
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Name is required and must be a non-empty string' })
+    }
+
+    if (!description || typeof description !== 'string' || description.trim().length === 0) {
+      return res.status(400).json({ error: 'Description is required and must be a non-empty string' })
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'Name must be less than 100 characters' })
+    }
+
+    if (description.length > 500) {
+      return res.status(400).json({ error: 'Description must be less than 500 characters' })
+    }
+
+    if (productCount !== undefined && (typeof productCount !== 'number' || productCount < 0)) {
+      return res.status(400).json({ error: 'Product count must be a non-negative number' })
+    }
+
+    if (artisanCount !== undefined && (typeof artisanCount !== 'number' || artisanCount < 0)) {
+      return res.status(400).json({ error: 'Artisan count must be a non-negative number' })
+    }
+
+    // In production, this would update a database
+    const updatedCategory = {
+      id,
+      name: name.trim(),
+      description: description.trim(),
+      image: image || "",
+      icon: icon || "Palette",
+      productCount: productCount || 0,
+      subcategories: Array.isArray(subcategories) ? subcategories : [],
+      featured: Boolean(featured),
+      artisanCount: artisanCount || 0
+    }
+
+    // Log the admin action
+    logAdminAction(req.user, 'UPDATE', 'categories', id, `Updated category: ${name.trim()}`, req)
+
+    res.json({
+      message: 'Category updated successfully',
+      category: updatedCategory
+    })
+  } catch (error) {
+    console.error('Update category error:', error)
+    res.status(500).json({ error: 'Failed to update category' })
+  }
+})
+
+router.delete('/categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Log the admin action
+    logAdminAction(req.user, 'DELETE', 'categories', id, `Deleted category with ID: ${id}`, req)
+
+    // In production, this would delete from a database
+    res.json({
+      message: 'Category deleted successfully'
+    })
+  } catch (error) {
+    console.error('Delete category error:', error)
+    res.status(500).json({ error: 'Failed to delete category' })
+  }
+})
+
+// Audit Logs Endpoint
+router.get('/audit-logs', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Return stored audit logs (in production, this would fetch from a database)
+    const logs = global.auditLogs || [
+      {
+        id: "1",
+        timestamp: new Date().toISOString(),
+        user: req.user?.email || "admin@example.com",
+        action: "CREATE",
+        resource: "categories",
+        resourceId: "cat_001",
+        details: "Created new category: Pottery & Ceramics",
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      },
+      {
+        id: "2",
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        user: req.user?.email || "admin@example.com",
+        action: "UPDATE",
+        resource: "page-content",
+        resourceId: "shop",
+        details: "Updated shop page title and description",
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      },
+      {
+        id: "3",
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
+        user: req.user?.email || "admin@example.com",
+        action: "DELETE",
+        resource: "categories",
+        resourceId: "cat_002",
+        details: "Deleted category: Textiles & Fabrics",
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      }
+    ]
+
+    res.json({ logs })
+  } catch (error) {
+    console.error('Get audit logs error:', error)
+    res.status(500).json({ error: 'Failed to fetch audit logs' })
   }
 })
 

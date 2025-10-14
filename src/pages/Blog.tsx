@@ -9,6 +9,8 @@ import { Calendar, Clock, ArrowRight, MessageSquare, Heart, Loader2 } from "luci
 import { Link } from "react-router-dom";
 import { BlogSearch } from "@/components/BlogSearch";
 import { useBlogPosts, useBlogCategories, BlogPost as DBBlogPost } from "@/hooks/useBlog";
+import { pageContentApi } from "@/services/api";
+import { useState, useEffect } from "react";
 
 // BlogSearch component's expected format
 interface BlogSearchPost {
@@ -58,6 +60,24 @@ const formatDate = (date: Date) => {
 const Blog = () => {
   const { data, loading, error } = useBlogPosts({ limit: 50 });
   const { categories: dbCategories, loading: categoriesLoading } = useBlogCategories();
+  const [pageContent, setPageContent] = useState({ 
+    title: "Stories from the Craft World", 
+    description: "Discover the rich heritage, artisan stories, and cultural significance behind India's traditional crafts. Explore the intersection of tradition and modernity in our craft community." 
+  });
+
+  useEffect(() => {
+    const fetchPageContent = async () => {
+      try {
+        const content = await pageContentApi.getPageContent('blog');
+        setPageContent(content);
+      } catch (error) {
+        console.warn('Failed to fetch blog page content:', error);
+        // Keep default content
+      }
+    };
+
+    fetchPageContent();
+  }, []);
 
   if (loading) {
     return (
@@ -106,10 +126,9 @@ const Blog = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Stories from the Craft World</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">{pageContent.title}</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Discover the rich heritage, artisan stories, and cultural significance behind India's traditional crafts. 
-            Explore the intersection of tradition and modernity in our craft community.
+            {pageContent.description}
           </p>
         </div>
 
