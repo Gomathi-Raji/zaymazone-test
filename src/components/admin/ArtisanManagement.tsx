@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Search,
@@ -25,6 +28,20 @@ export function ArtisanManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    bio: "",
+    speciality: "",
+    experience: "",
+    location: {
+      city: "",
+      state: "",
+      country: "India"
+    },
+    avatar: ""
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,15 +116,67 @@ export function ArtisanManagement() {
     loadArtisans();
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      email: "",
+      bio: "",
+      speciality: "",
+      experience: "",
+      location: {
+        city: "",
+        state: "",
+        country: "India"
+      },
+      avatar: ""
+    });
+  };
+
+  const handleCreateArtisan = async () => {
+    try {
+      const artisanData = {
+        name: formData.name,
+        email: formData.email,
+        bio: formData.bio,
+        speciality: formData.speciality,
+        experience: formData.experience,
+        location: formData.location,
+        avatar: formData.avatar || undefined,
+        isActive: true,
+        verification: {
+          isVerified: false,
+          documents: []
+        }
+      };
+
+      await adminService.createArtisan(artisanData);
+      toast({
+        title: "Success",
+        description: "Artisan created successfully"
+      });
+      setIsCreateDialogOpen(false);
+      resetForm();
+      loadArtisans();
+    } catch (error) {
+      console.error('Error creating artisan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create artisan",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleApprove = async (artisanId: number) => {
     try {
-      // TODO: Implement approve artisan endpoint
+      await adminService.approveArtisan(artisanId.toString());
       toast({
         title: "Success",
         description: "Artisan approved successfully"
       });
       loadArtisans();
     } catch (error) {
+      console.error('Error approving artisan:', error);
       toast({
         title: "Error",
         description: "Failed to approve artisan",
@@ -118,13 +187,17 @@ export function ArtisanManagement() {
 
   const handleReject = async (artisanId: number) => {
     try {
-      // TODO: Implement reject artisan endpoint
+      const reason = prompt("Please provide a reason for rejection:");
+      if (reason === null) return; // User cancelled
+      
+      await adminService.rejectArtisan(artisanId.toString(), reason);
       toast({
         title: "Success",
         description: "Artisan rejected"
       });
       loadArtisans();
     } catch (error) {
+      console.error('Error rejecting artisan:', error);
       toast({
         title: "Error",
         description: "Failed to reject artisan",

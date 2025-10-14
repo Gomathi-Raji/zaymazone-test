@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductManagement } from "@/components/dashboard/ProductManagement";
-import { ArtisanManagement } from "@/components/admin/ArtisanManagement";
+import { ArtisanManagement } from "@/components/dashboard/ArtisanManagement";
 import { OrderManagement } from "@/components/admin/OrderManagement";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BlogManagement } from "@/components/admin/BlogManagement";
@@ -17,6 +17,7 @@ import { AlertsAndAnnouncements } from "@/components/admin/AlertsAndAnnouncement
 import { CustomerSupport } from "@/components/admin/CustomerSupport";
 import { SellerAlerts } from "@/components/admin/SellerAlerts";
 import { ActivitiesAndNotifications } from "@/components/admin/ActivitiesAndNotifications";
+import { AdminLogin } from "@/components/AdminLogin";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -42,6 +43,8 @@ import {
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [stats, setStats] = useState({
     totalProducts: 0,
     activeArtisans: 0,
@@ -55,15 +58,58 @@ export default function Admin() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Always load stats since admin panel is always accessible
-    loadStats();
-    // Set up real-time polling every 30 seconds
-    const interval = setInterval(() => {
-      loadStats();
-    }, 30000);
-    
-    return () => clearInterval(interval);
+    checkAuthentication();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Only load stats when authenticated
+      loadStats();
+      // Set up real-time polling every 30 seconds
+      const interval = setInterval(() => {
+        loadStats();
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
+
+  const checkAuthentication = () => {
+    setCheckingAuth(true);
+    const authenticated = adminService.isAuthenticated();
+    setIsAuthenticated(authenticated);
+    setCheckingAuth(false);
+  };
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    adminService.logout();
+    setIsAuthenticated(false);
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    });
+  };
+
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <AdminLogin onLogin={handleLogin} />;
+  }
 
   const loadStats = async () => {
     // Don't set loading to true to avoid blocking the UI
@@ -181,9 +227,19 @@ export default function Admin() {
 
         {/* Main Content */}
         <div className="flex-1 p-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage your marketplace data and operations</p>
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Manage your marketplace data and operations</p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Logout
+            </Button>
           </div>
 
           {activeTab === "overview" && (

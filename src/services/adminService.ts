@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://zaymazone-test.onrender.com/api')
+const API_BASE_URL = 'http://localhost:4000/api'
 
 class AdminService {
   private getAuthHeaders() {
@@ -12,7 +12,8 @@ class AdminService {
   // Authentication
   async login(email: string, password: string) {
     // Check for hardcoded admin credentials first
-    if (email === 'admin@zaymazone.com' && password === 'admin123') {
+    if ((email === 'admin@zaymazone.com' && password === 'admin123') || 
+        (email === 'dinesh_admin@zaymazone.com' && password === 'dinesh123')) {
       // Try to authenticate with remote backend
       try {
         const response = await fetch(`${API_BASE_URL}/auth/signin`, {
@@ -54,8 +55,8 @@ class AdminService {
         token: 'admin_hardcoded_token',
         user: {
           id: 'admin-001',
-          email: 'admin@zaymazone.com',
-          name: 'Administrator',
+          email: email,
+          name: email === 'dinesh_admin@zaymazone.com' ? 'Dinesh Admin' : 'Administrator',
           role: 'admin'
         }
       }
@@ -84,13 +85,10 @@ class AdminService {
   // Statistics (computed from real backend data)
   async getStats() {
     try {
-      // Use live backend URLs
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      
-      // Get real data from live backend
+      // Get real data from local backend
       const [productsResponse, artisansResponse] = await Promise.all([
-        fetch(`${LIVE_API}/products`),
-        fetch(`${LIVE_API}/artisans`)
+        fetch(`${API_BASE_URL}/products`),
+        fetch(`${API_BASE_URL}/artisans`)
       ])
 
       const products = productsResponse.ok ? await productsResponse.json() : { products: [] }
@@ -116,8 +114,8 @@ class AdminService {
       if (token) {
         try {
           const [usersResponse, ordersResponse] = await Promise.all([
-            fetch(`${LIVE_API}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
-            fetch(`${LIVE_API}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } })
+            fetch(`${API_BASE_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API_BASE_URL}/admin/orders`, { headers: { Authorization: `Bearer ${token}` } })
           ])
           
           if (usersResponse.ok) {
@@ -505,40 +503,31 @@ class AdminService {
 
   // Products Management
   async getProducts(params?: { page?: number; limit?: number; search?: string; status?: string; category?: string }) {
-    const LIVE_API = 'https://zaymazone-test.onrender.com/api'
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
-    
-    // Note: Live API may not support all filters yet
-    const response = await fetch(`${LIVE_API}/products?${searchParams}`)
+    if (params?.search) searchParams.append('search', params.search)
+    if (params?.status) searchParams.append('status', params.status)
+
+    const response = await fetch(`${API_BASE_URL}/admin/products?${searchParams}`, {
+      headers: this.getAuthHeaders()
+    })
     if (!response.ok) throw new Error('Failed to fetch products')
-    
-    const data = await response.json()
-    
-    // Apply client-side filtering for search, status, category if needed
-    let products = data.products || []
-    
-    if (params?.search) {
-      const searchTerm = params.search.toLowerCase()
-      products = products.filter((p: any) => 
-        p.name?.toLowerCase().includes(searchTerm) ||
-        p.description?.toLowerCase().includes(searchTerm) ||
-        p.category?.toLowerCase().includes(searchTerm)
-      )
-    }
-    
-    if (params?.category) {
-      products = products.filter((p: any) => 
-        p.category?.toLowerCase().includes(params.category!.toLowerCase())
-      )
-    }
-    
-    return { products, pagination: data.pagination }
+    return response.json()
+  }
+
+  async createProduct(data: any) {
+    const response = await fetch(`${API_BASE_URL}/admin/products`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    })
+    if (!response.ok) throw new Error('Failed to create product')
+    return response.json()
   }
 
   async updateProduct(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data)
@@ -548,7 +537,7 @@ class AdminService {
   }
 
   async deleteProduct(id: string) {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     })
@@ -558,43 +547,31 @@ class AdminService {
 
   // Artisans Management
   async getArtisans(params?: { page?: number; limit?: number; search?: string; status?: string }) {
-    const LIVE_API = 'https://zaymazone-test.onrender.com/api'
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', params.page.toString())
     if (params?.limit) searchParams.append('limit', params.limit.toString())
+    if (params?.search) searchParams.append('search', params.search)
+    if (params?.status) searchParams.append('status', params.status)
 
-    const response = await fetch(`${LIVE_API}/artisans?${searchParams}`)
+    const response = await fetch(`${API_BASE_URL}/admin/artisans?${searchParams}`, {
+      headers: this.getAuthHeaders()
+    })
     if (!response.ok) throw new Error('Failed to fetch artisans')
-    
-    const data = await response.json()
-    let artisans = data.artisans || []
-    
-    // Apply client-side filtering for search and status
-    if (params?.search) {
-      const searchTerm = params.search.toLowerCase()
-      artisans = artisans.filter((a: any) => 
-        a.name?.toLowerCase().includes(searchTerm) ||
-        a.bio?.toLowerCase().includes(searchTerm) ||
-        a.location?.city?.toLowerCase().includes(searchTerm) ||
-        a.location?.state?.toLowerCase().includes(searchTerm)
-      )
-    }
-    
-    if (params?.status) {
-      if (params.status === 'verified') {
-        artisans = artisans.filter((a: any) => a.verification?.isVerified)
-      } else if (params.status === 'pending') {
-        artisans = artisans.filter((a: any) => !a.verification?.isVerified)
-      } else if (params.status === 'active') {
-        artisans = artisans.filter((a: any) => a.isActive)
-      }
-    }
-    
-    return { artisans, pagination: data.pagination }
+    return response.json()
+  }
+
+  async createArtisan(data: any) {
+    const response = await fetch(`${API_BASE_URL}/admin/artisans`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data)
+    })
+    if (!response.ok) throw new Error('Failed to create artisan')
+    return response.json()
   }
 
   async updateArtisan(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/artisans/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/artisans/${id}`, {
       method: 'PUT',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data)
@@ -604,7 +581,7 @@ class AdminService {
   }
 
   async deleteArtisan(id: string) {
-    const response = await fetch(`${API_BASE_URL}/artisans/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/artisans/${id}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders()
     })

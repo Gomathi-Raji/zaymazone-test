@@ -445,4 +445,415 @@ router.get('/analytics/sales', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
+// Activities Endpoint
+router.get('/activities', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50
+
+    // Get recent products
+    const recentProducts = await Product.find({})
+      .populate('artisan', 'name')
+      .sort({ createdAt: -1 })
+      .limit(Math.ceil(limit / 2))
+      .select('name createdAt artisan')
+
+    // Get recent artisans
+    const recentArtisans = await Artisan.find({})
+      .sort({ createdAt: -1 })
+      .limit(Math.ceil(limit / 2))
+      .select('name createdAt')
+
+    // Get recent orders
+    const recentOrders = await Order.find({})
+      .populate('user', 'name')
+      .sort({ createdAt: -1 })
+      .limit(Math.ceil(limit / 3))
+      .select('totalAmount status createdAt user')
+
+    const activities = []
+
+    // Add product activities
+    recentProducts.forEach(product => {
+      activities.push({
+        id: `product_${product._id}`,
+        type: 'product',
+        action: 'Product added',
+        details: `${product.name} was added to the marketplace`,
+        timestamp: product.createdAt,
+        user: product.artisan?.name || 'System',
+        icon: 'Package',
+        color: 'text-blue-600'
+      })
+    })
+
+    // Add artisan activities
+    recentArtisans.forEach(artisan => {
+      activities.push({
+        id: `artisan_${artisan._id}`,
+        type: 'user',
+        action: 'Artisan registered',
+        details: `${artisan.name} joined as an artisan`,
+        timestamp: artisan.createdAt,
+        user: 'System',
+        icon: 'User',
+        color: 'text-green-600'
+      })
+    })
+
+    // Add order activities
+    recentOrders.forEach(order => {
+      activities.push({
+        id: `order_${order._id}`,
+        type: 'order',
+        action: 'Order placed',
+        details: `Order #${order._id.toString().slice(-8)} for ₹${order.totalAmount}`,
+        timestamp: order.createdAt,
+        user: order.user?.name || 'Customer',
+        icon: 'CreditCard',
+        color: 'text-purple-600'
+      })
+    })
+
+    // Sort by timestamp and limit
+    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+    res.json({
+      activities: activities.slice(0, limit),
+      total: activities.length
+    })
+  } catch (error) {
+    console.error('Activities error:', error)
+    res.status(500).json({ error: 'Failed to fetch activities' })
+  }
+})
+
+// Notifications Endpoint
+router.get('/notifications', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const notifications = []
+
+    // Get pending products
+    const pendingProducts = await Product.countDocuments({ status: 'pending' })
+    if (pendingProducts > 0) {
+      notifications.push({
+        id: 'pending_products',
+        type: 'warning',
+        title: 'Pending Products',
+        message: `${pendingProducts} product(s) awaiting approval`,
+        timestamp: new Date(),
+        action: 'Review Products',
+        actionUrl: '/admin/products',
+        icon: 'Package',
+        color: 'text-yellow-600'
+      })
+    }
+
+    // Get pending artisans
+    const pendingArtisans = await Artisan.countDocuments({ status: 'pending' })
+    if (pendingArtisans > 0) {
+      notifications.push({
+        id: 'pending_artisans',
+        type: 'warning',
+        title: 'Pending Artisans',
+        message: `${pendingArtisans} artisan(s) awaiting approval`,
+        timestamp: new Date(),
+        action: 'Review Artisans',
+        actionUrl: '/admin/artisans',
+        icon: 'User',
+        color: 'text-yellow-600'
+      })
+    }
+
+    // Get low stock products
+    const lowStockProducts = await Product.find({
+      status: 'active',
+      stockCount: { $lte: 5, $gt: 0 }
+    }).select('name stockCount').limit(5)
+
+    if (lowStockProducts.length > 0) {
+      notifications.push({
+        id: 'low_stock',
+        type: 'info',
+        title: 'Low Stock Alert',
+        message: `${lowStockProducts.length} product(s) running low on stock`,
+        timestamp: new Date(),
+        action: 'Manage Inventory',
+        actionUrl: '/admin/products',
+        icon: 'AlertTriangle',
+        color: 'text-orange-600'
+      })
+    }
+
+    // Get recent orders
+    const recentOrders = await Order.countDocuments({
+      createdAt: {
+        $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+      }
+    })
+
+    if (recentOrders > 0) {
+      notifications.push({
+        id: 'recent_orders',
+        type: 'success',
+        title: 'New Orders',
+        message: `${recentOrders} order(s) placed in the last 24 hours`,
+        timestamp: new Date(),
+        action: 'View Orders',
+        actionUrl: '/admin/orders',
+        icon: 'CreditCard',
+        color: 'text-green-600'
+      })
+    }
+
+    res.json({
+      notifications,
+      total: notifications.length
+    })
+  } catch (error) {
+    console.error('Notifications error:', error)
+    res.status(500).json({ error: 'Failed to fetch notifications' })
+  }
+})
+
+// Admin Products CRUD Endpoints
+router.get('/products', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const status = req.query.status || 'all'
+    const search = req.query.search || ''
+
+    let query = {}
+    if (status !== 'all') {
+      query.status = status
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    const products = await Product.find(query)
+      .populate('artisanId', 'name')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit)
+
+    const total = await Product.countDocuments(query)
+
+    res.json({
+      products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Admin products fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch products' })
+  }
+})
+
+router.post('/products', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const productData = {
+      ...req.body,
+      status: req.body.status || 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const product = new Product(productData)
+    await product.save()
+
+    res.status(201).json({
+      message: 'Product created successfully',
+      product
+    })
+  } catch (error) {
+    console.error('Admin product creation error:', error)
+    res.status(500).json({ error: 'Failed to create product' })
+  }
+})
+
+router.get('/products/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate('artisanId', 'name')
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' })
+    }
+
+    res.json({ product })
+  } catch (error) {
+    console.error('Admin product fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch product' })
+  }
+})
+
+router.put('/products/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: new Date() },
+      { new: true }
+    ).populate('artisanId', 'name')
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' })
+    }
+
+    res.json({
+      message: 'Product updated successfully',
+      product
+    })
+  } catch (error) {
+    console.error('Admin product update error:', error)
+    res.status(500).json({ error: 'Failed to update product' })
+  }
+})
+
+router.delete('/products/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id)
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' })
+    }
+
+    res.json({
+      message: 'Product deleted successfully'
+    })
+  } catch (error) {
+    console.error('Admin product deletion error:', error)
+    res.status(500).json({ error: 'Failed to delete product' })
+  }
+})
+
+// Admin Artisans CRUD Endpoints
+router.get('/artisans', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const status = req.query.status || 'all'
+    const search = req.query.search || ''
+
+    let query = {}
+    if (status !== 'all') {
+      query.status = status
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { bio: { $regex: search, $options: 'i' } },
+        { speciality: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    const artisans = await Artisan.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit)
+
+    const total = await Artisan.countDocuments(query)
+
+    res.json({
+      artisans,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Admin artisans fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch artisans' })
+  }
+})
+
+router.post('/artisans', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisanData = {
+      ...req.body,
+      status: req.body.status || 'active',
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+      verification: req.body.verification || {
+        isVerified: false,
+        documents: []
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const artisan = new Artisan(artisanData)
+    await artisan.save()
+
+    res.status(201).json({
+      message: 'Artisan created successfully',
+      artisan
+    })
+  } catch (error) {
+    console.error('Admin artisan creation error:', error)
+    res.status(500).json({ error: 'Failed to create artisan' })
+  }
+})
+
+router.get('/artisans/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisan = await Artisan.findById(req.params.id).populate('userId', 'name email')
+
+    if (!artisan) {
+      return res.status(404).json({ error: 'Artisan not found' })
+    }
+
+    res.json({ artisan })
+  } catch (error) {
+    console.error('Admin artisan fetch error:', error)
+    res.status(500).json({ error: 'Failed to fetch artisan' })
+  }
+})
+
+router.put('/artisans/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisan = await Artisan.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: new Date() },
+      { new: true }
+    )
+
+    if (!artisan) {
+      return res.status(404).json({ error: 'Artisan not found' })
+    }
+
+    res.json({
+      message: 'Artisan updated successfully',
+      artisan
+    })
+  } catch (error) {
+    console.error('Admin artisan update error:', error)
+    res.status(500).json({ error: 'Failed to update artisan' })
+  }
+})
+
+router.delete('/artisans/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisan = await Artisan.findByIdAndDelete(req.params.id)
+
+    if (!artisan) {
+      return res.status(404).json({ error: 'Artisan not found' })
+    }
+
+    res.json({
+      message: 'Artisan deleted successfully'
+    })
+  } catch (error) {
+    console.error('Admin artisan deletion error:', error)
+    res.status(500).json({ error: 'Failed to delete artisan' })
+  }
+})
+
 export default router
