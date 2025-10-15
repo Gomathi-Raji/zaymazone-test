@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import Product from '../models/Product.js'
 import Artisan from '../models/Artisan.js'
+import Category from '../models/Category.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { authenticateToken } from '../middleware/firebase-auth.js'
 import { validate, paginationSchema, searchSchema } from '../middleware/validation.js'
@@ -314,58 +315,45 @@ router.get('/page-content/:pageId', async (req, res) => {
 
 router.get('/categories', async (req, res) => {
 	try {
-		// For now, return mock data. In production, this would come from a database
-		const categories = [
-			{
-				id: "pottery",
-				name: "Pottery & Ceramics",
-				description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
-				image: "pottery-category.jpg",
-				icon: "Gift",
-				productCount: 48,
-				subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
-				featured: true,
-				artisanCount: 25
-			},
-			{
-				id: "textiles",
-				name: "Handwoven Textiles",
-				description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
-				image: "textiles-category.jpg",
-				icon: "ShirtIcon",
-				productCount: 85,
-				subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
-				featured: true,
-				artisanCount: 42
-			},
-			{
-				id: "crafts",
-				name: "Traditional Crafts",
-				description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
-				image: "crafts-category.jpg",
-				icon: "Palette",
-				productCount: 67,
-				subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
-				featured: true,
-				artisanCount: 38
-			},
-			{
-				id: "paintings",
-				name: "Folk Paintings",
-				description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
-				image: "crafts-category.jpg",
-				icon: "Palette",
-				productCount: 29,
-				subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
-				featured: false,
-				artisanCount: 18
-			}
-		]
+		console.log('🔍 Starting categories endpoint...')
+		
+		// Get categories from database
+		console.log('🔍 Fetching categories from database...')
+		const categories = await Category.find({ isActive: true })
+			.sort({ featured: -1, displayOrder: 1, name: 1 })
+		console.log(`🔍 Found ${categories.length} categories`)
 
-		res.json({ categories })
+		// Update counts before sending
+		console.log('🔍 Updating category counts...')
+		await Category.updateCounts()
+		console.log('🔍 Category counts updated')
+
+		// Transform for frontend compatibility  
+		console.log('🔍 Transforming categories for frontend...')
+		const transformedCategories = categories.map(cat => ({
+			id: cat.slug,
+			_id: cat._id,
+			name: cat.name,
+			slug: cat.slug,
+			description: cat.description,
+			image: cat.image,
+			icon: cat.icon,
+			subcategories: cat.subcategories,
+			featured: cat.featured,
+			productCount: cat.productCount,
+			artisanCount: cat.artisanCount,
+			displayOrder: cat.displayOrder,
+			createdAt: cat.createdAt,
+			updatedAt: cat.updatedAt
+		}))
+		console.log('🔍 Categories transformed successfully')
+
+		res.json({ categories: transformedCategories })
+		console.log('🔍 Categories response sent successfully')
 	} catch (error) {
-		console.error('Get categories error:', error)
-		res.status(500).json({ error: 'Failed to fetch categories' })
+		console.error('❌ Get categories error:', error)
+		// Return proper error response
+		res.status(500).json({ error: 'Server error' })
 	}
 })
 

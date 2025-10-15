@@ -161,7 +161,7 @@ app.use(notFoundHandler)
 app.use(errorHandler)
 
 // DB and server
-const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/zaymazone'
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://dinesh_zayma:ehODIoXrZP6U00HS@zayma-test.w2omvt0.mongodb.net/?retryWrites=true&w=majority&appName=zayma-test'
 const port = process.env.PORT || 4000
 
 // Upload team images on startup

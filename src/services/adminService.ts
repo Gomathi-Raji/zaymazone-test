@@ -11,65 +11,43 @@ class AdminService {
 
   // Authentication
   async login(email: string, password: string) {
-    // Check for hardcoded admin credentials first
-    if ((email === 'admin@zaymazone.com' && password === 'admin123') || 
-        (email === 'dinesh_admin@zaymazone.com' && password === 'dinesh123')) {
-      // Try to authenticate with remote backend
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/signin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        })
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success && data.accessToken) {
+        // Store authentication data
+        localStorage.setItem('admin_token', data.accessToken)
+        localStorage.setItem('admin_refresh_token', data.refreshToken)
+        localStorage.setItem('admin_user', JSON.stringify(data.user))
         
-        if (response.ok) {
-          const data = await response.json()
-          if (data.accessToken) {
-            // Store real authentication data
-            localStorage.setItem('admin_token', data.accessToken)
-            localStorage.setItem('admin_user', JSON.stringify({
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.name || 'Administrator',
-              role: 'admin'
-            }))
-            return {
-              success: true,
-              token: data.accessToken,
-              user: {
-                id: data.user.id,
-                email: data.user.email,
-                name: data.user.name || 'Administrator',
-                role: 'admin'
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Remote authentication failed, using fallback:', error)
-      }
-      
-      // Fallback to hardcoded authentication if remote fails
-      const adminData = {
-        success: true,
-        token: 'admin_hardcoded_token',
-        user: {
-          id: 'admin-001',
-          email: email,
-          name: email === 'dinesh_admin@zaymazone.com' ? 'Dinesh Admin' : 'Administrator',
-          role: 'admin'
+        return {
+          success: true,
+          token: data.accessToken,
+          user: data.user
         }
       }
       
-      localStorage.setItem('admin_token', adminData.token)
-      localStorage.setItem('admin_user', JSON.stringify(adminData.user))
-      return adminData
+      throw new Error('Invalid response from server')
+    } catch (error) {
+      console.error('Admin login error:', error)
+      throw error
     }
-    throw new Error('Login failed')
   }
 
   logout() {
     localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_refresh_token')
     localStorage.removeItem('admin_user')
   }
 
@@ -85,7 +63,16 @@ class AdminService {
   // Statistics (computed from real backend data)
   async getStats() {
     try {
-      // Get real data from local backend
+      // Use admin endpoint for stats
+      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+        headers: this.getAuthHeaders()
+      })
+
+      if (response.ok) {
+        return response.json()
+      }
+
+      // Fallback: Get data from public endpoints and calculate stats
       const [productsResponse, artisansResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/products`),
         fetch(`${API_BASE_URL}/artisans`)
@@ -173,22 +160,18 @@ class AdminService {
     }
   }
 
-  // Approval Management (real data from live backend)
+  // Approval Management (real data from backend)
   async getPendingProducts() {
     try {
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      const response = await fetch(`${LIVE_API}/products`)
+      const response = await fetch(`${API_BASE_URL}/admin/approvals/products`, {
+        headers: this.getAuthHeaders()
+      })
       
-      if (!response.ok) throw new Error('Failed to fetch products')
+      if (response.ok) {
+        return response.json()
+      }
       
-      const data = await response.json()
-      const allProducts = data.products || []
-      
-      // Since current products don't have approval status, show all products for demo
-      // In a real system, you'd filter by approval status
-      const pendingProducts = allProducts.slice(0, 10) // Show first 10 for admin review
-
-      return { products: pendingProducts }
+      throw new Error('Failed to fetch pending products')
     } catch (error) {
       console.error('Error fetching pending products:', error)
       return { products: [] }
@@ -197,20 +180,15 @@ class AdminService {
 
   async getPendingArtisans() {
     try {
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      const response = await fetch(`${LIVE_API}/artisans`)
+      const response = await fetch(`${API_BASE_URL}/admin/approvals/artisans`, {
+        headers: this.getAuthHeaders()
+      })
       
-      if (!response.ok) throw new Error('Failed to fetch artisans')
+      if (response.ok) {
+        return response.json()
+      }
       
-      const data = await response.json()
-      const allArtisans = data.artisans || []
-      
-      // Filter for artisans that need verification
-      const pendingArtisans = allArtisans.filter((artisan: any) => 
-        !artisan.verification?.isVerified
-      )
-
-      return { artisans: pendingArtisans }
+      throw new Error('Failed to fetch pending artisans')
     } catch (error) {
       console.error('Error fetching pending artisans:', error)
       return { artisans: [] }
@@ -590,47 +568,152 @@ class AdminService {
   }
 
   // Blog Management
-  async getBlogPosts(params?: { page?: number; limit?: number; search?: string; status?: string }) {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.append('page', params.page.toString())
-    if (params?.limit) searchParams.append('limit', params.limit.toString())
-    if (params?.search) searchParams.append('search', params.search)
-    if (params?.status) searchParams.append('status', params.status)
+  async getBlogPosts(params?: { 
+    page?: number
+    limit?: number
+    search?: string
+    category?: string
+    status?: string
+    featured?: boolean
+    author?: string
+  }) {
+    try {
+      const searchParams = new URLSearchParams()
+      if (params?.page) searchParams.append('page', params.page.toString())
+      if (params?.limit) searchParams.append('limit', params.limit.toString())
+      if (params?.search) searchParams.append('search', params.search)
+      if (params?.category) searchParams.append('category', params.category)
+      if (params?.status) searchParams.append('status', params.status)
+      if (params?.featured !== undefined) searchParams.append('featured', params.featured.toString())
+      if (params?.author) searchParams.append('author', params.author)
 
-    const response = await fetch(`${API_BASE_URL}/blog?${searchParams}`, {
-      headers: this.getAuthHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch blog posts')
-    return response.json()
+      const response = await fetch(`${API_BASE_URL}/admin/blog-posts?${searchParams}`, {
+        headers: this.getAuthHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog posts')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching blog posts:', error)
+      throw error
+    }
   }
 
-  async createBlogPost(data: any) {
-    const response = await fetch(`${API_BASE_URL}/blog`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data)
-    })
-    if (!response.ok) throw new Error('Failed to create blog post')
-    return response.json()
+  async createBlogPost(postData: {
+    title: string
+    excerpt: string
+    content: string
+    featuredImage: string
+    images?: string[]
+    author: {
+      name: string
+      bio?: string
+      avatar?: string
+      role?: string
+    }
+    category: string
+    tags: string[]
+    status: 'draft' | 'published'
+    featured: boolean
+    readTime: string
+    seoTitle?: string
+    seoDescription?: string
+  }) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/blog-posts`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(postData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create blog post')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error creating blog post:', error)
+      throw error
+    }
   }
 
-  async updateBlogPost(id: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}/blog/${id}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data)
-    })
-    if (!response.ok) throw new Error('Failed to update blog post')
-    return response.json()
+  async updateBlogPost(id: string, postData: Partial<{
+    title: string
+    excerpt: string
+    content: string
+    featuredImage: string
+    images: string[]
+    author: {
+      name: string
+      bio?: string
+      avatar?: string
+      role?: string
+    }
+    category: string
+    tags: string[]
+    status: 'draft' | 'published'
+    featured: boolean
+    readTime: string
+    seoTitle?: string
+    seoDescription?: string
+  }>) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/blog-posts/${id}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(postData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update blog post')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error updating blog post:', error)
+      throw error
+    }
   }
 
   async deleteBlogPost(id: string) {
-    const response = await fetch(`${API_BASE_URL}/blog/${id}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to delete blog post')
-    return response.json()
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/blog-posts/${id}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete blog post')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error deleting blog post:', error)
+      throw error
+    }
+  }
+
+  async getBlogPost(id: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/blog-posts/${id}`, {
+        headers: this.getAuthHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog post')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching blog post:', error)
+      throw error
+    }
   }
 
   // Reports and Analytics
@@ -789,6 +872,233 @@ class AdminService {
       return { invoices: [], pagination: { total: 0, page: 1, limit: 10 } }
     }
   }
+
+  // Categories Management
+  async getCategories(params?: { page?: number; limit?: number; search?: string; featured?: boolean }) {
+    try {
+      const searchParams = new URLSearchParams()
+      if (params?.page) searchParams.append('page', params.page.toString())
+      if (params?.limit) searchParams.append('limit', params.limit.toString())
+      if (params?.search) searchParams.append('search', params.search)
+      if (params?.featured !== undefined) searchParams.append('featured', params.featured.toString())
+
+      const response = await fetch(`${API_BASE_URL}/admin/categories?${searchParams}`, {
+        headers: this.getAuthHeaders()
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      throw error
+    }
+  }
+
+  async createCategory(categoryData: {
+    name: string
+    description: string
+    image: string
+    icon: string
+    subcategories: string[]
+    featured: boolean
+    displayOrder?: number
+  }) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/categories`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(categoryData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create category')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error creating category:', error)
+      throw error
+    }
+  }
+
+  async updateCategory(id: string, categoryData: Partial<{
+    name: string
+    description: string
+    image: string
+    icon: string
+    subcategories: string[]
+    featured: boolean
+    displayOrder: number
+  }>) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/categories/${id}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(categoryData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update category')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error updating category:', error)
+      throw error
+    }
+  }
+
+  async deleteCategory(id: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/categories/${id}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders()
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete category')
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error deleting category:', error)
+      throw error
+    }
+  }
+
+  // =============
+  // Comments
+  // =============
+
+  // Get comments for moderation
+  async getComments(params?: {
+    status?: string;
+    postId?: string;
+    limit?: number;
+    skip?: number;
+    search?: string;
+  }): Promise<{
+    comments: any[];
+    totalCount: number;
+    counts: {
+      pending: number;
+      approved: number;
+      rejected: number;
+      spam: number;
+    };
+    hasMore: boolean;
+  }> {
+    const searchParams = new URLSearchParams();
+    
+    if (params?.status) searchParams.append('status', params.status);
+    if (params?.postId) searchParams.append('postId', params.postId);
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.skip) searchParams.append('skip', params.skip.toString());
+    if (params?.search) searchParams.append('search', params.search);
+
+    const response = await fetch(`${API_BASE_URL}/admin/comments?${searchParams}`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comments: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Get single comment
+  async getComment(id: string): Promise<{ comment: any }> {
+    const response = await fetch(`${API_BASE_URL}/admin/comments/${id}`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comment: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Moderate comment
+  async moderateComment(id: string, data: {
+    status: 'approved' | 'rejected' | 'spam';
+    reason?: string;
+  }): Promise<{ message: string; comment: any }> {
+    const response = await fetch(`${API_BASE_URL}/admin/comments/${id}/moderate`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to moderate comment: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Bulk moderate comments
+  async bulkModerateComments(data: {
+    commentIds: string[];
+    status: 'approved' | 'rejected' | 'spam';
+    reason?: string;
+  }): Promise<{ message: string; modifiedCount: number }> {
+    const response = await fetch(`${API_BASE_URL}/admin/comments/bulk-moderate`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to bulk moderate comments: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Delete comment
+  async deleteComment(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/admin/comments/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete comment: ${response.status}`);
+    }
+  }
+
+  // Get comment statistics
+  async getCommentStats(): Promise<{
+    stats: {
+      total: {
+        pending: number;
+        approved: number;
+        rejected: number;
+        spam: number;
+      };
+      recent: any[];
+      topPosts: any[];
+    };
+  }> {
+    const response = await fetch(`${API_BASE_URL}/admin/comments/stats`, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch comment statistics: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
 }
 
 export const adminService = new AdminService()

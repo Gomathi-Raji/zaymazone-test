@@ -4,11 +4,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Palette, Lightbulb, ShirtIcon, Gift } from "lucide-react";
+import { 
+  Palette, 
+  Lightbulb, 
+  ShirtIcon, 
+  Gift, 
+  Sparkles, 
+  Scissors, 
+  Hammer, 
+  Crown,
+  LucideIcon
+} from "lucide-react";
 import { getImageUrl } from "@/lib/api";
 import { pageContentApi } from "@/services/api";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+
+// Icon mapping for database strings to React components
+const iconMap: Record<string, LucideIcon> = {
+  'Palette': Palette,
+  'Lightbulb': Lightbulb,
+  'ShirtIcon': ShirtIcon,
+  'Gift': Gift,
+  'Sparkles': Sparkles,
+  'Scissors': Scissors,
+  'Hammer': Hammer,
+  'Crown': Crown,
+};
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -66,7 +88,7 @@ const Categories = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-8">Featured Categories</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredCategories.map(category => {
-              const IconComponent = category.icon;
+              const IconComponent = iconMap[category.icon] || Gift; // Default to Gift icon if not found
               return (
                 <Card key={category.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
                   <div className="aspect-video bg-muted overflow-hidden relative">
@@ -138,7 +160,7 @@ const Categories = () => {
           <h2 className="text-2xl font-semibold text-foreground mb-6">More Categories</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {otherCategories.map(category => {
-              const IconComponent = category.icon;
+              const IconComponent = iconMap[category.icon] || Gift; // Default to Gift icon if not found
               return (
                 <Card key={category.id} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4">

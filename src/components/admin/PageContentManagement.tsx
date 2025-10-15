@@ -45,7 +45,7 @@ export const PageContentManagement = () => {
   const loadPageContents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/page-content', {
+      const response = await fetch('http://localhost:4000/api/admin/page-content', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }
@@ -141,7 +141,7 @@ export const PageContentManagement = () => {
       setSaving(true);
       setShowConfirmDialog(false);
 
-      const response = await fetch(`/api/admin/page-content/${editingContent.id}`, {
+      const response = await fetch(`http://localhost:4000/api/admin/page-content/${editingContent.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

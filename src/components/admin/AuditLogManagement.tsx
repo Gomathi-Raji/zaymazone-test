@@ -34,7 +34,7 @@ export const AuditLogManagement = () => {
   const loadAuditLogs = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/audit-logs', {
+      const response = await fetch('http://localhost:4000/api/admin/audit-logs', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
         }

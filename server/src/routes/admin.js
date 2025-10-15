@@ -1,12 +1,134 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 import User from '../models/User.js'
 import Product from '../models/Product.js'
 import Artisan from '../models/Artisan.js'
 import Order from '../models/Order.js'
+import Category from '../models/Category.js'
+import BlogPost from '../models/BlogPost.js'
+import Comment from '../models/Comment.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
+
+// Helper function to generate tokens
+const generateTokens = (userId, email) => {
+  const accessToken = jwt.sign(
+    { sub: userId, email }, 
+    process.env.JWT_SECRET || 'dev-secret', 
+    { expiresIn: '8h' } // Longer session for admin
+  )
+  
+  const refreshToken = crypto.randomBytes(64).toString('hex')
+  
+  return { accessToken, refreshToken }
+}
+
+// Admin Login Schema
+const adminLoginSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(6).max(128),
+})
+
+// Admin Login Endpoint
+router.post('/auth/login', async (req, res) => {
+  try {
+    const parsed = adminLoginSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid credentials' })
+    
+    const { email, password } = parsed.data
+    
+    // Find user with admin role
+    const user = await User.findOne({ email, role: 'admin', isActive: true })
+    
+    // If admin user doesn't exist, create default admin users
+    if (!user) {
+      const defaultAdmins = [
+        { email: 'admin@zaymazone.com', password: 'admin123', name: 'Administrator' },
+        { email: 'dinesh_admin@zaymazone.com', password: 'dinesh123', name: 'Dinesh Admin' }
+      ]
+      
+      const matchingAdmin = defaultAdmins.find(admin => admin.email === email && admin.password === password)
+      
+      if (matchingAdmin) {
+        // Create the admin user
+        const passwordHash = await bcrypt.hash(matchingAdmin.password, 10)
+        const newAdmin = await User.create({
+          name: matchingAdmin.name,
+          email: matchingAdmin.email,
+          passwordHash,
+          role: 'admin',
+          isEmailVerified: true,
+          authProvider: 'local'
+        })
+        
+        const { accessToken, refreshToken } = generateTokens(newAdmin._id, email)
+        
+        // Store refresh token
+        const refreshTokenExpiry = new Date()
+        refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 30)
+        
+        newAdmin.refreshTokens.push({
+          token: refreshToken,
+          expiresAt: refreshTokenExpiry,
+          deviceInfo: req.headers['user-agent'] || 'Admin Panel'
+        })
+        newAdmin.lastLogin = new Date()
+        await newAdmin.save()
+        
+        return res.json({
+          success: true,
+          accessToken,
+          refreshToken,
+          user: {
+            id: newAdmin._id,
+            name: newAdmin.name,
+            email: newAdmin.email,
+            role: newAdmin.role
+          }
+        })
+      }
+      
+      return res.status(401).json({ error: 'Invalid admin credentials' })
+    }
+    
+    // Verify password
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
+    
+    const { accessToken, refreshToken } = generateTokens(user._id, email)
+    
+    // Store refresh token
+    const refreshTokenExpiry = new Date()
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 30)
+    
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: refreshTokenExpiry,
+      deviceInfo: req.headers['user-agent'] || 'Admin Panel'
+    })
+    user.lastLogin = new Date()
+    await user.save()
+    
+    return res.json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    })
+  } catch (error) {
+    console.error('Admin login error:', error)
+    return res.status(500).json({ error: 'Internal server error' })
+  }
+})
 
 // Utility function to log admin actions
 const logAdminAction = (user, action, resource, resourceId, details, req) => {
@@ -979,55 +1101,56 @@ router.put('/page-content/:id', requireAuth, requireAdmin, async (req, res) => {
 // Categories Management Endpoints
 router.get('/categories', requireAuth, requireAdmin, async (req, res) => {
   try {
-    // For now, return mock data. In production, this would come from a database
-    const categories = [
-      {
-        id: "pottery",
-        name: "Pottery & Ceramics",
-        description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
-        image: "pottery-category.jpg",
-        icon: "Gift",
-        productCount: 48,
-        subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
-        featured: true,
-        artisanCount: 25
-      },
-      {
-        id: "textiles",
-        name: "Handwoven Textiles",
-        description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
-        image: "textiles-category.jpg",
-        icon: "ShirtIcon",
-        productCount: 85,
-        subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
-        featured: true,
-        artisanCount: 42
-      },
-      {
-        id: "crafts",
-        name: "Traditional Crafts",
-        description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
-        image: "crafts-category.jpg",
-        icon: "Palette",
-        productCount: 67,
-        subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
-        featured: true,
-        artisanCount: 38
-      },
-      {
-        id: "paintings",
-        name: "Folk Paintings",
-        description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
-        image: "crafts-category.jpg",
-        icon: "Palette",
-        productCount: 29,
-        subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
-        featured: false,
-        artisanCount: 18
-      }
-    ]
+    const { page = 1, limit = 50, search, featured, status = 'active' } = req.query
+    
+    const query = {}
+    if (status === 'active') query.isActive = true
+    if (featured !== undefined) query.featured = featured === 'true'
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ]
+    }
 
-    res.json({ categories })
+    const categories = await Category.find(query)
+      .sort({ featured: -1, displayOrder: 1, name: 1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+
+    const total = await Category.countDocuments(query)
+
+    // Update counts before sending
+    await Category.updateCounts()
+
+    // Transform for frontend compatibility
+    const transformedCategories = categories.map(cat => ({
+      id: cat.slug,
+      _id: cat._id,
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description,
+      image: cat.image,
+      icon: cat.icon,
+      subcategories: cat.subcategories,
+      featured: cat.featured,
+      productCount: cat.productCount,
+      artisanCount: cat.artisanCount,
+      displayOrder: cat.displayOrder,
+      isActive: cat.isActive,
+      createdAt: cat.createdAt,
+      updatedAt: cat.updatedAt
+    }))
+
+    res.json({ 
+      categories: transformedCategories,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error('Get categories error:', error)
     res.status(500).json({ error: 'Failed to fetch categories' })
@@ -1036,7 +1159,17 @@ router.get('/categories', requireAuth, requireAdmin, async (req, res) => {
 
 router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, description, image, icon, productCount, subcategories, featured, artisanCount } = req.body
+    const { 
+      name, 
+      description, 
+      image, 
+      icon, 
+      subcategories, 
+      featured, 
+      displayOrder,
+      seoTitle,
+      seoDescription
+    } = req.body
 
     // Validation
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -1055,93 +1188,178 @@ router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Description must be less than 500 characters' })
     }
 
-    if (productCount !== undefined && (typeof productCount !== 'number' || productCount < 0)) {
-      return res.status(400).json({ error: 'Product count must be a non-negative number' })
+    if (!image || !image.trim()) {
+      return res.status(400).json({ error: 'Category image is required' })
     }
 
-    if (artisanCount !== undefined && (typeof artisanCount !== 'number' || artisanCount < 0)) {
-      return res.status(400).json({ error: 'Artisan count must be a non-negative number' })
+    // Check if category with same name already exists
+    const existingCategory = await Category.findOne({ 
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+      isActive: true 
+    })
+    
+    if (existingCategory) {
+      return res.status(400).json({ error: 'Category with this name already exists' })
     }
 
-    // In production, this would save to a database
-    const newCategory = {
-      id: `category-${Date.now()}`,
+    // Create new category
+    const categoryData = {
       name: name.trim(),
       description: description.trim(),
-      image: image || "",
-      icon: icon || "Palette",
-      productCount: productCount || 0,
-      subcategories: Array.isArray(subcategories) ? subcategories : [],
+      image: image.trim(),
+      icon: icon || 'Gift',
+      subcategories: Array.isArray(subcategories) ? subcategories.filter(sub => sub && sub.trim()) : [],
       featured: Boolean(featured),
-      artisanCount: artisanCount || 0
+      displayOrder: displayOrder || 0,
+      seoTitle: seoTitle ? seoTitle.trim() : undefined,
+      seoDescription: seoDescription ? seoDescription.trim() : undefined
     }
 
+    const newCategory = new Category(categoryData)
+    await newCategory.save()
+
     // Log the admin action
-    logAdminAction(req.user, 'CREATE', 'categories', newCategory.id, `Created new category: ${name.trim()}`, req)
+    logAdminAction(req.user, 'CREATE', 'categories', newCategory._id, `Created new category: ${name.trim()}`, req)
+
+    // Transform for frontend compatibility
+    const responseCategory = {
+      id: newCategory.slug,
+      _id: newCategory._id,
+      name: newCategory.name,
+      slug: newCategory.slug,
+      description: newCategory.description,
+      image: newCategory.image,
+      icon: newCategory.icon,
+      subcategories: newCategory.subcategories,
+      featured: newCategory.featured,
+      productCount: newCategory.productCount,
+      artisanCount: newCategory.artisanCount,
+      displayOrder: newCategory.displayOrder,
+      isActive: newCategory.isActive,
+      createdAt: newCategory.createdAt,
+      updatedAt: newCategory.updatedAt
+    }
 
     res.status(201).json({
       message: 'Category created successfully',
-      category: newCategory
+      category: responseCategory
     })
   } catch (error) {
     console.error('Create category error:', error)
-    res.status(500).json({ error: 'Failed to create category' })
+    if (error.code === 11000) {
+      res.status(400).json({ error: 'Category with this name already exists' })
+    } else {
+      res.status(500).json({ error: 'Failed to create category' })
+    }
   }
 })
 
 router.put('/categories/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params
-    const { name, description, image, icon, productCount, subcategories, featured, artisanCount } = req.body
+    const { 
+      name, 
+      description, 
+      image, 
+      icon, 
+      subcategories, 
+      featured, 
+      displayOrder,
+      seoTitle,
+      seoDescription
+    } = req.body
+
+    // Find category by MongoDB _id or slug
+    const category = await Category.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { slug: id }
+      ],
+      isActive: true
+    })
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' })
+    }
 
     // Validation
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Name is required and must be a non-empty string' })
+    if (name && (typeof name !== 'string' || name.trim().length === 0)) {
+      return res.status(400).json({ error: 'Name must be a non-empty string' })
     }
 
-    if (!description || typeof description !== 'string' || description.trim().length === 0) {
-      return res.status(400).json({ error: 'Description is required and must be a non-empty string' })
+    if (description && (typeof description !== 'string' || description.trim().length === 0)) {
+      return res.status(400).json({ error: 'Description must be a non-empty string' })
     }
 
-    if (name.length > 100) {
+    if (name && name.length > 100) {
       return res.status(400).json({ error: 'Name must be less than 100 characters' })
     }
 
-    if (description.length > 500) {
+    if (description && description.length > 500) {
       return res.status(400).json({ error: 'Description must be less than 500 characters' })
     }
 
-    if (productCount !== undefined && (typeof productCount !== 'number' || productCount < 0)) {
-      return res.status(400).json({ error: 'Product count must be a non-negative number' })
+    // Check if another category with same name exists (if name is being changed)
+    if (name && name.trim() !== category.name) {
+      const existingCategory = await Category.findOne({ 
+        name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+        isActive: true,
+        _id: { $ne: category._id }
+      })
+      
+      if (existingCategory) {
+        return res.status(400).json({ error: 'Category with this name already exists' })
+      }
     }
 
-    if (artisanCount !== undefined && (typeof artisanCount !== 'number' || artisanCount < 0)) {
-      return res.status(400).json({ error: 'Artisan count must be a non-negative number' })
+    // Update fields
+    if (name) category.name = name.trim()
+    if (description) category.description = description.trim()
+    if (image) category.image = image.trim()
+    if (icon) category.icon = icon
+    if (subcategories !== undefined) {
+      category.subcategories = Array.isArray(subcategories) ? subcategories.filter(sub => sub && sub.trim()) : []
     }
+    if (featured !== undefined) category.featured = Boolean(featured)
+    if (displayOrder !== undefined) category.displayOrder = displayOrder
+    if (seoTitle !== undefined) category.seoTitle = seoTitle ? seoTitle.trim() : undefined
+    if (seoDescription !== undefined) category.seoDescription = seoDescription ? seoDescription.trim() : undefined
 
-    // In production, this would update a database
-    const updatedCategory = {
-      id,
-      name: name.trim(),
-      description: description.trim(),
-      image: image || "",
-      icon: icon || "Palette",
-      productCount: productCount || 0,
-      subcategories: Array.isArray(subcategories) ? subcategories : [],
-      featured: Boolean(featured),
-      artisanCount: artisanCount || 0
-    }
+    await category.save()
 
     // Log the admin action
-    logAdminAction(req.user, 'UPDATE', 'categories', id, `Updated category: ${name.trim()}`, req)
+    logAdminAction(req.user, 'UPDATE', 'categories', category._id, `Updated category: ${category.name}`, req)
+
+    // Transform for frontend compatibility
+    const responseCategory = {
+      id: category.slug,
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      image: category.image,
+      icon: category.icon,
+      subcategories: category.subcategories,
+      featured: category.featured,
+      productCount: category.productCount,
+      artisanCount: category.artisanCount,
+      displayOrder: category.displayOrder,
+      isActive: category.isActive,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt
+    }
 
     res.json({
       message: 'Category updated successfully',
-      category: updatedCategory
+      category: responseCategory
     })
   } catch (error) {
     console.error('Update category error:', error)
-    res.status(500).json({ error: 'Failed to update category' })
+    if (error.code === 11000) {
+      res.status(400).json({ error: 'Category with this name already exists' })
+    } else {
+      res.status(500).json({ error: 'Failed to update category' })
+    }
   }
 })
 
@@ -1149,16 +1367,319 @@ router.delete('/categories/:id', requireAuth, requireAdmin, async (req, res) => 
   try {
     const { id } = req.params
 
-    // Log the admin action
-    logAdminAction(req.user, 'DELETE', 'categories', id, `Deleted category with ID: ${id}`, req)
+    // Find category by MongoDB _id or slug
+    const category = await Category.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { slug: id }
+      ],
+      isActive: true
+    })
 
-    // In production, this would delete from a database
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' })
+    }
+
+    // Check if there are products using this category
+    const productsUsingCategory = await Product.countDocuments({ 
+      category: { $in: [category.slug, category.name.toLowerCase()] },
+      isActive: true 
+    })
+
+    if (productsUsingCategory > 0) {
+      return res.status(400).json({ 
+        error: `Cannot delete category. ${productsUsingCategory} products are using this category.` 
+      })
+    }
+
+    // Soft delete by setting isActive to false
+    category.isActive = false
+    await category.save()
+
+    // Log the admin action
+    logAdminAction(req.user, 'DELETE', 'categories', category._id, `Deleted category: ${category.name}`, req)
+
     res.json({
       message: 'Category deleted successfully'
     })
   } catch (error) {
     console.error('Delete category error:', error)
     res.status(500).json({ error: 'Failed to delete category' })
+  }
+})
+
+// Blog Management Endpoints
+router.get('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, category, status, featured, author } = req.query
+    
+    const query = { isActive: true }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+        { excerpt: { $regex: search, $options: 'i' } }
+      ]
+    }
+    if (category) query.category = category
+    if (status) query.status = status
+    if (featured !== undefined) query.featured = featured === 'true'
+    if (author) query['author.name'] = { $regex: author, $options: 'i' }
+
+    const blogPosts = await BlogPost.find(query)
+      .sort({ featured: -1, publishedAt: -1, createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+
+    const total = await BlogPost.countDocuments(query)
+
+    res.json({ 
+      posts: blogPosts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Get blog posts error:', error)
+    res.status(500).json({ error: 'Failed to fetch blog posts' })
+  }
+})
+
+router.post('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { 
+      title, 
+      excerpt, 
+      content, 
+      featuredImage, 
+      images,
+      author, 
+      category, 
+      tags, 
+      status,
+      featured, 
+      readTime,
+      seoTitle,
+      seoDescription
+    } = req.body
+
+    // Validation
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Title is required' })
+    }
+    if (!excerpt || !excerpt.trim()) {
+      return res.status(400).json({ error: 'Excerpt is required' })
+    }
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required' })
+    }
+    if (!featuredImage || !featuredImage.trim()) {
+      return res.status(400).json({ error: 'Featured image is required' })
+    }
+    if (!author || !author.name || !author.name.trim()) {
+      return res.status(400).json({ error: 'Author name is required' })
+    }
+    if (!category || !category.trim()) {
+      return res.status(400).json({ error: 'Category is required' })
+    }
+
+    // Check if post with same title already exists
+    const existingPost = await BlogPost.findOne({ 
+      title: { $regex: new RegExp(`^${title.trim()}$`, 'i') },
+      isActive: true 
+    })
+    
+    if (existingPost) {
+      return res.status(400).json({ error: 'Blog post with this title already exists' })
+    }
+
+    // Create new blog post
+    const postData = {
+      title: title.trim(),
+      excerpt: excerpt.trim(),
+      content: content.trim(),
+      featuredImage: featuredImage.trim(),
+      images: Array.isArray(images) ? images.filter(img => img && img.trim()) : [],
+      author: {
+        name: author.name.trim(),
+        bio: author.bio ? author.bio.trim() : '',
+        avatar: author.avatar ? author.avatar.trim() : '',
+        role: author.role ? author.role.trim() : 'Writer'
+      },
+      category: category.trim(),
+      tags: Array.isArray(tags) ? tags.filter(tag => tag && tag.trim()).map(tag => tag.trim().toLowerCase()) : [],
+      status: status || 'draft',
+      featured: Boolean(featured),
+      readTime: readTime || '5 min read',
+      seoTitle: seoTitle ? seoTitle.trim() : undefined,
+      seoDescription: seoDescription ? seoDescription.trim() : undefined,
+      authorId: req.user.sub // Link to admin user
+    }
+
+    const newPost = new BlogPost(postData)
+    await newPost.save()
+
+    // Log the admin action
+    logAdminAction(req.user, 'CREATE', 'blog-posts', newPost._id, `Created new blog post: ${title.trim()}`, req)
+
+    res.status(201).json({
+      message: 'Blog post created successfully',
+      post: newPost
+    })
+  } catch (error) {
+    console.error('Create blog post error:', error)
+    if (error.code === 11000) {
+      res.status(400).json({ error: 'Blog post with this title already exists' })
+    } else {
+      res.status(500).json({ error: 'Failed to create blog post' })
+    }
+  }
+})
+
+router.get('/blog-posts/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const post = await BlogPost.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { slug: id }
+      ],
+      isActive: true
+    })
+
+    if (!post) {
+      return res.status(404).json({ error: 'Blog post not found' })
+    }
+
+    res.json({ post })
+  } catch (error) {
+    console.error('Get blog post error:', error)
+    res.status(500).json({ error: 'Failed to fetch blog post' })
+  }
+})
+
+router.put('/blog-posts/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { 
+      title, 
+      excerpt, 
+      content, 
+      featuredImage, 
+      images,
+      author, 
+      category, 
+      tags, 
+      status,
+      featured, 
+      readTime,
+      seoTitle,
+      seoDescription
+    } = req.body
+
+    // Find blog post by MongoDB _id or slug
+    const post = await BlogPost.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { slug: id }
+      ],
+      isActive: true
+    })
+
+    if (!post) {
+      return res.status(404).json({ error: 'Blog post not found' })
+    }
+
+    // Check if another post with same title exists (if title is being changed)
+    if (title && title.trim() !== post.title) {
+      const existingPost = await BlogPost.findOne({ 
+        title: { $regex: new RegExp(`^${title.trim()}$`, 'i') },
+        isActive: true,
+        _id: { $ne: post._id }
+      })
+      
+      if (existingPost) {
+        return res.status(400).json({ error: 'Blog post with this title already exists' })
+      }
+    }
+
+    // Update fields
+    if (title) post.title = title.trim()
+    if (excerpt) post.excerpt = excerpt.trim()
+    if (content) post.content = content.trim()
+    if (featuredImage) post.featuredImage = featuredImage.trim()
+    if (images !== undefined) {
+      post.images = Array.isArray(images) ? images.filter(img => img && img.trim()) : []
+    }
+    if (author) {
+      if (author.name) post.author.name = author.name.trim()
+      if (author.bio !== undefined) post.author.bio = author.bio ? author.bio.trim() : ''
+      if (author.avatar !== undefined) post.author.avatar = author.avatar ? author.avatar.trim() : ''
+      if (author.role !== undefined) post.author.role = author.role ? author.role.trim() : 'Writer'
+    }
+    if (category) post.category = category.trim()
+    if (tags !== undefined) {
+      post.tags = Array.isArray(tags) ? tags.filter(tag => tag && tag.trim()).map(tag => tag.trim().toLowerCase()) : []
+    }
+    if (status) post.status = status
+    if (featured !== undefined) post.featured = Boolean(featured)
+    if (readTime) post.readTime = readTime.trim()
+    if (seoTitle !== undefined) post.seoTitle = seoTitle ? seoTitle.trim() : undefined
+    if (seoDescription !== undefined) post.seoDescription = seoDescription ? seoDescription.trim() : undefined
+
+    await post.save()
+
+    // Log the admin action
+    logAdminAction(req.user, 'UPDATE', 'blog-posts', post._id, `Updated blog post: ${post.title}`, req)
+
+    res.json({
+      message: 'Blog post updated successfully',
+      post
+    })
+  } catch (error) {
+    console.error('Update blog post error:', error)
+    if (error.code === 11000) {
+      res.status(400).json({ error: 'Blog post with this title already exists' })
+    } else {
+      res.status(500).json({ error: 'Failed to update blog post' })
+    }
+  }
+})
+
+router.delete('/blog-posts/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Find blog post by MongoDB _id or slug
+    const post = await BlogPost.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { slug: id }
+      ],
+      isActive: true
+    })
+
+    if (!post) {
+      return res.status(404).json({ error: 'Blog post not found' })
+    }
+
+    // Soft delete by setting isActive to false
+    post.isActive = false
+    await post.save()
+
+    // Log the admin action
+    logAdminAction(req.user, 'DELETE', 'blog-posts', post._id, `Deleted blog post: ${post.title}`, req)
+
+    res.json({
+      message: 'Blog post deleted successfully'
+    })
+  } catch (error) {
+    console.error('Delete blog post error:', error)
+    res.status(500).json({ error: 'Failed to delete blog post' })
   }
 })
 
@@ -1206,6 +1727,330 @@ router.get('/audit-logs', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Get audit logs error:', error)
     res.status(500).json({ error: 'Failed to fetch audit logs' })
+  }
+})
+
+// ==========================================
+// COMMENT MANAGEMENT ROUTES
+// ==========================================
+
+// Comment Schemas
+const commentModerationSchema = z.object({
+  status: z.enum(['approved', 'rejected', 'spam']),
+  reason: z.string().optional()
+})
+
+// Get all comments for moderation
+router.get('/comments', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const {
+      status = 'pending',
+      postId,
+      limit = 50,
+      skip = 0,
+      search = ''
+    } = req.query
+
+    // Build query
+    const query = {}
+    
+    if (status && status !== 'all') {
+      query.status = status
+    }
+    
+    if (postId) {
+      query.postId = postId
+    }
+    
+    if (search) {
+      query.$or = [
+        { content: { $regex: search, $options: 'i' } },
+        { 'author.name': { $regex: search, $options: 'i' } },
+        { 'author.email': { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    const comments = await Comment.find(query)
+      .populate('postId', 'title slug category featured')
+      .populate('parentId', 'content author.name')
+      .populate('moderatedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip))
+
+    const totalCount = await Comment.countDocuments(query)
+    
+    // Get status counts
+    const statusCounts = await Comment.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ])
+    
+    const counts = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      spam: 0
+    }
+    
+    statusCounts.forEach(item => {
+      counts[item._id] = item.count
+    })
+
+    res.json({
+      comments,
+      totalCount,
+      counts,
+      hasMore: totalCount > parseInt(skip) + comments.length
+    })
+
+  } catch (error) {
+    console.error('Get comments error:', error)
+    res.status(500).json({ error: 'Failed to fetch comments' })
+  }
+})
+
+// Get single comment details
+router.get('/comments/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id)
+      .populate('postId', 'title slug category')
+      .populate('parentId', 'content author.name createdAt')
+      .populate('replies', null, null, { sort: { createdAt: 1 } })
+      .populate('moderatedBy', 'name email')
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+
+    res.json({ comment })
+  } catch (error) {
+    console.error('Get comment error:', error)
+    res.status(500).json({ error: 'Failed to fetch comment' })
+  }
+})
+
+// Moderate comment (approve, reject, spam)
+router.patch('/comments/:id/moderate', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const parsed = commentModerationSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ 
+        error: 'Invalid data', 
+        details: parsed.error.errors 
+      })
+    }
+
+    const { status, reason = '' } = parsed.data
+    const comment = await Comment.findById(req.params.id)
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+
+    // Update comment status
+    comment.status = status
+    comment.moderatedBy = req.user._id
+    comment.moderatedAt = new Date()
+    comment.moderationReason = reason
+
+    await comment.save()
+
+    // Update blog post comment count
+    if (status === 'approved' && comment.status !== 'approved') {
+      await BlogPost.findByIdAndUpdate(
+        comment.postId,
+        { $inc: { comments: 1 } }
+      )
+    } else if (status !== 'approved' && comment.status === 'approved') {
+      await BlogPost.findByIdAndUpdate(
+        comment.postId,
+        { $inc: { comments: -1 } }
+      )
+    }
+
+    const updatedComment = await Comment.findById(comment._id)
+      .populate('postId', 'title slug')
+      .populate('moderatedBy', 'name email')
+
+    res.json({ 
+      message: `Comment ${status} successfully`,
+      comment: updatedComment
+    })
+
+  } catch (error) {
+    console.error('Moderate comment error:', error)
+    res.status(500).json({ error: 'Failed to moderate comment' })
+  }
+})
+
+// Bulk moderate comments
+router.patch('/comments/bulk-moderate', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { commentIds, status, reason = '' } = req.body
+
+    if (!Array.isArray(commentIds) || commentIds.length === 0) {
+      return res.status(400).json({ error: 'Comment IDs are required' })
+    }
+
+    if (!['approved', 'rejected', 'spam'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' })
+    }
+
+    const result = await Comment.updateMany(
+      { _id: { $in: commentIds } },
+      {
+        status,
+        moderatedBy: req.user._id,
+        moderatedAt: new Date(),
+        moderationReason: reason
+      }
+    )
+
+    // Update blog post comment counts
+    const comments = await Comment.find({ _id: { $in: commentIds } })
+    const postUpdates = {}
+    
+    comments.forEach(comment => {
+      const postId = comment.postId.toString()
+      if (!postUpdates[postId]) postUpdates[postId] = 0
+      
+      if (status === 'approved' && comment.status !== 'approved') {
+        postUpdates[postId]++
+      } else if (status !== 'approved' && comment.status === 'approved') {
+        postUpdates[postId]--
+      }
+    })
+
+    // Apply the updates
+    for (const [postId, increment] of Object.entries(postUpdates)) {
+      if (increment !== 0) {
+        await BlogPost.findByIdAndUpdate(postId, { $inc: { comments: increment } })
+      }
+    }
+
+    res.json({ 
+      message: `${result.modifiedCount} comments ${status} successfully`,
+      modifiedCount: result.modifiedCount
+    })
+
+  } catch (error) {
+    console.error('Bulk moderate comments error:', error)
+    res.status(500).json({ error: 'Failed to moderate comments' })
+  }
+})
+
+// Delete comment
+router.delete('/comments/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id)
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' })
+    }
+
+    // Delete all replies first
+    await Comment.deleteMany({ parentId: comment._id })
+
+    // Update blog post comment count if comment was approved
+    if (comment.status === 'approved') {
+      await BlogPost.findByIdAndUpdate(
+        comment.postId,
+        { $inc: { comments: -1 } }
+      )
+    }
+
+    await Comment.findByIdAndDelete(req.params.id)
+
+    res.json({ message: 'Comment deleted successfully' })
+
+  } catch (error) {
+    console.error('Delete comment error:', error)
+    res.status(500).json({ error: 'Failed to delete comment' })
+  }
+})
+
+// Get comment statistics
+router.get('/comments/stats', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [totalStats, recentStats, topPosts] = await Promise.all([
+      // Total statistics
+      Comment.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+      
+      // Recent statistics (last 30 days)
+      Comment.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              status: '$status',
+              date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.date': -1 } }
+      ]),
+      
+      // Most commented posts
+      Comment.aggregate([
+        { $match: { status: 'approved' } },
+        {
+          $group: {
+            _id: '$postId',
+            commentCount: { $sum: 1 }
+          }
+        },
+        { $sort: { commentCount: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: 'blogposts',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'post'
+          }
+        },
+        { $unwind: '$post' },
+        {
+          $project: {
+            _id: 1,
+            commentCount: 1,
+            title: '$post.title',
+            slug: '$post.slug',
+            category: '$post.category'
+          }
+        }
+      ])
+    ])
+
+    const stats = {
+      total: { pending: 0, approved: 0, rejected: 0, spam: 0 },
+      recent: [],
+      topPosts
+    }
+
+    totalStats.forEach(item => {
+      stats.total[item._id] = item.count
+    })
+
+    stats.recent = recentStats
+
+    res.json({ stats })
+
+  } catch (error) {
+    console.error('Get comment stats error:', error)
+    res.status(500).json({ error: 'Failed to fetch comment statistics' })
   }
 })
 

@@ -11,10 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Eye, Star, Package, Users, Loader2, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { adminService } from "@/services/adminService";
 
 interface Category {
   id: string;
+  _id?: string;
   name: string;
+  slug?: string;
   description: string;
   image: string;
   icon: string;
@@ -22,13 +25,20 @@ interface Category {
   subcategories: string[];
   featured: boolean;
   artisanCount: number;
+  displayOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const iconOptions = [
   { value: "Palette", label: "Palette" },
   { value: "Lightbulb", label: "Lightbulb" },
   { value: "ShirtIcon", label: "Shirt" },
-  { value: "Gift", label: "Gift" }
+  { value: "Gift", label: "Gift" },
+  { value: "Sparkles", label: "Sparkles" },
+  { value: "Scissors", label: "Scissors" },
+  { value: "Hammer", label: "Hammer" },
+  { value: "Crown", label: "Crown" }
 ];
 
 export const CategoriesManagement = () => {
@@ -64,75 +74,31 @@ export const CategoriesManagement = () => {
     loadCategories();
   }, []);
 
+  // Reload when search or filter changes
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      loadCategories();
+    }, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, filterFeatured]);
+
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/categories', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        }
+      const data = await adminService.getCategories({ 
+        limit: 50,
+        search: searchTerm || undefined,
+        featured: filterFeatured === "all" ? undefined : filterFeatured === "featured"
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-
-      const data = await response.json();
-      setCategories(data.categories);
+      setCategories(data.categories || []);
     } catch (error) {
       console.error('Failed to load categories:', error);
       toast({
         title: "Error Loading Categories",
-        description: "Failed to load categories. Using default categories.",
+        description: "Failed to load categories. Please check your connection and try again.",
         variant: "destructive",
       });
-      // Set default categories if API fails
-      setCategories([
-        {
-          id: "pottery",
-          name: "Pottery & Ceramics",
-          description: "Hand-thrown pottery, decorative ceramics, and traditional clay items crafted by master potters.",
-          image: "pottery-category.jpg",
-          icon: "Gift",
-          productCount: 48,
-          subcategories: ["Vases", "Dinnerware", "Tea Sets", "Decorative Items"],
-          featured: true,
-          artisanCount: 25
-        },
-        {
-          id: "textiles",
-          name: "Handwoven Textiles",
-          description: "Traditional fabrics, sarees, scarves, and clothing created using ancient weaving techniques.",
-          image: "textiles-category.jpg",
-          icon: "ShirtIcon",
-          productCount: 85,
-          subcategories: ["Sarees", "Shawls", "Scarves", "Bedding", "Bags"],
-          featured: true,
-          artisanCount: 42
-        },
-        {
-          id: "crafts",
-          name: "Traditional Crafts",
-          description: "Handmade decorative items, toys, and functional objects representing India's rich craft heritage.",
-          image: "crafts-category.jpg",
-          icon: "Palette",
-          productCount: 67,
-          subcategories: ["Wood Carving", "Metal Work", "Stone Inlay", "Paintings"],
-          featured: true,
-          artisanCount: 38
-        },
-        {
-          id: "paintings",
-          name: "Folk Paintings",
-          description: "Traditional Indian paintings including Madhubani, Kalamkari, and other regional art forms.",
-          image: "crafts-category.jpg",
-          icon: "Palette",
-          productCount: 29,
-          subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
-          featured: false,
-          artisanCount: 18
-        }
-      ]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -162,18 +128,11 @@ export const CategoriesManagement = () => {
   const handleDelete = async (categoryId: string) => {
     try {
       setDeletingId(categoryId);
-      const response = await fetch(`/api/admin/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete category');
-      }
-
-      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      await adminService.deleteCategory(categoryId);
+      
+      // Refresh the categories list to get updated data
+      await loadCategories();
+      
       toast({
         title: "Category Deleted",
         description: "The category has been removed successfully.",
@@ -182,7 +141,7 @@ export const CategoriesManagement = () => {
       console.error('Failed to delete category:', error);
       toast({
         title: "Error",
-        description: "Failed to delete category. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete category. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -214,40 +173,25 @@ export const CategoriesManagement = () => {
     try {
       setSaving(true);
       const isNew = editingCategory.id.startsWith('category-');
-      const url = isNew ? '/api/admin/categories' : `/api/admin/categories/${editingCategory.id}`;
-      const method = isNew ? 'POST' : 'PUT';
+      
+      const categoryData = {
+        name: editingCategory.name,
+        description: editingCategory.description,
+        image: editingCategory.image,
+        icon: editingCategory.icon,
+        subcategories: editingCategory.subcategories,
+        featured: editingCategory.featured
+      };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        },
-        body: JSON.stringify({
-          name: editingCategory.name,
-          description: editingCategory.description,
-          image: editingCategory.image,
-          icon: editingCategory.icon,
-          productCount: editingCategory.productCount,
-          subcategories: editingCategory.subcategories,
-          featured: editingCategory.featured,
-          artisanCount: editingCategory.artisanCount
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save category');
+      let data;
+      if (isNew) {
+        data = await adminService.createCategory(categoryData);
+      } else {
+        data = await adminService.updateCategory(editingCategory.id, categoryData);
       }
 
-      const data = await response.json();
-
-      setCategories(prev => {
-        if (isNew) {
-          return [...prev, data.category];
-        } else {
-          return prev.map(cat => cat.id === editingCategory.id ? data.category : cat);
-        }
-      });
+      // Refresh the categories list to get updated data
+      await loadCategories();
 
       setIsDialogOpen(false);
       setEditingCategory(null);
@@ -261,7 +205,7 @@ export const CategoriesManagement = () => {
       console.error('Failed to save category:', error);
       toast({
         title: "Error",
-        description: "Failed to save category. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save category. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -317,7 +261,7 @@ export const CategoriesManagement = () => {
     try {
       setSaving(true);
       const deletePromises = selectedCategories.map(id =>
-        fetch(`/api/admin/categories/${id}`, {
+        fetch(`http://localhost:4000/api/admin/categories/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
@@ -359,7 +303,7 @@ export const CategoriesManagement = () => {
         const category = categories.find(cat => cat.id === id);
         if (!category) return Promise.resolve();
 
-        return fetch(`/api/admin/categories/${id}`, {
+        return fetch(`http://localhost:4000/api/admin/categories/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
