@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,9 @@ import {
   Star,
   TrendingUp,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Clock
 } from "lucide-react";
 
 interface SellerStats {
@@ -43,17 +45,21 @@ export default function SellerDashboard() {
     totalReviews: 0
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const loadStats = async () => {
     try {
-      setLoading(true);
+      if (!refreshing) setRefreshing(true);
       const token = localStorage.getItem('admin_token') || localStorage.getItem('auth_token') || localStorage.getItem('firebase_id_token');
       
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('/api/seller/stats', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -66,17 +72,47 @@ export default function SellerDashboard() {
 
       const data = await response.json();
       setStats(data.stats);
+      setLastUpdated(new Date());
+      
+      if (loading) {
+        toast({
+          title: "Success",
+          description: "Dashboard loaded successfully",
+        });
+      }
     } catch (error) {
       console.error('Error loading stats:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard statistics",
-        variant: "destructive"
-      });
+      if (!loading) {
+        toast({
+          title: "Error",
+          description: "Failed to refresh dashboard statistics",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  // Initial load and auto-refresh
+  useEffect(() => {
+    // Initial load
+    loadStats();
+
+    // Set up interval to refresh every 30 seconds if autoRefresh is enabled
+    if (autoRefresh) {
+      refreshIntervalRef.current = setInterval(() => {
+        loadStats();
+      }, 30000);
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [autoRefresh, loading, refreshing]);
 
   const statsCards = [
     { 
@@ -138,10 +174,45 @@ export default function SellerDashboard() {
       
       <div className="pt-20 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Seller Dashboard</h1>
-            <p className="text-muted-foreground">Manage your products, orders, and business</p>
+          {/* Header with Refresh Controls */}
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+              <p className="text-muted-foreground">Manage your products, orders, and business</p>
+              {lastUpdated && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={loadStats}
+                disabled={refreshing}
+                variant="outline"
+                className="w-fit"
+              >
+                {refreshing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh Now
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                variant={autoRefresh ? "default" : "outline"}
+                className="w-fit text-xs"
+              >
+                {autoRefresh ? "Auto-Refresh ON" : "Auto-Refresh OFF"}
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}

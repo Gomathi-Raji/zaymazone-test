@@ -1118,6 +1118,126 @@ class AdminService {
     }
   }
 
+
+  // Dashboard specific methods
+  async getPendingApprovals() {
+    try {
+      const [artisansResponse, productsResponse, blogsResponse] = await Promise.all([
+        this.apiCall('/admin-approvals/pending-artisans'),
+        this.apiCall('/admin-approvals/pending-products'),  
+        this.apiCall('/admin-approvals/pending-blogs')
+      ]);
+
+      const approvals = [
+        ...(artisansResponse.artisans || []).map((item: any) => ({
+          _id: item._id,
+          type: 'artisan',
+          title: item.name || item.businessInfo?.businessName || 'Artisan Application',
+          description: item.specialties?.join(', ') || 'New artisan application',
+          submittedBy: item.name || 'Unknown',
+          submittedAt: item.createdAt || new Date().toISOString(),
+          status: item.approvalStatus || 'pending'
+        })),
+        ...(productsResponse.products || []).map((item: any) => ({
+          _id: item._id,
+          type: 'product',
+          title: item.name || 'Product',
+          description: item.description || 'New product submission',
+          submittedBy: item.artisanId?.name || 'Unknown Artisan',
+          submittedAt: item.createdAt || new Date().toISOString(),
+          status: item.approvalStatus || 'pending'
+        })),
+        ...(blogsResponse.posts || []).map((item: any) => ({
+          _id: item._id,
+          type: 'blog',
+          title: item.title || 'Blog Post',
+          description: item.excerpt || 'New blog post submission',
+          submittedBy: item.author?.name || 'Unknown Author',
+          submittedAt: item.createdAt || new Date().toISOString(),
+          status: item.status || 'pending'
+        }))
+      ];
+
+      return { approvals };
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      return { approvals: [] };
+    }
+  }
+
+  async getRecentActivities() {
+    try {
+      // Mock activity data - in real implementation, this would come from an audit log
+      const activities = [
+        {
+          _id: '1',
+          action: 'New artisan application submitted',
+          user: 'Rajesh Kumar',
+          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+          type: 'info'
+        },
+        {
+          _id: '2', 
+          action: 'Product "Handwoven Saree" approved',
+          user: 'Admin User',
+          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+          type: 'success'
+        },
+        {
+          _id: '3',
+          action: 'Order #ORD-2024-001 completed',
+          user: 'System',
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+          type: 'success'
+        },
+        {
+          _id: '4',
+          action: 'Payment gateway sync warning',
+          user: 'System',
+          timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+          type: 'warning'
+        },
+        {
+          _id: '5',
+          action: 'Blog post "Traditional Crafts" published',
+          user: 'Content Team',
+          timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(), // 1.5 hours ago
+          type: 'success'
+        }
+      ];
+
+      return { activities };
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+      return { activities: [] };
+    }
+  }
+
+  async handleApproval(id: string, type: string, action: 'approve' | 'reject') {
+    try {
+      let endpoint = '';
+      
+      switch (type) {
+        case 'artisan':
+          endpoint = `/admin-approvals/artisans/${id}/${action}`;
+          break;
+        case 'product':
+          endpoint = `/admin-approvals/products/${id}/${action}`;
+          break;
+        case 'blog':
+          endpoint = `/admin-approvals/blogs/${id}/${action}`;
+          break;
+        default:
+          throw new Error(`Unknown approval type: ${type}`);
+      }
+
+      return await this.apiCall(endpoint, 'POST');
+    } catch (error) {
+      console.error(`Error ${action}ing ${type}:`, error);
+      throw error;
+    }
+  }
+
 }
 
 export const adminService = new AdminService()

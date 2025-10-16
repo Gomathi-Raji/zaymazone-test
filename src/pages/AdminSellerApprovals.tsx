@@ -1,0 +1,561 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Plus, 
+  Eye, 
+  Check, 
+  X, 
+  Loader2, 
+  AlertCircle, 
+  RefreshCw,
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Star,
+  MapPin
+} from 'lucide-react';
+
+interface SellerApplication {
+  _id: string;
+  name: string;
+  businessInfo: {
+    businessName: string;
+    sellerType: string;
+    contact: {
+      email: string;
+      phone: string;
+    };
+  };
+  location: {
+    city: string;
+    state: string;
+  };
+  specialties: string[];
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  userId: {
+    name: string;
+    email: string;
+  };
+}
+
+interface ApprovalModalData {
+  type: 'approve' | 'reject';
+  application: SellerApplication | null;
+  notes: string;
+  rejectionReason: string;
+}
+
+export function AdminSellerApprovals() {
+  const [applications, setApplications] = useState<SellerApplication[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<SellerApplication | null>(null);
+  const [modalData, setModalData] = useState<ApprovalModalData>({
+    type: 'approve',
+    application: null,
+    notes: '',
+    rejectionReason: ''
+  });
+
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchApplications();
+  }, [page, statusFilter]);
+
+  const fetchApplications = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10'
+      });
+      
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+
+      const response = await fetch(`/api/admin/sellers?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.sellers);
+        setPagination(data.pagination);
+      } else {
+        throw new Error('Failed to fetch applications');
+      }
+    } catch (error) {
+      console.error('Fetch applications error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load seller applications',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (application: SellerApplication) => {
+    setSelectedApplication(application);
+    setIsModalOpen(true);
+  };
+
+  const handleApprove = (application: SellerApplication) => {
+    setModalData({
+      type: 'approve',
+      application,
+      notes: '',
+      rejectionReason: ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleReject = (application: SellerApplication) => {
+    setModalData({
+      type: 'reject',
+      application,
+      notes: '',
+      rejectionReason: ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const submitApprovalAction = async () => {
+    if (!modalData.application) return;
+
+    if (modalData.type === 'reject' && !modalData.rejectionReason.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Rejection reason is required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const endpoint = modalData.type === 'approve' ? 'approve' : 'reject';
+      
+      const body = modalData.type === 'approve' 
+        ? { approvalNotes: modalData.notes }
+        : { rejectionReason: modalData.rejectionReason, approvalNotes: modalData.notes };
+
+      const response = await fetch(`/api/admin/sellers/${modalData.application._id}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Application ${modalData.type === 'approve' ? 'approved' : 'rejected'} successfully`
+        });
+        setIsModalOpen(false);
+        fetchApplications();
+        resetModalData();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${modalData.type} application`);
+      }
+    } catch (error) {
+      console.error('Approval action error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : `Failed to ${modalData.type} application`,
+        variant: 'destructive'
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const resetModalData = () => {
+    setModalData({
+      type: 'approve',
+      application: null,
+      notes: '',
+      rejectionReason: ''
+    });
+    setSelectedApplication(null);
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'approved': return 'default';
+      case 'rejected': return 'destructive';
+      case 'pending': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved': return <CheckCircle className="w-4 h-4" />;
+      case 'rejected': return <XCircle className="w-4 h-4" />;
+      case 'pending': return <Clock className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold">Seller Applications</h2>
+          <p className="text-muted-foreground">Review and approve seller onboarding applications</p>
+        </div>
+        <Button variant="outline" onClick={fetchApplications} className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-2">
+        {['pending', 'approved', 'rejected', 'all'].map((status) => (
+          <Button
+            key={status}
+            variant={statusFilter === status ? 'default' : 'outline'}
+            onClick={() => {
+              setStatusFilter(status);
+              setPage(1);
+            }}
+            className="capitalize"
+          >
+            {status}
+          </Button>
+        ))}
+      </div>
+
+      {/* Applications Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Applications ({pagination?.total || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                No applications found
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Seller Details</TableHead>
+                  <TableHead>Business Info</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Specialties</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Applied Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {applications.map((application) => (
+                  <TableRow key={application._id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{application.name}</p>
+                        <p className="text-sm text-muted-foreground">{application.userId.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{application.businessInfo.businessName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {application.businessInfo.sellerType?.toUpperCase()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {application.businessInfo.contact.phone}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-sm">
+                          {application.location.city}, {application.location.state}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {application.specialties.slice(0, 2).map((specialty, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {specialty}
+                          </Badge>
+                        ))}
+                        {application.specialties.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{application.specialties.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(application.approvalStatus)}>
+                        <span className="flex items-center gap-1">
+                          {getStatusIcon(application.approvalStatus)}
+                          {application.approvalStatus.charAt(0).toUpperCase() + application.approvalStatus.slice(1)}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {new Date(application.createdAt).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewDetails(application)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {application.approvalStatus === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleApprove(application)}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-600"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleReject(application)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="px-4 py-2 text-sm">
+                Page {page} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setPage(page + 1)}
+                disabled={page === pagination.totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Application Details & Actions Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedApplication && !modalData.application
+                ? 'Application Details'
+                : modalData.type === 'approve'
+                ? 'Approve Application'
+                : 'Reject Application'
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {selectedApplication && !modalData.application
+                ? 'View complete seller application details'
+                : modalData.type === 'approve'
+                ? 'Review and approve this seller application'
+                : 'Provide a reason for rejecting this application'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Application Details View */}
+          {selectedApplication && !modalData.application && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold mb-2">Personal Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Name:</strong> {selectedApplication.name}</p>
+                    <p><strong>Email:</strong> {selectedApplication.userId.email}</p>
+                    <p><strong>Location:</strong> {selectedApplication.location.city}, {selectedApplication.location.state}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Business Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Business Name:</strong> {selectedApplication.businessInfo.businessName}</p>
+                    <p><strong>Seller Type:</strong> {selectedApplication.businessInfo.sellerType?.toUpperCase()}</p>
+                    <p><strong>Phone:</strong> {selectedApplication.businessInfo.contact.phone}</p>
+                    <p><strong>Business Email:</strong> {selectedApplication.businessInfo.contact.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Specialties</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedApplication.specialties.map((specialty, index) => (
+                    <Badge key={index} variant="outline">
+                      {specialty}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    setSelectedApplication(null);
+                    handleApprove(selectedApplication);
+                  }}
+                  disabled={selectedApplication.approvalStatus !== 'pending'}
+                  className="flex-1"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setSelectedApplication(null);
+                    handleReject(selectedApplication);
+                  }}
+                  disabled={selectedApplication.approvalStatus !== 'pending'}
+                  className="flex-1"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Approval/Rejection Form */}
+          {modalData.application && (
+            <div className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You are about to {modalData.type} the application from{' '}
+                  <strong>{modalData.application.name}</strong> for{' '}
+                  <strong>{modalData.application.businessInfo.businessName}</strong>.
+                </AlertDescription>
+              </Alert>
+
+              {modalData.type === 'reject' && (
+                <div>
+                  <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+                  <Textarea
+                    id="rejectionReason"
+                    value={modalData.rejectionReason}
+                    onChange={(e) => setModalData(prev => ({ ...prev, rejectionReason: e.target.value }))}
+                    placeholder="Please provide a clear reason for rejection..."
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="notes">Additional Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={modalData.notes}
+                  onChange={(e) => setModalData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Optional notes for the seller..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetModalData();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={submitApprovalAction}
+                  disabled={actionLoading}
+                  variant={modalData.type === 'approve' ? 'default' : 'destructive'}
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      {modalData.type === 'approve' ? <Check className="w-4 h-4 mr-2" /> : <X className="w-4 h-4 mr-2" />}
+                      {modalData.type === 'approve' ? 'Approve' : 'Reject'} Application
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
