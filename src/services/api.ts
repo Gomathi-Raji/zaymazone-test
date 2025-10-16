@@ -20,6 +20,22 @@ async function handleResponse(response: Response) {
   return response.json();
 }
 
+// Helper function to convert file to base64
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Failed to convert file to base64'));
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+  });
+}
+
 // Helper function to handle file uploads
 async function uploadFile(file: File, type: 'document' | 'image' | 'video') {
   const formData = new FormData();
@@ -78,41 +94,50 @@ export interface SellerFormData {
 }
 
 export const sellerApi = {
-  // Complete seller onboarding with file uploads
+  // Complete seller onboarding with approval workflow
   async completeOnboarding(formData: SellerFormData) {
-    const data = new FormData();
+    const token = localStorage.getItem('token');
     
-    // Add basic fields
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === 'address' || key === 'priceRange' || key === 'pickupAddress') {
-        data.append(key, JSON.stringify(value));
-      } else if (key === 'profilePhoto' || key === 'gstCertificate' || key === 'aadhaarProof' || key === 'craftVideo') {
-        if (value) data.append(key, value);
-      } else if (key === 'productPhotos') {
-        if (Array.isArray(value)) {
-          value.forEach((file, index) => {
-            data.append(`productPhotos`, file);
-          });
-        }
-      } else if (key === 'categories') {
-        if (Array.isArray(value)) {
-          value.forEach(cat => data.append('categories', cat));
-        }
-      } else {
-        // Don't send empty strings for optional fields
-        if (key === 'email' || key === 'gstNumber' || key === 'upiId' || key === 'story') {
-          if (value && String(value).trim() !== '') {
-            data.append(key, String(value));
-          }
-        } else {
-          data.append(key, String(value));
-        }
-      }
-    });
+    // Prepare JSON payload with all form data
+    const payload = {
+      businessName: formData.businessName,
+      ownerName: formData.ownerName,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      yearsOfExperience: formData.yearsOfExperience,
+      sellerType: formData.sellerType,
+      gstNumber: formData.gstNumber,
+      aadhaarNumber: formData.aadhaarNumber,
+      panNumber: formData.panNumber,
+      categories: formData.categories,
+      productDescription: formData.productDescription,
+      materials: formData.materials,
+      priceRange: formData.priceRange,
+      stockQuantity: formData.stockQuantity,
+      pickupAddress: formData.pickupAddress,
+      dispatchTime: formData.dispatchTime,
+      packagingType: formData.packagingType,
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      ifscCode: formData.ifscCode,
+      upiId: formData.upiId,
+      paymentFrequency: formData.paymentFrequency,
+      story: formData.story,
+      profilePhoto: formData.profilePhoto ? await fileToBase64(formData.profilePhoto) : null,
+      productPhotos: formData.productPhotos ? await Promise.all(formData.productPhotos.map(f => fileToBase64(f))) : [],
+      gstCertificate: formData.gstCertificate ? await fileToBase64(formData.gstCertificate) : null,
+      aadhaarProof: formData.aadhaarProof ? await fileToBase64(formData.aadhaarProof) : null,
+      craftVideo: formData.craftVideo ? await fileToBase64(formData.craftVideo) : null
+    };
 
-    const response = await fetch(`${API_BASE_URL}/api/seller-onboarding`, {
+    const response = await fetch(`${API_BASE_URL}/api/onboarding/artisan`, {
       method: 'POST',
-      body: data,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
     });
 
     return handleResponse(response);

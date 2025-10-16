@@ -19,6 +19,63 @@ router.use(cors({ origin: '*' }))
 // Handle preflight for all image routes
 router.options('*', (req, res) => res.sendStatus(200))
 
+// Configure multer for memory storage
+const storage = multer.memoryStorage()
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only image files are allowed'))
+    }
+  }
+})
+
+// Upload image endpoint
+router.post('/upload', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' })
+    }
+
+    const { category = 'other' } = req.body
+    const { buffer, originalname, mimetype, size } = req.file
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 15)
+    const extension = path.extname(originalname)
+    const filename = `${timestamp}-${random}${extension}`
+
+    // Save to temp file first
+    const tempPath = path.join(process.cwd(), 'temp', filename)
+    await fs.promises.mkdir(path.dirname(tempPath), { recursive: true })
+    await fs.promises.writeFile(tempPath, buffer)
+
+    // Upload to GridFS
+    const result = await uploadImageToGridFS(tempPath, filename, category)
+
+    // Clean up temp file
+    await fs.promises.unlink(tempPath)
+
+    res.json({
+      success: true,
+      image: {
+        id: result.id,
+        filename: result.filename,
+        url: `${req.protocol}://${req.get('host')}/api/images/${result.filename}`,
+        contentType: result.contentType,
+        size: result.size
+      }
+    })
+  } catch (error) {
+    console.error('Image upload error:', error)
+    res.status(500).json({ error: 'Failed to upload image' })
+  }
+})
+
 // Serve image by filename
 router.get('/:filename', async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const commentSchema = new mongoose.Schema({
 	postId: {
@@ -154,4 +154,4 @@ commentSchema.methods.markAsSpam = function(moderatorId, reason = '') {
 	return this.save();
 };
 
-module.exports = mongoose.model('Comment', commentSchema);
+export default mongoose.model('Comment', commentSchema);

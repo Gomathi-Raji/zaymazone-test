@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from '@/components/ImageUpload';
 
 interface Artisan {
   _id: string;
@@ -59,8 +60,8 @@ export function ArtisanManagement() {
     city: "",
     state: "",
     country: "India",
-    avatar: "",
-    coverImage: "",
+    avatar: [] as string[],
+    coverImage: [] as string[],
     specialties: "",
     experience: "",
     userId: ""
@@ -117,8 +118,8 @@ export function ArtisanManagement() {
       city: "",
       state: "",
       country: "India",
-      avatar: "",
-      coverImage: "",
+      avatar: [],
+      coverImage: [],
       specialties: "",
       experience: "",
       userId: ""
@@ -135,8 +136,8 @@ export function ArtisanManagement() {
           state: formData.state,
           country: formData.country
         },
-        avatar: formData.avatar || "",
-        coverImage: formData.coverImage || "",
+        avatar: formData.avatar[0] || "",
+        coverImage: formData.coverImage[0] || "",
         specialties: formData.specialties.split(',').map(s => s.trim()).filter(s => s),
         experience: parseInt(formData.experience) || 0,
         userId: formData.userId,
@@ -176,8 +177,8 @@ export function ArtisanManagement() {
           state: formData.state,
           country: formData.country
         },
-        avatar: formData.avatar || "",
-        coverImage: formData.coverImage || "",
+        avatar: formData.avatar[0] || "",
+        coverImage: formData.coverImage[0] || "",
         specialties: formData.specialties.split(',').map(s => s.trim()).filter(s => s),
         experience: parseInt(formData.experience) || 0
       };
@@ -229,8 +230,8 @@ export function ArtisanManagement() {
       city: artisan.location.city,
       state: artisan.location.state,
       country: artisan.location.country,
-      avatar: artisan.avatar || "",
-      coverImage: artisan.coverImage || "",
+      avatar: artisan.avatar ? [artisan.avatar] : [],
+      coverImage: artisan.coverImage ? [artisan.coverImage] : [],
       specialties: artisan.specialties.join(', '),
       experience: artisan.experience.toString(),
       userId: (artisan as any).userId || ""
@@ -355,27 +356,33 @@ export function ArtisanManagement() {
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="avatar" className="text-right">
-                  Avatar URL
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">
+                  Avatar
                 </Label>
-                <Input
-                  id="avatar"
-                  value={formData.avatar}
-                  onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                  className="col-span-3"
-                />
+                <div className="col-span-3">
+                  <ImageUpload
+                    images={formData.avatar}
+                    onImagesChange={(images) => setFormData({ ...formData, avatar: images })}
+                    maxImages={1}
+                    category="artisans"
+                    singleMode={true}
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="coverImage" className="text-right">
-                  Cover Image URL
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">
+                  Cover Image
                 </Label>
-                <Input
-                  id="coverImage"
-                  value={formData.coverImage}
-                  onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                  className="col-span-3"
-                />
+                <div className="col-span-3">
+                  <ImageUpload
+                    images={formData.coverImage}
+                    onImagesChange={(images) => setFormData({ ...formData, coverImage: images })}
+                    maxImages={1}
+                    category="artisans"
+                    singleMode={true}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -598,23 +605,27 @@ export function ArtisanManagement() {
               <Label htmlFor="edit-avatar" className="text-right">
                 Avatar URL
               </Label>
-              <Input
-                id="edit-avatar"
-                value={formData.avatar}
-                onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                className="col-span-3"
-              />
+              <div className="col-span-3">
+                <ImageUpload
+                  images={formData.avatar}
+                  onImagesChange={(images) => setFormData({ ...formData, avatar: images })}
+                  maxImages={1}
+                  singleMode
+                />
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-coverImage" className="text-right">
                 Cover Image URL
               </Label>
-              <Input
-                id="edit-coverImage"
-                value={formData.coverImage}
-                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                className="col-span-3"
-              />
+              <div className="col-span-3">
+                <ImageUpload
+                  images={formData.coverImage}
+                  onImagesChange={(images) => setFormData({ ...formData, coverImage: images })}
+                  maxImages={1}
+                  singleMode
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

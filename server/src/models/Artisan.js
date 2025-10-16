@@ -78,6 +78,17 @@ const artisanSchema = new mongoose.Schema({
 	totalProducts: { type: Number, default: 0 },
 	totalSales: { type: Number, default: 0 },
 	isActive: { type: Boolean, default: true },
+	// Approval workflow fields
+	approvalStatus: { 
+		type: String, 
+		enum: ['pending', 'approved', 'rejected'], 
+		default: 'pending',
+		index: true
+	},
+	approvalNotes: { type: String, trim: true },
+	rejectionReason: { type: String, trim: true },
+	approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+	approvedAt: { type: Date },
 	joinedDate: { type: Date, default: Date.now }
 }, { timestamps: true })
 

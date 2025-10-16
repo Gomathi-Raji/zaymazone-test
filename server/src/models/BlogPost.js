@@ -39,6 +39,17 @@ const blogPostSchema = new mongoose.Schema({
 	// Admin fields
 	authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 	isActive: { type: Boolean, default: true },
+	// Approval workflow fields
+	approvalStatus: { 
+		type: String, 
+		enum: ['pending', 'approved', 'rejected'], 
+		default: 'pending',
+		index: true
+	},
+	approvalNotes: { type: String, trim: true },
+	rejectionReason: { type: String, trim: true },
+	approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+	approvedAt: { type: Date },
 }, { timestamps: true })
 
 // Indexes for performance

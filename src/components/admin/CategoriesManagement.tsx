@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Eye, Star, Package, Users, Loader2, AlertTriangle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { SingleImageUpload } from "./ImageUpload";
 import { adminService } from "@/services/adminService";
 
 interface Category {
@@ -19,7 +20,7 @@ interface Category {
   name: string;
   slug?: string;
   description: string;
-  image: string;
+  image: string[];
   icon: string;
   productCount: number;
   subcategories: string[];
@@ -90,7 +91,12 @@ export const CategoriesManagement = () => {
         search: searchTerm || undefined,
         featured: filterFeatured === "all" ? undefined : filterFeatured === "featured"
       });
-      setCategories(data.categories || []);
+      // Convert image strings to arrays for consistency
+      const processedCategories = (data.categories || []).map(cat => ({
+        ...cat,
+        image: Array.isArray(cat.image) ? cat.image : (cat.image ? [cat.image] : [])
+      }));
+      setCategories(processedCategories);
     } catch (error) {
       console.error('Failed to load categories:', error);
       toast({
@@ -109,7 +115,7 @@ export const CategoriesManagement = () => {
       id: `category-${Date.now()}`,
       name: "",
       description: "",
-      image: "",
+      image: [],
       icon: "Palette",
       productCount: 0,
       subcategories: [],
@@ -177,7 +183,7 @@ export const CategoriesManagement = () => {
       const categoryData = {
         name: editingCategory.name,
         description: editingCategory.description,
-        image: editingCategory.image,
+        image: editingCategory.image[0] || "",
         icon: editingCategory.icon,
         subcategories: editingCategory.subcategories,
         featured: editingCategory.featured
@@ -692,13 +698,23 @@ export const CategoriesManagement = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="image">Image Filename</Label>
-                  <Input
-                    id="image"
-                    value={editingCategory.image}
-                    onChange={(e) => setEditingCategory({ ...editingCategory, image: e.target.value })}
-                    placeholder="e.g., pottery-category.jpg"
+                  <Label>Category Image</Label>
+                  <SingleImageUpload
+                    value={editingCategory?.image?.[0] || ""}
+                    onChange={(url) => {
+                      setEditingCategory({ ...editingCategory, image: [url] });
+                    }}
+                    placeholder="Upload category image"
                   />
+                  {editingCategory.image[0] && (
+                    <div className="mt-2">
+                      <img
+                        src={editingCategory.image[0]}
+                        alt="Category preview"
+                        className="w-20 h-20 object-cover rounded border"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox

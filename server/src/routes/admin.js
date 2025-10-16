@@ -172,17 +172,17 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
       totalRevenue,
       monthlyStats
     ] = await Promise.all([
-      Product.countDocuments({ status: 'active' }),
-      Artisan.countDocuments({ status: 'active' }),
+      Product.countDocuments({ isActive: true }),
+      Artisan.countDocuments({ isActive: true }),
       Order.countDocuments({
         createdAt: {
           $gte: new Date(new Date().setHours(0, 0, 0, 0)),
           $lt: new Date(new Date().setHours(23, 59, 59, 999))
         }
       }),
-      User.countDocuments({ status: 'active' }),
-      Product.countDocuments({ status: 'pending' }),
-      Artisan.countDocuments({ status: 'pending' }),
+      User.countDocuments({ isActive: true }),
+      Product.countDocuments({ isActive: false }),
+      Artisan.countDocuments({ isActive: false }),
       Order.aggregate([
         { $match: { status: 'completed' } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
@@ -235,8 +235,8 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
 // Approval Management Endpoints
 router.get('/approvals/products', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const pendingProducts = await Product.find({ status: 'pending' })
-      .populate('artisan', 'name email')
+    const pendingProducts = await Product.find({ isActive: false })
+      .populate('artisanId', 'name email')
       .sort({ createdAt: -1 })
 
     res.json({ products: pendingProducts })
@@ -248,7 +248,7 @@ router.get('/approvals/products', requireAuth, requireAdmin, async (req, res) =>
 
 router.get('/approvals/artisans', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const pendingArtisans = await Artisan.find({ status: 'pending' })
+    const pendingArtisans = await Artisan.find({ 'verification.isVerified': false })
       .sort({ createdAt: -1 })
 
     res.json({ artisans: pendingArtisans })
@@ -261,7 +261,7 @@ router.get('/approvals/artisans', requireAuth, requireAdmin, async (req, res) =>
 router.get('/approvals/users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const pendingUsers = await User.find({ 
-      status: 'pending',
+      isActive: false,
       role: { $ne: 'admin' }
     }).sort({ createdAt: -1 })
 
@@ -277,9 +277,7 @@ router.post('/approvals/products/:id/approve', requireAuth, requireAdmin, async 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { 
-        status: 'active',
-        approvedBy: req.user.sub,
-        approvedAt: new Date()
+        isActive: true
       },
       { new: true }
     )
@@ -302,10 +300,7 @@ router.post('/approvals/products/:id/reject', requireAuth, requireAdmin, async (
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { 
-        status: 'rejected',
-        rejectedBy: req.user.sub,
-        rejectedAt: new Date(),
-        rejectionReason: reason
+        isActive: false
       },
       { new: true }
     )
@@ -326,9 +321,8 @@ router.post('/approvals/artisans/:id/approve', requireAuth, requireAdmin, async 
     const artisan = await Artisan.findByIdAndUpdate(
       req.params.id,
       { 
-        status: 'active',
-        approvedBy: req.user.sub,
-        approvedAt: new Date()
+        'verification.isVerified': true,
+        'verification.verifiedAt': new Date()
       },
       { new: true }
     )
@@ -351,10 +345,7 @@ router.post('/approvals/artisans/:id/reject', requireAuth, requireAdmin, async (
     const artisan = await Artisan.findByIdAndUpdate(
       req.params.id,
       { 
-        status: 'rejected',
-        rejectedBy: req.user.sub,
-        rejectedAt: new Date(),
-        rejectionReason: reason
+        'verification.isVerified': false
       },
       { new: true }
     )
@@ -776,7 +767,7 @@ router.get('/products', requireAuth, requireAdmin, async (req, res) => {
 
     let query = {}
     if (status !== 'all') {
-      query.status = status
+      query.isActive = status === 'active'
     }
     if (search) {
       query.$or = [
@@ -812,7 +803,7 @@ router.post('/products', requireAuth, requireAdmin, async (req, res) => {
   try {
     const productData = {
       ...req.body,
-      status: req.body.status || 'active',
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
       createdAt: new Date(),
       updatedAt: new Date()
     }

@@ -1,12 +1,34 @@
-const API_BASE_URL = 'http://localhost:4000/api'
+const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:4000/api'
 
 class AdminService {
+  private token: string | null = null
+  private refreshToken: string | null = null
+
   private getAuthHeaders() {
-    const token = localStorage.getItem('admin_token')
+    const token = localStorage.getItem('admin_token') || this.token
     return {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` })
     }
+  }
+
+  // Make authenticated API call
+  private async apiCall(endpoint: string, method: string = 'GET', body: any = null): Promise<any> {
+    const url = `${API_BASE_URL}${endpoint}`
+    const options: RequestInit = {
+      method,
+      headers: this.getAuthHeaders()
+    }
+    if (body) options.body = JSON.stringify(body)
+
+    const response = await fetch(url, options)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `API Error: ${response.status}`)
+    }
+
+    return data
   }
 
   // Authentication
@@ -27,6 +49,8 @@ class AdminService {
       
       if (data.success && data.accessToken) {
         // Store authentication data
+        this.token = data.accessToken
+        this.refreshToken = data.refreshToken
         localStorage.setItem('admin_token', data.accessToken)
         localStorage.setItem('admin_refresh_token', data.refreshToken)
         localStorage.setItem('admin_user', JSON.stringify(data.user))
@@ -46,6 +70,8 @@ class AdminService {
   }
 
   logout() {
+    this.token = null
+    this.refreshToken = null
     localStorage.removeItem('admin_token')
     localStorage.removeItem('admin_refresh_token')
     localStorage.removeItem('admin_user')
@@ -160,86 +186,8 @@ class AdminService {
     }
   }
 
-  // Approval Management (real data from backend)
-  async getPendingProducts() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/approvals/products`, {
-        headers: this.getAuthHeaders()
-      })
-      
-      if (response.ok) {
-        return response.json()
-      }
-      
-      throw new Error('Failed to fetch pending products')
-    } catch (error) {
-      console.error('Error fetching pending products:', error)
-      return { products: [] }
-    }
-  }
-
-  async getPendingArtisans() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/approvals/artisans`, {
-        headers: this.getAuthHeaders()
-      })
-      
-      if (response.ok) {
-        return response.json()
-      }
-      
-      throw new Error('Failed to fetch pending artisans')
-    } catch (error) {
-      console.error('Error fetching pending artisans:', error)
-      return { artisans: [] }
-    }
-  }
-
-  async getPendingUsers() {
-    const response = await fetch(`${API_BASE_URL}/admin/approvals/users`, {
-      headers: this.getAuthHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to fetch pending users')
-    return response.json()
-  }
-
-  async approveProduct(id: string) {
-    const response = await fetch(`${API_BASE_URL}/admin/approvals/products/${id}/approve`, {
-      method: 'POST',
-      headers: this.getAuthHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to approve product')
-    return response.json()
-  }
-
-  async rejectProduct(id: string, reason: string) {
-    const response = await fetch(`${API_BASE_URL}/admin/approvals/products/${id}/reject`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ reason })
-    })
-    if (!response.ok) throw new Error('Failed to reject product')
-    return response.json()
-  }
-
-  async approveArtisan(id: string) {
-    const response = await fetch(`${API_BASE_URL}/admin/approvals/artisans/${id}/approve`, {
-      method: 'POST',
-      headers: this.getAuthHeaders()
-    })
-    if (!response.ok) throw new Error('Failed to approve artisan')
-    return response.json()
-  }
-
-  async rejectArtisan(id: string, reason: string) {
-    const response = await fetch(`${API_BASE_URL}/admin/approvals/artisans/${id}/reject`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ reason })
-    })
-    if (!response.ok) throw new Error('Failed to reject artisan')
-    return response.json()
-  }
+  // Approval Management - OLD DUPLICATES REMOVED - see enhanced methods at end of file
+  // Using new methods with pagination and better parameters below
 
   // User Management
   async getUsers(params?: { page?: number; limit?: number; search?: string; status?: string; role?: string }) {
@@ -1097,6 +1045,77 @@ class AdminService {
     }
 
     return response.json();
+  }
+
+  // ========== ARTISAN APPROVALS ==========
+
+  async getPendingArtisans(page: number = 1, limit: number = 10) {
+    return this.apiCall(`/admin-approvals/pending-artisans?page=${page}&limit=${limit}`);
+  }
+
+  async getArtisanDetails(artisanId: string) {
+    return this.apiCall(`/admin-approvals/artisan-details/${artisanId}`);
+  }
+
+  async approveArtisan(artisanId: string, approvalNotes: string = '') {
+    return this.apiCall(`/admin-approvals/approve-artisan/${artisanId}`, 'PATCH', { approvalNotes });
+  }
+
+  async rejectArtisan(artisanId: string, rejectionReason: string) {
+    return this.apiCall(`/admin-approvals/reject-artisan/${artisanId}`, 'PATCH', { rejectionReason });
+  }
+
+  // ========== PRODUCT APPROVALS ==========
+
+  async getPendingProducts(page: number = 1, limit: number = 10) {
+    return this.apiCall(`/admin-approvals/pending-products?page=${page}&limit=${limit}`);
+  }
+
+  async approveProduct(productId: string, approvalNotes: string = '') {
+    return this.apiCall(`/admin-approvals/approve-product/${productId}`, 'PATCH', { approvalNotes });
+  }
+
+  async rejectProduct(productId: string, rejectionReason: string) {
+    return this.apiCall(`/admin-approvals/reject-product/${productId}`, 'PATCH', { rejectionReason });
+  }
+
+  // ========== BLOG APPROVALS ==========
+
+  async getPendingBlogs(page: number = 1, limit: number = 10) {
+    return this.apiCall(`/admin-approvals/pending-blogs?page=${page}&limit=${limit}`);
+  }
+
+  async approveBlog(blogId: string, approvalNotes: string = '') {
+    return this.apiCall(`/admin-approvals/approve-blog/${blogId}`, 'PATCH', { approvalNotes });
+  }
+
+  async rejectBlog(blogId: string, rejectionReason: string) {
+    return this.apiCall(`/admin-approvals/reject-blog/${blogId}`, 'PATCH', { rejectionReason });
+  }
+
+  // ========== DASHBOARD STATS ==========
+
+  async getDashboardStats() {
+    try {
+      const [pendingArtisans, pendingProducts, pendingBlogs] = await Promise.all([
+        this.apiCall('/admin-approvals/pending-artisans?limit=1'),
+        this.apiCall('/admin-approvals/pending-products?limit=1'),
+        this.apiCall('/admin-approvals/pending-blogs?limit=1')
+      ]);
+
+      return {
+        pendingArtisans: pendingArtisans?.pagination?.total || 0,
+        pendingProducts: pendingProducts?.pagination?.total || 0,
+        pendingBlogs: pendingBlogs?.pagination?.total || 0
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      return {
+        pendingArtisans: 0,
+        pendingProducts: 0,
+        pendingBlogs: 0
+      };
+    }
   }
 
 }

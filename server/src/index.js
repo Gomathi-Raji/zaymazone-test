@@ -22,6 +22,8 @@ import imagesRouter from './routes/images.js'
 import usersRouter from './routes/users.js'
 import verifyRouter from './routes/verify.js'
 import sellerOnboardingRouter from './routes/seller-onboarding.js'
+import onboardingRouter from './routes/onboarding.js'
+import adminApprovalsRouter from './routes/admin-approvals.js'
 import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js'
 import { sanitize } from './middleware/validation.js'
 import { initGridFS } from './services/imageService.js'
@@ -142,10 +144,14 @@ app.use('/api/images', imagesRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/verify', verifyRouter)
 app.use('/api/seller-onboarding', sellerOnboardingRouter)
+app.use('/api/onboarding', onboardingRouter)
+app.use('/api/admin-approvals', adminApprovalsRouter)
 
 // Import and use admin routes
 import adminRouter from './routes/admin.js'
+import sellerRouter from './routes/seller.js'
 app.use('/api/admin', adminRouter)
+app.use('/api/seller', sellerRouter)
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))

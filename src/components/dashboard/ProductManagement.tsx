@@ -7,14 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  Loader2
-} from "lucide-react";
+import { Loader2, Plus, Search, Eye, Edit, Trash2 } from "lucide-react";
+import { ImageUpload } from '@/components/ImageUpload';
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,7 +49,7 @@ export function ProductManagement() {
     subcategory: "",
     stockCount: "",
     artisanId: "",
-    images: [""]
+    images: [] as string[]
   });
   const { toast } = useToast();
 
@@ -112,7 +106,7 @@ export function ProductManagement() {
       subcategory: "",
       stockCount: "",
       artisanId: "",
-      images: [""]
+      images: []
     });
   };
 
@@ -285,7 +279,7 @@ export function ProductManagement() {
       subcategory: product.subcategory || "",
       stockCount: product.stockCount.toString(),
       artisanId: (product as any).artisanId || "",
-      images: product.images.length > 0 ? product.images : [""]
+      images: product.images.length > 0 ? product.images : []
     });
     setIsEditDialogOpen(true);
   };
@@ -443,31 +437,17 @@ export function ProductManagement() {
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="images" className="text-right">
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">
                   Images
                 </Label>
-                <div className="col-span-3 space-y-2">
-                  {formData.images.map((image, index) => (
-                    <Input
-                      key={index}
-                      value={image}
-                      onChange={(e) => {
-                        const newImages = [...formData.images];
-                        newImages[index] = e.target.value;
-                        setFormData({ ...formData, images: newImages });
-                      }}
-                      placeholder="Image URL"
-                    />
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, images: [...formData.images, ""] })}
-                  >
-                    Add Image
-                  </Button>
+                <div className="col-span-3">
+                  <ImageUpload
+                    images={formData.images}
+                    onImagesChange={(images) => setFormData({ ...formData, images })}
+                    maxImages={10}
+                    category="products"
+                  />
                 </div>
               </div>
             </div>

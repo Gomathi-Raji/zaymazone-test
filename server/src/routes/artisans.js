@@ -40,7 +40,10 @@ const artisanProfileUpdateSchema = z.object({
 }).partial()
 
 router.get('/', async (_req, res) => {
-	const items = await Artisan.find().limit(200).lean()
+	const items = await Artisan.find({ 
+		isActive: true, 
+		'verification.isVerified': true 
+	}).limit(200).lean()
 	return res.json(items)
 })
 

@@ -29,6 +29,17 @@ const productSchema = new mongoose.Schema({
 	salesCount: { type: Number, default: 0 },
 	featured: { type: Boolean, default: false }, // Changed from isFeatured to featured to match frontend
 	isActive: { type: Boolean, default: true },
+	// Approval workflow fields
+	approvalStatus: { 
+		type: String, 
+		enum: ['pending', 'approved', 'rejected'], 
+		default: 'pending',
+		index: true
+	},
+	approvalNotes: { type: String, trim: true },
+	rejectionReason: { type: String, trim: true },
+	approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+	approvedAt: { type: Date },
 	seoTitle: { type: String, trim: true },
 	seoDescription: { type: String, trim: true }
 }, { timestamps: true })
