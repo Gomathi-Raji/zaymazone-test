@@ -137,5 +137,45 @@ export const sellerService = {
     });
     if (!response.ok) throw new Error('Failed to fetch product analytics');
     return response.json();
+  },
+
+  getRevenueAnalytics: async () => {
+    const response = await fetch(`${BASE_URL}/analytics/revenue`, {
+      headers: headers()
+    });
+    if (!response.ok) throw new Error('Failed to fetch revenue analytics');
+    return response.json();
+  },
+
+  getOrderStatusAnalytics: async () => {
+    const response = await fetch(`${BASE_URL}/analytics/orders-status`, {
+      headers: headers()
+    });
+    if (!response.ok) throw new Error('Failed to fetch order status analytics');
+    return response.json();
+  },
+
+  getCustomerAnalytics: async () => {
+    const response = await fetch(`${BASE_URL}/analytics/customers`, {
+      headers: headers()
+    });
+    if (!response.ok) throw new Error('Failed to fetch customer analytics');
+    return response.json();
+  },
+
+  getCategoryAnalytics: async () => {
+    const response = await fetch(`${BASE_URL}/analytics/categories`, {
+      headers: headers()
+    });
+    if (!response.ok) throw new Error('Failed to fetch category analytics');
+    return response.json();
+  },
+
+  getAlerts: async () => {
+    const response = await fetch(`${BASE_URL}/alerts`, {
+      headers: headers()
+    });
+    if (!response.ok) throw new Error('Failed to fetch alerts');
+    return response.json();
   }
 };

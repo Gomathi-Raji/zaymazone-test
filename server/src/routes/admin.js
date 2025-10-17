@@ -2057,4 +2057,219 @@ router.get('/comments/stats', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
+// ============= SELLER APPROVAL ENDPOINTS =============
+
+// Get all pending seller applications
+router.get('/sellers/pending', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+
+    const pendingArtisans = await Artisan.find({ approvalStatus: 'pending' })
+      .populate('userId', 'name email createdAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+
+    const total = await Artisan.countDocuments({ approvalStatus: 'pending' })
+
+    res.json({
+      applications: pendingArtisans,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Get pending sellers error:', error)
+    res.status(500).json({ error: 'Failed to fetch pending applications' })
+  }
+})
+
+// Get all seller applications (all statuses)
+router.get('/sellers', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const status = req.query.status // pending, approved, rejected
+    const skip = (page - 1) * limit
+
+    const filter = {}
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      filter.approvalStatus = status
+    }
+
+    const artisans = await Artisan.find(filter)
+      .populate('userId', 'name email createdAt')
+      .populate('approvedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+
+    const total = await Artisan.countDocuments(filter)
+
+    res.json({
+      sellers: artisans,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Get sellers error:', error)
+    res.status(500).json({ error: 'Failed to fetch sellers' })
+  }
+})
+
+// Get single seller application details
+router.get('/sellers/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisan = await Artisan.findById(req.params.id)
+      .populate('userId', 'name email phone createdAt')
+      .populate('approvedBy', 'name email')
+      .lean()
+
+    if (!artisan) {
+      return res.status(404).json({ error: 'Seller application not found' })
+    }
+
+    res.json({ seller: artisan })
+  } catch (error) {
+    console.error('Get seller details error:', error)
+    res.status(500).json({ error: 'Failed to fetch seller details' })
+  }
+})
+
+// Approve seller application
+router.post('/sellers/:id/approve', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { approvalNotes } = req.body
+    const adminId = req.user._id
+
+    const artisan = await Artisan.findById(req.params.id)
+    if (!artisan) {
+      return res.status(404).json({ error: 'Seller application not found' })
+    }
+
+    if (artisan.approvalStatus !== 'pending') {
+      return res.status(400).json({ error: 'Application already processed' })
+    }
+
+    // Update artisan status
+    artisan.approvalStatus = 'approved'
+    artisan.approvedBy = adminId
+    artisan.approvedAt = new Date()
+    artisan.approvalNotes = approvalNotes || ''
+    artisan.isActive = true
+    artisan.rejectionReason = undefined
+
+    await artisan.save()
+
+    // TODO: Send approval notification email/SMS to seller
+
+    res.json({
+      message: 'Seller application approved successfully',
+      seller: {
+        _id: artisan._id,
+        name: artisan.name,
+        approvalStatus: artisan.approvalStatus,
+        approvedAt: artisan.approvedAt
+      }
+    })
+  } catch (error) {
+    console.error('Approve seller error:', error)
+    res.status(500).json({ error: 'Failed to approve seller' })
+  }
+})
+
+// Reject seller application
+router.post('/sellers/:id/reject', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { rejectionReason, approvalNotes } = req.body
+    const adminId = req.user._id
+
+    if (!rejectionReason) {
+      return res.status(400).json({ error: 'Rejection reason is required' })
+    }
+
+    const artisan = await Artisan.findById(req.params.id)
+    if (!artisan) {
+      return res.status(404).json({ error: 'Seller application not found' })
+    }
+
+    if (artisan.approvalStatus !== 'pending') {
+      return res.status(400).json({ error: 'Application already processed' })
+    }
+
+    // Update artisan status
+    artisan.approvalStatus = 'rejected'
+    artisan.approvedBy = adminId
+    artisan.approvedAt = new Date()
+    artisan.rejectionReason = rejectionReason
+    artisan.approvalNotes = approvalNotes || ''
+    artisan.isActive = false
+
+    await artisan.save()
+
+    // TODO: Send rejection notification email/SMS to seller
+
+    res.json({
+      message: 'Seller application rejected',
+      seller: {
+        _id: artisan._id,
+        name: artisan.name,
+        approvalStatus: artisan.approvalStatus,
+        rejectionReason: artisan.rejectionReason
+      }
+    })
+  } catch (error) {
+    console.error('Reject seller error:', error)
+    res.status(500).json({ error: 'Failed to reject seller' })
+  }
+})
+
+// Get seller approval statistics
+router.get('/sellers/stats', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      totalCount,
+      recentApplications
+    ] = await Promise.all([
+      Artisan.countDocuments({ approvalStatus: 'pending' }),
+      Artisan.countDocuments({ approvalStatus: 'approved' }),
+      Artisan.countDocuments({ approvalStatus: 'rejected' }),
+      Artisan.countDocuments(),
+      Artisan.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('userId', 'name email')
+        .select('name approvalStatus createdAt')
+        .lean()
+    ])
+
+    res.json({
+      stats: {
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount,
+        total: totalCount,
+        recentApplications
+      }
+    })
+  } catch (error) {
+    console.error('Get seller stats error:', error)
+    res.status(500).json({ error: 'Failed to fetch seller statistics' })
+  }
+})
+
 export default router
