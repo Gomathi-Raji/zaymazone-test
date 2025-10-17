@@ -15,7 +15,6 @@ import { SkillShowcase } from "@/components/SkillShowcase";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { useProductComparison } from "@/hooks/useProductComparison";
 import SEO from "@/components/SEO";
-import LogoLaunchCountdown from "@/components/LogoLaunchCountdown";
 
 const Index = () => {
   const {
@@ -89,7 +88,6 @@ const Index = () => {
         onClose={closeComparison}
         onRemoveProduct={removeFromComparison}
       />
-      <LogoLaunchCountdown />
     </div>
   );
 };

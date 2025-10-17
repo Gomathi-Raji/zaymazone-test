@@ -73,15 +73,15 @@ export const Navigation = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo - Temporarily hidden for logo reveal */}
-          <div className="flex items-center opacity-0">
+          {/* Logo */}
+          <div className="flex items-center">
             <Link
               to="/"
               className="flex items-center group"
               onClick={scrollToTop}
             >
               <img
-                src={getImageUrl("logo.png")}
+                src="/logo.png"
                 alt="ZAYMAZONE Logo"
                 className="h-20 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-lg"
               />

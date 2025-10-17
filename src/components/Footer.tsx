@@ -57,12 +57,12 @@ export const Footer = () => {
         
         {/* Footer Links */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-          {/* Logo - Temporarily hidden for logo reveal */}
-          <div className="col-span-2 md:col-span-1 opacity-0">
+          {/* Logo */}
+          <div className="col-span-2 md:col-span-1">
             <div className="flex items-center mb-6">
               <Link to="/" onClick={scrollToTop}>
                 <img 
-                  src={getImageUrl("/public/logo.png")} 
+                  src="/logo.png" 
                   alt="ZAYMAZONE Logo" 
                   className="h-16 w-auto object-contain"
                 />
