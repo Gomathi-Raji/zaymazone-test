@@ -1072,11 +1072,11 @@ class AdminService {
   }
 
   async approveArtisan(artisanId: string, approvalNotes: string = '') {
-    return this.apiCall(`/admin/approvals/artisans/${artisanId}/approve`, 'POST', { approvalNotes });
+    return this.apiCall(`/admin/sellers/${artisanId}/approve`, 'POST', { approvalNotes });
   }
 
   async rejectArtisan(artisanId: string, rejectionReason: string) {
-    return this.apiCall(`/admin/approvals/artisans/${artisanId}/reject`, 'POST', { rejectionReason });
+    return this.apiCall(`/admin/sellers/${artisanId}/reject`, 'POST', { rejectionReason });
   }
 
   // ========== PRODUCT APPROVALS ==========

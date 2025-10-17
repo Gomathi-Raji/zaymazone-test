@@ -56,7 +56,10 @@ router.get('/',
 			} = req.validatedQuery
 
 			// Build filter
-			const filter = { isActive: true }
+			const filter = { 
+				isActive: true,
+				approvalStatus: 'approved'
+			}
 
 			if (q) {
 				filter.$text = { $search: q }

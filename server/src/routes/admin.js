@@ -374,7 +374,8 @@ router.post('/approvals/products/:id/approve', requireAuth, requireAdmin, async 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { 
-        isActive: true
+        isActive: true,
+        approvalStatus: 'approved'
       },
       { new: true }
     )
@@ -419,7 +420,9 @@ router.post('/approvals/artisans/:id/approve', requireAuth, requireAdmin, async 
       req.params.id,
       { 
         'verification.isVerified': true,
-        'verification.verifiedAt': new Date()
+        'verification.verifiedAt': new Date(),
+        approvalStatus: 'approved',
+        isActive: true
       },
       { new: true }
     )
