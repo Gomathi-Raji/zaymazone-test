@@ -46,26 +46,34 @@ export const UserMenu = () => {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
-            </p>
-            <p className="text-xs leading-none text-orange-600 capitalize">
-              {user?.role}
-            </p>
+      <DropdownMenuContent className="w-64 p-2 bg-background/98 backdrop-blur-xl border-primary/20 shadow-xl z-[100]" align="end" sideOffset={8} forceMount>
+        <DropdownMenuLabel className="font-normal p-3">
+          <div className="flex items-center space-x-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={getImageUrl(user?.avatar)} alt={user?.name} />
+              <AvatarFallback className={user?.role === 'artisan' ? 'bg-primary text-white' : 'bg-primary text-primary-foreground'}>
+                {user ? getInitials(user.name) : <User className="h-4 w-4" />}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-semibold leading-none">{user?.name}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user?.email}
+              </p>
+              <p className="text-xs leading-none text-primary capitalize font-medium">
+                {user?.role} Account
+              </p>
+            </div>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-primary/20" />
         
-        <DropdownMenuItem className="cursor-pointer" asChild>
+        <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
           <Link to={getDashboardLink()}>
             {user?.role === 'artisan' ? (
-              <Palette className="mr-2 h-4 w-4" />
+              <Palette className="mr-3 h-4 w-4 text-primary" />
             ) : (
-              <User className="mr-2 h-4 w-4" />
+              <User className="mr-3 h-4 w-4 text-primary" />
             )}
             <span>Dashboard</span>
           </Link>
@@ -73,54 +81,54 @@ export const UserMenu = () => {
 
         {user?.role === 'artisan' ? (
           <>
-            <DropdownMenuItem className="cursor-pointer" asChild>
+            <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
               <Link to="/artisan/products">
-                <Package className="mr-2 h-4 w-4" />
+                <Package className="mr-3 h-4 w-4 text-primary" />
                 <span>My Products</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" asChild>
+            <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
               <Link to="/artisan/orders">
-                <BarChart3 className="mr-2 h-4 w-4" />
+                <BarChart3 className="mr-3 h-4 w-4 text-primary" />
                 <span>Orders</span>
               </Link>
             </DropdownMenuItem>
           </>
         ) : (
           <>
-            <DropdownMenuItem className="cursor-pointer" asChild>
+            <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
               <Link to="/orders">
-                <Package className="mr-2 h-4 w-4" />
+                <Package className="mr-3 h-4 w-4 text-primary" />
                 <span>My Orders</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" asChild>
+            <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
               <Link to="/wishlist">
-                <Heart className="mr-2 h-4 w-4" />
+                <Heart className="mr-3 h-4 w-4 text-primary" />
                 <span>Wishlist</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" asChild>
+            <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
               <Link to="/addresses">
-                <MapPin className="mr-2 h-4 w-4" />
+                <MapPin className="mr-3 h-4 w-4 text-primary" />
                 <span>Addresses</span>
               </Link>
             </DropdownMenuItem>
           </>
         )}
 
-        <DropdownMenuItem className="cursor-pointer" asChild>
+        <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
           <Link to="/profile">
-            <User className="mr-2 h-4 w-4" />
+            <User className="mr-3 h-4 w-4 text-primary" />
             <span>Profile</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-primary/20" />
         <DropdownMenuItem 
-          className="cursor-pointer text-destructive focus:text-destructive"
+          className="cursor-pointer py-3 px-2 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/5 transition-colors"
           onClick={handleSignOut}
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="mr-3 h-4 w-4" />
           <span>Sign Out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
