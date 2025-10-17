@@ -373,14 +373,92 @@ All colors MUST be HSL.
            border border-border/50 dark:border-border/30;
   }
   
-  /* Smooth underline animation */
-  .link-underline {
-    @apply relative inline-block
-           after:content-[''] after:absolute after:w-full after:scale-x-0 
-           after:h-0.5 after:bottom-0 after:left-0 after:bg-primary 
-           after:origin-bottom-right after:transition-transform after:duration-300
-           hover:after:scale-x-100 hover:after:origin-bottom-left;
+  /* Enhanced typography utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent;
   }
+
+  .text-gradient-warm {
+    @apply bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent;
+  }
+
+  .heading-primary {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight tracking-tight;
+  }
+
+  .heading-secondary {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-semibold leading-snug tracking-tight;
+  }
+
+  .heading-tertiary {
+    @apply text-xl sm:text-2xl font-semibold leading-snug;
+  }
+
+  .body-large {
+    @apply text-lg leading-relaxed;
+  }
+
+  .body-regular {
+    @apply text-base leading-relaxed;
+  }
+
+  .body-small {
+    @apply text-sm leading-relaxed;
+  }
+
+  .caption {
+    @apply text-xs font-medium uppercase tracking-wide;
+  }
+
+  /* Micro-interactions and animations */
+  .bounce-subtle {
+    animation: bounce-subtle 2s infinite;
+  }
+
+  @keyframes bounce-subtle {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-4px);
+    }
+    60% {
+      transform: translateY(-2px);
+    }
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 ease-out hover:scale-105 hover:-translate-y-1;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
+  }
+
+  .fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger-fade-in {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  .stagger-fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-fade-in:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-fade-in:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-fade-in:nth-child(5) { animation-delay: 0.5s; }
   
   /* Floating elements */
   .floating-button {
