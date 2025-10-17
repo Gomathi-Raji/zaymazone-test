@@ -83,9 +83,9 @@ const trustBadges = [
 
 export const Footer = () => {
   return (
-    <footer className="relative bg-gradient-to-br from-background via-muted/50 to-background border-t border-border/50">
+    <footer className="relative bg-gradient-to-br from-background via-muted/50 to-background border-t border-border/50 dark:bg-gradient-to-br dark:from-background dark:via-background/90 dark:to-background/95 dark:border-border/40">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.02] via-transparent to-primary-glow/[0.02]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.02] via-transparent to-primary-glow/[0.02] dark:from-primary/[0.05] dark:via-transparent dark:to-primary-glow/[0.05]" />
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Trust Badges */}
@@ -100,18 +100,18 @@ export const Footer = () => {
             {trustBadges.map((badge, index) => (
               <motion.div
                 key={badge.title}
-                className="flex flex-col items-center text-center p-4 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all duration-300 group"
+                className="flex flex-col items-center text-center p-4 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 transition-all duration-300 group dark:bg-background/80 dark:backdrop-blur-lg dark:border-border/40 dark:hover:border-primary/40 dark:hover:shadow-dark-glow"
                 whileHover={{ scale: 1.02, y: -2 }}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <div className="p-3 rounded-full bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary mb-3 group-hover:from-primary/20 group-hover:to-primary-glow/20 transition-all duration-300">
+                <div className="p-3 rounded-full bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary mb-3 group-hover:from-primary/20 group-hover:to-primary-glow/20 transition-all duration-300 dark:from-primary/20 dark:to-primary-glow/20 dark:group-hover:from-primary/30 dark:group-hover:to-primary-glow/30 dark:drop-shadow-lg">
                   {badge.icon}
                 </div>
-                <h4 className="font-semibold text-foreground mb-1">{badge.title}</h4>
-                <p className="text-sm text-muted-foreground">{badge.desc}</p>
+                <h4 className="font-semibold text-foreground mb-1 dark:text-foreground drop-shadow-sm dark:drop-shadow-lg">{badge.title}</h4>
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground drop-shadow-sm">{badge.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -119,7 +119,7 @@ export const Footer = () => {
 
         {/* Join Seller Section */}
         <motion.div
-          className="text-center py-16 border-b border-border/30"
+          className="text-center py-16 border-b border-border/30 dark:border-border/40"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -127,25 +127,25 @@ export const Footer = () => {
         >
           <div className="max-w-3xl mx-auto">
             <motion.div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary font-medium text-sm mb-6"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary font-medium text-sm mb-6 dark:from-primary/20 dark:to-primary-glow/20 dark:text-primary dark:drop-shadow-lg"
               whileHover={{ scale: 1.05 }}
             >
-              <Crown className="h-4 w-4" />
-              <span>Artisan Partnership Program</span>
-              <Sparkles className="h-4 w-4" />
+              <Crown className="h-4 w-4 drop-shadow-sm dark:drop-shadow-lg" />
+              <span className="drop-shadow-sm dark:drop-shadow-lg">Artisan Partnership Program</span>
+              <Sparkles className="h-4 w-4 drop-shadow-sm dark:drop-shadow-lg" />
             </motion.div>
             
-            <h2 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-primary-glow bg-clip-text text-transparent mb-6">
+            <h2 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-primary-glow bg-clip-text text-transparent mb-6 dark:from-foreground dark:via-primary dark:to-primary-glow drop-shadow-sm dark:drop-shadow-lg">
               Join Our Artisan Community
             </h2>
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-xl text-muted-foreground mb-8 leading-relaxed dark:text-muted-foreground drop-shadow-sm dark:drop-shadow-lg">
               Transform your passion into profit. Connect with customers worldwide and showcase your authentic craftsmanship.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
-                  className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary-600 hover:to-primary text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300" 
+                  className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary-600 hover:to-primary text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 dark:shadow-dark-glow dark:hover:shadow-dark-floating" 
                   asChild
                 >
                   <Link to="/seller-onboarding" className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export const Footer = () => {
               </motion.div>
               
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 px-6 py-6 text-lg rounded-xl" asChild>
+                <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 px-6 py-6 text-lg rounded-xl dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 dark:hover:shadow-dark-glow" asChild>
                   <Link to="/success-stories">View Success Stories</Link>
                 </Button>
               </motion.div>
@@ -185,10 +185,10 @@ export const Footer = () => {
                       className="h-16 w-auto object-contain group-hover:scale-110 transition-transform duration-300"
                     />
                     <div className="ml-3">
-                      <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent dark:from-primary dark:to-primary-glow drop-shadow-sm dark:drop-shadow-lg">
                         ZAYMAZONE
                       </h3>
-                      <p className="text-sm text-muted-foreground font-medium">
+                      <p className="text-sm text-muted-foreground font-medium dark:text-muted-foreground drop-shadow-sm dark:drop-shadow-lg">
                         Crafting Culture. Empowering Artisans.
                       </p>
                     </div>
@@ -196,39 +196,39 @@ export const Footer = () => {
                 </motion.div>
               </div>
               
-              <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
+              <p className="text-muted-foreground mb-8 leading-relaxed text-lg dark:text-muted-foreground drop-shadow-sm dark:drop-shadow-lg">
                 Discover authentic handcrafted treasures from talented artisans across India. Each piece tells a story of tradition, skill, and cultural heritage.
               </p>
               
               {/* Newsletter Signup */}
               <div className="mb-8">
-                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-primary" />
+                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2 dark:text-foreground drop-shadow-sm dark:drop-shadow-lg">
+                  <Mail className="h-5 w-5 text-primary dark:text-primary drop-shadow-sm dark:drop-shadow-lg" />
                   Stay Updated
                 </h4>
                 <div className="flex gap-2">
                   <Input 
                     placeholder="Enter your email" 
-                    className="flex-1 bg-background/50 border-border/50 focus:border-primary/50"
+                    className="flex-1 bg-background/50 border-border/50 focus:border-primary/50 dark:bg-background/80 dark:border-border/40 dark:focus:border-primary/60"
                   />
-                  <Button className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary-600 hover:to-primary text-white px-6">
+                  <Button className="bg-gradient-to-r from-primary to-primary-glow hover:from-primary-600 hover:to-primary text-white px-6 dark:shadow-dark-glow">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-2 dark:text-muted-foreground drop-shadow-sm">
                   Get exclusive offers and artisan stories delivered to your inbox.
                 </p>
               </div>
               
               {/* Social Links */}
               <div>
-                <h4 className="font-semibold text-foreground mb-4">Follow Us</h4>
+                <h4 className="font-semibold text-foreground mb-4 dark:text-foreground drop-shadow-sm dark:drop-shadow-lg">Follow Us</h4>
                 <div className="flex gap-3">
                   {socialLinks.map((social) => (
                     <motion.a
                       key={social.name}
                       href={social.url}
-                      className={`p-3 rounded-full bg-background/50 border border-border/50 hover:border-primary/30 transition-all duration-300 ${social.color}`}
+                      className={`p-3 rounded-full bg-background/50 border border-border/50 hover:border-primary/30 transition-all duration-300 ${social.color} dark:bg-background/80 dark:border-border/40 dark:hover:border-primary/40 dark:hover:shadow-dark-glow`}
                       whileHover={{ scale: 1.1, y: -2 }}
                       whileTap={{ scale: 0.9 }}
                     >
@@ -249,8 +249,8 @@ export const Footer = () => {
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <h4 className="font-semibold text-foreground mb-6 flex items-center gap-2">
-                    <span className="text-primary">{section.icon}</span>
+                  <h4 className="font-semibold text-foreground mb-6 flex items-center gap-2 dark:text-foreground drop-shadow-sm dark:drop-shadow-lg">
+                    <span className="text-primary dark:text-primary drop-shadow-sm dark:drop-shadow-lg">{section.icon}</span>
                     {section.title}
                   </h4>
                   <ul className="space-y-4">
@@ -258,12 +258,12 @@ export const Footer = () => {
                       <li key={link.name}>
                         <Link
                           to={link.path}
-                          className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors duration-300 group"
+                          className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors duration-300 group dark:text-muted-foreground dark:hover:text-primary dark:hover:shadow-dark-glow"
                         >
-                          <span className="text-primary/60 group-hover:text-primary group-hover:scale-110 transition-all duration-300">
+                          <span className="text-primary/60 group-hover:text-primary group-hover:scale-110 transition-all duration-300 dark:text-primary/80 dark:group-hover:text-primary drop-shadow-sm dark:drop-shadow-lg">
                             {link.icon}
                           </span>
-                          <span className="group-hover:translate-x-1 transition-transform duration-300">
+                          <span className="group-hover:translate-x-1 transition-transform duration-300 drop-shadow-sm dark:drop-shadow-lg">
                             {link.name}
                           </span>
                         </Link>
@@ -278,27 +278,27 @@ export const Footer = () => {
         
         {/* Bottom Bar */}
         <motion.div
-          className="py-8 border-t border-border/30"
+          className="py-8 border-t border-border/30 dark:border-border/40"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
         >
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground dark:text-muted-foreground drop-shadow-sm">
               <p>© 2024 Zaymazone. All rights reserved.</p>
               <div className="flex items-center gap-4">
-                <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
-                <Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-                <Link to="/cookies" className="hover:text-primary transition-colors">Cookies</Link>
+                <Link to="/terms" className="hover:text-primary transition-colors dark:hover:text-primary">Terms</Link>
+                <Link to="/privacy" className="hover:text-primary transition-colors dark:hover:text-primary">Privacy</Link>
+                <Link to="/cookies" className="hover:text-primary transition-colors dark:hover:text-primary">Cookies</Link>
               </div>
             </div>
             
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-muted-foreground drop-shadow-sm">
               <span>Made with</span>
               <Heart className="h-4 w-4 text-red-500 animate-pulse" />
               <span>in India</span>
-              <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary border-0">
+              <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-primary-glow/10 text-primary border-0 dark:from-primary/20 dark:to-primary-glow/20 dark:text-primary dark:drop-shadow-lg">
                 <Star className="h-3 w-3 mr-1" />
                 4.9/5 Rating
               </Badge>

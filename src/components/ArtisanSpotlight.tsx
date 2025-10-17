@@ -74,7 +74,9 @@ export const ArtisanSpotlight = () => {
   const currentArtisan = featuredArtisans[currentIndex];
 
   return (
-    <section className="py-16 bg-gradient-warm">
+    <section className="relative py-16 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background/98 dark:via-background/95 dark:to-primary/5 overflow-hidden">
+      {/* Artisan spotlight dark mode enhancement */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.01] via-transparent to-primary-glow/[0.02] dark:from-primary/[0.02] dark:via-transparent dark:to-primary-glow/[0.04] pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <Badge variant="secondary" className="mb-4 px-4 py-2">

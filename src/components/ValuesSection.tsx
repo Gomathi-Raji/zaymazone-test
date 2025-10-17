@@ -25,7 +25,9 @@ const values = [
 
 export const ValuesSection = () => {
   return (
-    <section className="py-20 bg-background">
+    <section className="relative py-20 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background dark:via-muted/20 dark:to-background overflow-hidden">
+      {/* Subtle pattern overlay for dark mode */}
+      <div className="absolute inset-0 bg-[linear-gradient(45deg,hsl(var(--primary))_1px,transparent_1px),linear-gradient(-45deg,hsl(var(--primary))_1px,transparent_1px)] bg-[size:20px_20px] opacity-[0.01] dark:opacity-[0.02] pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {values.map((value, index) => (

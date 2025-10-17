@@ -23,7 +23,9 @@ const categories = [
 
 export const CategoriesSection = () => {
   return (
-    <section className="py-20 bg-gradient-subtle">
+    <section className="relative py-20 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background dark:via-background/95 dark:to-primary/5 overflow-hidden">
+      {/* Dark mode overlay for enhanced depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-primary/[0.05] dark:from-primary/[0.03] dark:via-primary/[0.08] dark:to-primary/[0.12] pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">

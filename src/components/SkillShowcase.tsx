@@ -43,7 +43,10 @@ const skills = [
 
 export const SkillShowcase = () => {
   return (
-    <section className="py-20 bg-background">
+    <section className="relative py-20 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background/95 dark:via-primary/3 dark:to-primary-glow/5 overflow-hidden">
+      {/* Skill showcase dark mode enhancement */}
+      <div className="absolute inset-0 bg-gradient-to-t from-transparent via-primary/[0.01] to-primary-glow/[0.02] dark:from-transparent dark:via-primary/[0.02] dark:to-primary-glow/[0.04] pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--primary))_1px,transparent_1px)] bg-[size:60px_60px] opacity-[0.005] dark:opacity-[0.01] pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">

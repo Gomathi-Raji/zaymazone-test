@@ -47,7 +47,7 @@ export const ArtisanProfile = ({ artisan }: ArtisanProfileProps) => {
         
         {/* Rating badge */}
         <div className="absolute top-4 right-4">
-          <Badge variant="secondary" className="bg-white/90 text-foreground">
+          <Badge variant="secondary" className="bg-card/90 text-card-foreground">
             <Star className="w-3 h-3 mr-1 fill-current text-yellow-500" />
             {artisan.rating}
           </Badge>

@@ -186,7 +186,10 @@ export const FeaturedProducts = () => {
   };
 
   return (
-    <section className="relative py-12 md:py-20 bg-gradient-to-br from-background via-background to-accent/5 overflow-hidden">
+    <section className="relative py-12 md:py-20 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background/98 dark:via-background/95 dark:to-accent/10 overflow-hidden">
+      {/* Enhanced dark mode background with subtle patterns */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.01] via-transparent to-primary-glow/[0.01] dark:from-primary/[0.02] dark:via-transparent dark:to-primary-glow/[0.03] pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary))_0%,transparent_50%)] opacity-[0.02] dark:opacity-[0.04] pointer-events-none"></div>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5"></div>

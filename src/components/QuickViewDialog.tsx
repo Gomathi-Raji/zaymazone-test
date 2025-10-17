@@ -63,7 +63,7 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card"
                     onClick={prevImage}
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -71,7 +71,7 @@ export const QuickViewDialog = ({ product, isOpen, onClose }: QuickViewDialogPro
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card"
                     onClick={nextImage}
                   >
                     <ArrowRight className="h-4 w-4" />

@@ -97,7 +97,9 @@ const Counter = ({ end, duration, suffix }: CounterProps) => {
 
 export const InteractiveStats = () => {
   return (
-    <section className="py-16 bg-background">
+    <section className="relative py-16 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background dark:via-background/98 dark:to-accent/8 overflow-hidden">
+      {/* Interactive stats dark mode enhancement */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--primary-glow))_0%,transparent_70%)] opacity-[0.01] dark:opacity-[0.03] pointer-events-none"></div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => {

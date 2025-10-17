@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
@@ -77,18 +78,19 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <GoogleAnalytics />
-          <BrowserRouter>
-          <ScrollRestoration />
-          <MobileBottomNav />
-          <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div></div>}>
-          <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <GoogleAnalytics />
+            <BrowserRouter>
+            <ScrollRestoration />
+            <MobileBottomNav />
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div></div>}>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/shop" element={<ShopWithBackend />} />
             <Route path="/shop-mock" element={<Shop />} />
@@ -151,6 +153,7 @@ const App = () => (
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

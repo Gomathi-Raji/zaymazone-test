@@ -21,7 +21,9 @@ export const NewsletterSection = () => {
   };
 
   return (
-    <section className="py-16 bg-gradient-warm">
+    <section className="relative py-16 bg-gradient-subtle dark:bg-gradient-to-br dark:from-background dark:via-accent/5 dark:to-primary/8 overflow-hidden">
+      {/* Newsletter dark mode enhancement */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-glow/[0.03] to-transparent dark:from-transparent dark:via-primary-glow/[0.05] dark:to-transparent pointer-events-none"></div>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="animate-fade-in">
           <Mail className="w-16 h-16 mx-auto mb-6 text-primary" />

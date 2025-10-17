@@ -185,7 +185,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
               <Button 
                 size="sm"
                 onClick={() => setIsQuickViewOpen(true)}
-                className="bg-white text-foreground hover:bg-white/90 border border-white/20 shadow-soft"
+                className="bg-card text-card-foreground hover:bg-card/90 border border-border/20 shadow-soft"
               >
                 Quick View
               </Button>
@@ -193,7 +193,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
                 <Button 
                   size="sm"
                   onClick={() => onAddToComparison(product)}
-                  className="bg-white/90 text-foreground hover:bg-white border border-white/20 shadow-soft"
+                  className="bg-card/90 text-card-foreground hover:bg-card border border-border/20 shadow-soft"
                 >
                   <BarChart3 className="w-3 h-3 mr-1" />
                   Compare
@@ -329,7 +329,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
             <Button
               variant="ghost"
               size="icon"
-              className={`bg-white/80 hover:bg-white rounded-full hover:scale-110 transition-all duration-300 ${
+              className={`bg-card/80 hover:bg-card rounded-full hover:scale-110 transition-all duration-300 ${
                 inWishlist ? 'text-red-500' : ''
               }`}
               title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
@@ -349,7 +349,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
             <Button
               variant="ghost"
               size="icon"
-              className="bg-white/80 hover:bg-white rounded-full hover:scale-110 transition-all duration-300"
+              className="bg-card/80 hover:bg-card rounded-full hover:scale-110 transition-all duration-300"
               disabled={!product.inStock || cartLoading || product.stockCount === 0}
               onClick={handleAddToCart}
               title="Add to Cart"

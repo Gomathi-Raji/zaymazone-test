@@ -101,14 +101,14 @@ const Categories = () => {
                     
                     {/* Category icon */}
                     <div className="absolute top-4 left-4">
-                      <div className="bg-white/90 p-2 rounded-full">
+                      <div className="bg-card/90 p-2 rounded-full">
                         <IconComponent className="w-5 h-5 text-primary" />
                       </div>
                     </div>
                     
                     {/* Product count badge */}
                     <div className="absolute top-4 right-4">
-                      <Badge variant="secondary" className="bg-white/90 text-foreground">
+                      <Badge variant="secondary" className="bg-card/90 text-card-foreground">
                         {category.productCount} Products
                       </Badge>
                     </div>
