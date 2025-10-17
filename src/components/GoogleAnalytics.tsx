@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 // Google Analytics Measurement ID - replace with your actual GA4 ID
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // Replace with your GA4 Measurement ID
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-XXXXXXXXXX'; // Configure in .env
 
 declare global {
   interface Window {

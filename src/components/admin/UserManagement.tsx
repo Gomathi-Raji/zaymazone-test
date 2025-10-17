@@ -105,16 +105,28 @@ export function UserManagement() {
 
   const handleSuspend = async (userId: number) => {
     try {
-      // TODO: Implement suspend user endpoint
+      const response = await fetch(`/api/users/${userId}/suspend`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to suspend user');
+      }
+
       toast({
         title: "Success",
         description: "User suspended successfully"
       });
       loadUsers();
     } catch (error) {
+      console.error('Error suspending user:', error);
       toast({
         title: "Error",
-        description: "Failed to suspend user",
+        description: error instanceof Error ? error.message : "Failed to suspend user",
         variant: "destructive"
       });
     }
@@ -122,16 +134,28 @@ export function UserManagement() {
 
   const handleActivate = async (userId: number) => {
     try {
-      // TODO: Implement activate user endpoint
+      const response = await fetch(`/api/users/${userId}/activate`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to activate user');
+      }
+
       toast({
         title: "Success",
         description: "User activated successfully"
       });
       loadUsers();
     } catch (error) {
+      console.error('Error activating user:', error);
       toast({
         title: "Error",
-        description: "Failed to activate user",
+        description: error instanceof Error ? error.message : "Failed to activate user",
         variant: "destructive"
       });
     }

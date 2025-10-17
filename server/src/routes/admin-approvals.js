@@ -236,7 +236,25 @@ router.patch('/approve-product/:productId', authenticateToken, adminOnly, async 
     const { approvalNotes } = req.body;
     const adminId = req.user._id;
 
-    const product = await Product.findByIdAndUpdate(
+    // Validate approval notes length if provided
+    if (approvalNotes && approvalNotes.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Approval notes cannot exceed 1000 characters'
+      });
+    }
+
+    // Check product exists first
+    const product = await Product.findById(req.params.productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Update product
+    const updatedProduct = await Product.findByIdAndUpdate(
       req.params.productId,
       {
         approvalStatus: 'approved',
@@ -249,21 +267,14 @@ router.patch('/approve-product/:productId', authenticateToken, adminOnly, async 
       { new: true }
     ).populate('artisanId', 'name businessInfo');
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
-    }
-
     res.json({
       success: true,
-      message: `Product "${product.name}" has been approved`,
+      message: `Product "${updatedProduct.name}" has been approved`,
       product: {
-        _id: product._id,
-        name: product.name,
-        approvalStatus: product.approvalStatus,
-        approvedAt: product.approvedAt
+        _id: updatedProduct._id,
+        name: updatedProduct.name,
+        approvalStatus: updatedProduct.approvalStatus,
+        approvedAt: updatedProduct.approvedAt
       }
     });
   } catch (error) {

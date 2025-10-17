@@ -134,7 +134,7 @@ export function AdminArtisanApprovals() {
             approvalNotes: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({
@@ -177,7 +177,7 @@ export function AdminArtisanApprovals() {
             rejectionReason: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({

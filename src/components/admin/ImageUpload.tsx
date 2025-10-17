@@ -77,17 +77,27 @@ export function ImageUpload({
     });
   };
 
-  const uploadFileToServer = async (file: File): Promise<string> => {
-    // Simulate upload process - replace with actual upload logic
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (Math.random() > 0.1) { // 90% success rate for demo
-          resolve(`https://example.com/uploads/${file.name}`);
-        } else {
-          reject(new Error('Upload failed'));
-        }
-      }, 2000 + Math.random() * 3000);
-    });
+  const uploadFileToServer = async (file: File, fileType: string = 'image'): Promise<string> => {
+    // Upload file to server
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', fileType);
+
+    try {
+      const response = await fetch('/api/images/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.url || data.filePath;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Upload failed');
+    }
   };
 
   const processFiles = async (fileList: FileList) => {
@@ -149,7 +159,7 @@ export function ImageUpload({
           ));
         }, 300);
 
-        const url = await uploadFileToServer(originalFile);
+        const url = await uploadFileToServer(originalFile, 'image');
         
         clearInterval(progressInterval);
         

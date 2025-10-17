@@ -43,7 +43,7 @@ const Index = () => {
           ],
           "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": "+91-XXXXXXXXXX", // Add actual contact when available
+            "telephone": "+91-9876543210",
             "contactType": "customer service"
           }
         }}

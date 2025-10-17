@@ -23,8 +23,12 @@ async function checkArtisan() {
     }
   } catch (error) {
     console.error('Error:', error.message)
+  } finally {
+    // Properly close connection before exiting
+    await mongoose.disconnect()
+    console.log('Database connection closed')
+    process.exit(0)
   }
-  process.exit(0)
 }
 
 checkArtisan()

@@ -15,12 +15,61 @@ export const FeaturedProducts = () => {
   const { data: productsData, isLoading, error } = useProducts({ limit: 6 });
   let featuredProducts = productsData?.products || [];
 
-  // Debug - log the state
-  console.log('Featured Products State:', { isLoading, error, count: featuredProducts.length, productsData });
+  // Development logging
+  if (import.meta.env.DEV) {
+    console.log('Featured Products State:', { isLoading, error, count: featuredProducts.length, productsData });
+  }
 
-  // Temporary fallback for debugging - if no products loaded, use mock data
+  // Show loading state
+  if (isLoading) {
+    return (
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-12 text-center">Featured Artisan Products</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-gray-200 h-80 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-12 text-center">Featured Artisan Products</h2>
+          <div className="text-center text-red-600">
+            <p>Failed to load products. Please try again later.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show empty state
   if (!isLoading && featuredProducts.length === 0) {
-    console.warn('No products loaded, using mock data for testing');
+    if (import.meta.env.DEV) {
+      console.warn('No products loaded from API');
+    }
+    return (
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-12 text-center">Featured Artisan Products</h2>
+          <div className="text-center text-gray-500">
+            <p>No featured products available yet.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Use mock data only in development for testing
+  if (import.meta.env.DEV && (!isLoading && featuredProducts.length === 0)) {
+    console.warn('DEV MODE: Using mock data for testing');
     featuredProducts = [
       {
         id: "1",

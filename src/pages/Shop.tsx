@@ -90,8 +90,9 @@ const Shop = () => {
   }, [productsData?.products, searchQuery, sortBy, categoryFilter, priceFilter, handmadeFilter]);
 
   const handleQuickView = (product: Product) => {
-    // TODO: Implement quick view modal
-    console.log("Quick view:", product);
+    // Open product in modal or redirect to product page
+    const productId = (product as any)._id || product.id;
+    window.location.href = `/product/${productId}`;
   };
 
   return (

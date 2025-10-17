@@ -131,31 +131,43 @@ router.post('/auth/login', async (req, res) => {
 })
 
 // Utility function to log admin actions
-const logAdminAction = (user, action, resource, resourceId, details, req) => {
-  const logEntry = {
-    id: Date.now().toString(),
-    timestamp: new Date().toISOString(),
-    user: user?.email || 'admin@example.com',
-    action,
-    resource,
-    resourceId,
-    details,
-    ipAddress: req.ip || req.connection.remoteAddress,
-    userAgent: req.get('User-Agent')
-  }
+const logAdminAction = async (user, action, resource, resourceId, details, req) => {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      user: user?.email || 'admin@example.com',
+      userId: user?._id,
+      action,
+      resource,
+      resourceId,
+      details,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent')
+    }
 
-  // In production, this would be saved to a database
-  console.log('Admin Action Logged:', logEntry)
+    // Log to console for immediate visibility
+    console.log('Admin Action Logged:', logEntry)
 
-  // For now, we'll store in memory (in production, use a database)
-  if (!global.auditLogs) {
-    global.auditLogs = []
-  }
-  global.auditLogs.unshift(logEntry)
-
-  // Keep only last 1000 entries
-  if (global.auditLogs.length > 1000) {
-    global.auditLogs = global.auditLogs.slice(0, 1000)
+    // Save to AuditLog model if available
+    try {
+      const AuditLog = require('../models/AuditLog.js').default || require('../models/AuditLog.js')
+      if (AuditLog) {
+        const auditLog = new AuditLog(logEntry)
+        await auditLog.save()
+      }
+    } catch (err) {
+      console.warn('Could not save audit log to database:', err.message)
+      // Fallback to in-memory for backward compatibility
+      if (!global.auditLogs) {
+        global.auditLogs = []
+      }
+      global.auditLogs.unshift(logEntry)
+      if (global.auditLogs.length > 1000) {
+        global.auditLogs = global.auditLogs.slice(0, 1000)
+      }
+    }
+  } catch (error) {
+    console.error('Error logging admin action:', error)
   }
 }
 

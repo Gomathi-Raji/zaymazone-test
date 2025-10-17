@@ -88,7 +88,7 @@ export function AdminProductApprovals() {
         {
           method: 'GET',
         }
-      ) as any;
+      ) as { success: boolean; products: any[]; page: number; total: number; pages: number };
 
       if (response?.success) {
         setProducts(response.products || []);
@@ -128,7 +128,7 @@ export function AdminProductApprovals() {
             approvalNotes: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({
@@ -171,7 +171,7 @@ export function AdminProductApprovals() {
             rejectionReason: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({

@@ -1093,6 +1093,17 @@ class AdminService {
     return this.apiCall(`/admin-approvals/reject-blog/${blogId}`, 'PATCH', { rejectionReason });
   }
 
+  // ========== USER APPROVALS ==========
+
+  async getPendingUsers(page: number = 1, limit: number = 10) {
+    try {
+      return await this.apiCall(`/api/users/pending?page=${page}&limit=${limit}`);
+    } catch (error) {
+      console.error('Error fetching pending users:', error);
+      return { users: [], total: 0 };
+    }
+  }
+
   // ========== DASHBOARD STATS ==========
 
   async getDashboardStats() {

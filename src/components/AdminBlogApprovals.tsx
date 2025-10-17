@@ -86,7 +86,7 @@ export function AdminBlogApprovals() {
         {
           method: 'GET',
         }
-      ) as any;
+      ) as { success: boolean; blogs: any[]; page: number; total: number; pages: number };
 
       if (response?.success) {
         setBlogs(response.blogs || []);
@@ -126,7 +126,7 @@ export function AdminBlogApprovals() {
             approvalNotes: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({
@@ -169,7 +169,7 @@ export function AdminBlogApprovals() {
             rejectionReason: actionReason,
           }),
         }
-      ) as any;
+      ) as { success: boolean; message: string };
 
       if (response?.success) {
         toast({

@@ -9,15 +9,17 @@ import { CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react";
 
 const APITestPage = () => {
   // Test health endpoint
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  
   const { data: health, isLoading: healthLoading, error: healthError } = useQuery({
     queryKey: ['health'],
-    queryFn: () => fetch('http://localhost:4000/health').then(res => res.json()),
+    queryFn: () => fetch(`${apiBaseUrl}/health`).then(res => res.json()),
   });
 
   // Test products endpoint
   const { data: products, isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ['products'],
-    queryFn: () => fetch('http://localhost:4000/api/products').then(res => res.json()),
+    queryFn: () => fetch(`${apiBaseUrl}/api/products`).then(res => res.json()),
   });
 
   // Test artisans endpoint
