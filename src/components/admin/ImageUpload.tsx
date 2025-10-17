@@ -80,8 +80,8 @@ export function ImageUpload({
   const uploadFileToServer = async (file: File, fileType: string = 'image'): Promise<string> => {
     // Upload file to server
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', fileType);
+    formData.append('image', file);
+    formData.append('category', fileType);
 
     try {
       const response = await fetch('/api/images/upload', {
@@ -94,7 +94,7 @@ export function ImageUpload({
       }
 
       const data = await response.json();
-      return data.url || data.filePath;
+      return data.image?.url || data.url;
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Upload failed');
     }
@@ -427,15 +427,22 @@ export function ImageUpload({
 export function SingleImageUpload({ 
   value, 
   onChange,
+  onFileChange,
   placeholder = "Upload an image"
 }: {
   value?: string;
   onChange: (url: string) => void;
+  onFileChange?: (file: File | null) => void;
   placeholder?: string;
 }) {
   const handleUpload = (files: UploadedFile[]) => {
     if (files.length > 0) {
       onChange(files[0].url);
+      if (onFileChange) {
+        // We need to get the original file, but UploadedFile doesn't have it
+        // For now, we'll set it to null and handle this differently
+        onFileChange(null);
+      }
     }
   };
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/firebase-auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import Artisan from '../models/Artisan.js';
 import Product from '../models/Product.js';
 import BlogPost from '../models/BlogPost.js';
@@ -7,30 +7,10 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Middleware to verify admin role
-const adminOnly = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (user?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Admin only.'
-      });
-    }
-    next();
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to verify admin role',
-      error: error.message
-    });
-  }
-};
-
 // ==================== ARTISAN APPROVAL ====================
 
 // GET - Get all pending artisans awaiting approval
-router.get('/pending-artisans', authenticateToken, adminOnly, async (req, res) => {
+router.get('/pending-artisans', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
 
@@ -66,7 +46,7 @@ router.get('/pending-artisans', authenticateToken, adminOnly, async (req, res) =
 });
 
 // GET - Get detailed artisan profile for review
-router.get('/artisan-details/:artisanId', authenticateToken, adminOnly, async (req, res) => {
+router.get('/artisan-details/:artisanId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const artisan = await Artisan.findById(req.params.artisanId)
       .populate('userId', 'email firebaseUID createdAt');
@@ -93,7 +73,7 @@ router.get('/artisan-details/:artisanId', authenticateToken, adminOnly, async (r
 });
 
 // PATCH - Approve artisan application
-router.patch('/approve-artisan/:artisanId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/approve-artisan/:artisanId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { approvalNotes } = req.body;
     const adminId = req.user._id;
@@ -117,15 +97,47 @@ router.patch('/approve-artisan/:artisanId', authenticateToken, adminOnly, async 
       });
     }
 
+    // Automatically approve all products belonging to this artisan
+    const productsUpdateResult = await Product.updateMany(
+      { artisanId: req.params.artisanId, approvalStatus: { $ne: 'approved' } },
+      {
+        approvalStatus: 'approved',
+        approvalNotes: `Auto-approved when artisan ${artisan.name} was approved`,
+        approvedBy: adminId,
+        approvedAt: new Date(),
+        isActive: true,
+        $unset: { rejectionReason: 1 }
+      }
+    );
+
+    // Automatically approve all blogs belonging to this artisan
+    const blogsUpdateResult = await BlogPost.updateMany(
+      { artisanId: req.params.artisanId, approvalStatus: { $ne: 'approved' } },
+      {
+        approvalStatus: 'approved',
+        status: 'published',
+        isActive: true,
+        approvalNotes: `Auto-approved when artisan ${artisan.name} was approved`,
+        approvedBy: adminId,
+        approvedAt: new Date(),
+        publishedAt: new Date(),
+        $unset: { rejectionReason: 1 }
+      }
+    );
+
     res.json({
       success: true,
-      message: `Artisan ${artisan.name} has been approved successfully`,
+      message: `Artisan ${artisan.name} has been approved successfully. ${productsUpdateResult.modifiedCount} products and ${blogsUpdateResult.modifiedCount} blogs were also auto-approved.`,
       artisan: {
         _id: artisan._id,
         name: artisan.name,
         businessName: artisan.businessInfo?.businessName,
         approvalStatus: artisan.approvalStatus,
         approvedAt: artisan.approvedAt
+      },
+      autoApproved: {
+        products: productsUpdateResult.modifiedCount,
+        blogs: blogsUpdateResult.modifiedCount
       }
     });
   } catch (error) {
@@ -139,7 +151,7 @@ router.patch('/approve-artisan/:artisanId', authenticateToken, adminOnly, async 
 });
 
 // PATCH - Reject artisan application
-router.patch('/reject-artisan/:artisanId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/reject-artisan/:artisanId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rejectionReason } = req.body;
 
@@ -171,15 +183,45 @@ router.patch('/reject-artisan/:artisanId', authenticateToken, adminOnly, async (
       });
     }
 
+    // Automatically reject all pending products belonging to this artisan
+    const productsUpdateResult = await Product.updateMany(
+      { artisanId: req.params.artisanId, approvalStatus: 'pending' },
+      {
+        approvalStatus: 'rejected',
+        rejectionReason: `Rejected because artisan ${artisan.name} was rejected: ${rejectionReason}`,
+        approvedBy: adminId,
+        approvedAt: new Date(),
+        isActive: false,
+        $unset: { approvalNotes: 1 }
+      }
+    );
+
+    // Automatically reject all pending blogs belonging to this artisan
+    const blogsUpdateResult = await BlogPost.updateMany(
+      { artisanId: req.params.artisanId, approvalStatus: 'pending' },
+      {
+        approvalStatus: 'rejected',
+        status: 'draft',
+        rejectionReason: `Rejected because artisan ${artisan.name} was rejected: ${rejectionReason}`,
+        approvedBy: adminId,
+        approvedAt: new Date(),
+        $unset: { approvalNotes: 1, publishedAt: 1 }
+      }
+    );
+
     res.json({
       success: true,
-      message: `Artisan ${artisan.name} has been rejected`,
+      message: `Artisan ${artisan.name} has been rejected. ${productsUpdateResult.modifiedCount} pending products and ${blogsUpdateResult.modifiedCount} pending blogs were also auto-rejected.`,
       artisan: {
         _id: artisan._id,
         name: artisan.name,
         businessName: artisan.businessInfo?.businessName,
         approvalStatus: artisan.approvalStatus,
         rejectionReason: artisan.rejectionReason
+      },
+      autoRejected: {
+        products: productsUpdateResult.modifiedCount,
+        blogs: blogsUpdateResult.modifiedCount
       }
     });
   } catch (error) {
@@ -195,7 +237,7 @@ router.patch('/reject-artisan/:artisanId', authenticateToken, adminOnly, async (
 // ==================== PRODUCT APPROVAL ====================
 
 // GET - Get all pending products
-router.get('/pending-products', authenticateToken, adminOnly, async (req, res) => {
+router.get('/pending-products', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
 
@@ -231,7 +273,7 @@ router.get('/pending-products', authenticateToken, adminOnly, async (req, res) =
 });
 
 // PATCH - Approve product
-router.patch('/approve-product/:productId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/approve-product/:productId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { approvalNotes } = req.body;
     const adminId = req.user._id;
@@ -288,7 +330,7 @@ router.patch('/approve-product/:productId', authenticateToken, adminOnly, async 
 });
 
 // PATCH - Reject product
-router.patch('/reject-product/:productId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/reject-product/:productId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rejectionReason } = req.body;
 
@@ -344,7 +386,7 @@ router.patch('/reject-product/:productId', authenticateToken, adminOnly, async (
 // ==================== BLOG APPROVAL ====================
 
 // GET - Get all pending blogs
-router.get('/pending-blogs', authenticateToken, adminOnly, async (req, res) => {
+router.get('/pending-blogs', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = req.query;
 
@@ -380,7 +422,7 @@ router.get('/pending-blogs', authenticateToken, adminOnly, async (req, res) => {
 });
 
 // PATCH - Approve blog
-router.patch('/approve-blog/:blogId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/approve-blog/:blogId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { approvalNotes } = req.body;
     const adminId = req.user._id;
@@ -427,7 +469,7 @@ router.patch('/approve-blog/:blogId', authenticateToken, adminOnly, async (req, 
 });
 
 // PATCH - Reject blog
-router.patch('/reject-blog/:blogId', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/reject-blog/:blogId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rejectionReason } = req.body;
 

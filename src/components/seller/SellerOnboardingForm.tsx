@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,10 @@ interface OnboardingData {
     sellerType: 'gst' | 'non-gst' | '';
     gstNumber: string;
     panNumber: string;
+    aadhaarNumber: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
     contact: {
       email: string;
       phone: string;
@@ -103,6 +108,10 @@ const INITIAL_DATA: OnboardingData = {
     sellerType: '',
     gstNumber: '',
     panNumber: '',
+    aadhaarNumber: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
     contact: {
       email: '',
       phone: '',
@@ -154,6 +163,19 @@ const CRAFT_SPECIALTIES = [
   'Sculpture', 'Embroidery', 'Weaving', 'Leather Work', 'Paper Craft', 'Other'
 ];
 
+// Helper function to convert base64 to File
+const base64ToFile = async (base64String: string, filename: string): Promise<File> => {
+  // Remove data URL prefix if present
+  const base64Data = base64String.replace(/^data:[^;]+;base64,/, '');
+  
+  // Convert base64 to blob
+  const response = await fetch(`data:application/octet-stream;base64,${base64Data}`);
+  const blob = await response.blob();
+  
+  // Create file from blob
+  return new File([blob], filename, { type: blob.type });
+};
+
 export function SellerOnboardingForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<OnboardingData>(INITIAL_DATA);
@@ -181,23 +203,30 @@ export function SellerOnboardingForm() {
     }
   };
 
-  const updateFormData = (section: keyof OnboardingData, field: string, value: any) => {
+  const updateFormData = (field: keyof OnboardingData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateNestedFormData = (section: keyof OnboardingData, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as any),
         [field]: value
       }
     }));
   };
 
-  const updateNestedFormData = (section: keyof OnboardingData, subsection: string, field: string, value: any) => {
+  const updateDoubleNestedFormData = (section: keyof OnboardingData, subsection: string, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as any),
         [subsection]: {
-          ...(prev[section] as any)[subsection],
+          ...((prev[section] as any)[subsection] || {}),
           [field]: value
         }
       }
@@ -218,15 +247,29 @@ export function SellerOnboardingForm() {
       case 1:
         return !!(formData.name && formData.location.city && formData.location.state);
       case 2:
-        return !!(formData.businessInfo.businessName && formData.businessInfo.contact.email && formData.businessInfo.contact.phone);
+        const hasBasicBusiness = !!(formData.businessInfo.businessName && 
+                                   formData.businessInfo.contact.email && 
+                                   formData.businessInfo.contact.phone);
+        const hasValidPAN = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.businessInfo.panNumber);
+        const hasValidAadhaar = /^\d{12}$/.test(formData.businessInfo.aadhaarNumber);
+        const hasValidGST = formData.businessInfo.sellerType !== 'gst' || 
+                           (formData.businessInfo.gstNumber && 
+                            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.businessInfo.gstNumber.toUpperCase()));
+        return hasBasicBusiness && hasValidPAN && hasValidAadhaar && hasValidGST;
       case 3:
-        return !!(formData.productInfo.description && formData.productInfo.materials);
+        return !!(formData.productInfo.description && formData.productInfo.materials && formData.specialties.length > 0);
       case 4:
         return !!(formData.logistics.dispatchTime && formData.logistics.packagingType);
       case 5:
-        return !!(formData.documents.aadhaarProof);
+        const hasAadhaarProof = !!formData.documents.aadhaarProof;
+        const hasGSTProof = formData.businessInfo.sellerType !== 'gst' || !!formData.documents.gstCertificate;
+        return hasAadhaarProof && hasGSTProof;
       case 6:
-        return !!(formData.payment.upiId);
+        // Use regex-only validation for bank details
+        const hasValidAccount = formData.businessInfo.accountNumber ? /^\d{9,18}$/.test(formData.businessInfo.accountNumber) : true;
+        const hasValidIFSC = formData.businessInfo.ifscCode ? /^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.businessInfo.ifscCode) : true;
+        const hasUPI = !!formData.payment.upiId;
+        return hasValidAccount && hasValidIFSC && hasUPI;
       default:
         return true;
     }
@@ -260,17 +303,87 @@ export function SellerOnboardingForm() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('firebase_id_token');
-      const response = await fetch('/api/seller/onboarding', {
+      // Create FormData for file uploads
+      const formDataToSend = new FormData();
+
+      // Add basic info
+      formDataToSend.append('businessName', formData.businessInfo.businessName);
+      formDataToSend.append('ownerName', formData.name);
+      formDataToSend.append('email', formData.businessInfo.contact.email);
+      formDataToSend.append('phone', formData.businessInfo.contact.phone);
+      formDataToSend.append('address', JSON.stringify(formData.businessInfo.contact.address));
+
+      // Add experience & type
+      formDataToSend.append('yearsOfExperience', formData.experience.toString());
+      formDataToSend.append('sellerType', formData.businessInfo.sellerType);
+      if (formData.businessInfo.gstNumber) {
+        formDataToSend.append('gstNumber', formData.businessInfo.gstNumber);
+      }
+      formDataToSend.append('aadhaarNumber', formData.businessInfo.aadhaarNumber || '');
+      formDataToSend.append('panNumber', formData.businessInfo.panNumber);
+
+      // Add product details
+      formDataToSend.append('categories', JSON.stringify(formData.specialties));
+      formDataToSend.append('productDescription', formData.productInfo.description);
+      formDataToSend.append('materials', formData.productInfo.materials);
+      formDataToSend.append('priceRange', JSON.stringify(formData.productInfo.priceRange));
+      formDataToSend.append('stockQuantity', formData.productInfo.stockQuantity.toString());
+
+      // Add logistics
+      formDataToSend.append('pickupAddress', JSON.stringify(formData.logistics.pickupAddress));
+      formDataToSend.append('dispatchTime', formData.logistics.dispatchTime);
+      formDataToSend.append('packagingType', formData.logistics.packagingType);
+
+      // Add bank details
+      formDataToSend.append('bankName', formData.businessInfo.bankName || '');
+      formDataToSend.append('accountNumber', formData.businessInfo.accountNumber || '');
+      formDataToSend.append('ifscCode', formData.businessInfo.ifscCode || '');
+      if (formData.payment.upiId) {
+        formDataToSend.append('upiId', formData.payment.upiId);
+      }
+      formDataToSend.append('paymentFrequency', formData.payment.paymentFrequency);
+
+      // Add story
+      if (formData.bio) {
+        formDataToSend.append('story', formData.bio);
+      }
+
+      // Add files
+      if (formData.avatar) {
+        // Convert base64 to file if needed
+        const avatarFile = await base64ToFile(formData.avatar, 'profile-photo.jpg');
+        formDataToSend.append('profilePhoto', avatarFile);
+      }
+
+      if (formData.productInfo.photos && formData.productInfo.photos.length > 0) {
+        for (let i = 0; i < formData.productInfo.photos.length; i++) {
+          const photoFile = await base64ToFile(formData.productInfo.photos[i], `product-photo-${i + 1}.jpg`);
+          formDataToSend.append('productPhotos', photoFile);
+        }
+      }
+
+      if (formData.documents.gstCertificate) {
+        const gstFile = await base64ToFile(formData.documents.gstCertificate, 'gst-certificate.pdf');
+        formDataToSend.append('gstCertificate', gstFile);
+      }
+
+      if (formData.documents.aadhaarProof) {
+        const aadhaarFile = await base64ToFile(formData.documents.aadhaarProof, 'aadhaar-proof.pdf');
+        formDataToSend.append('aadhaarProof', aadhaarFile);
+      }
+
+      if (formData.documents.craftVideo) {
+        const videoFile = await base64ToFile(formData.documents.craftVideo, 'craft-video.mp4');
+        formDataToSend.append('craftVideo', videoFile);
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/seller-onboarding`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
+        body: formDataToSend
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast({
           title: 'Application Submitted!',
           description: 'Your application is under review. You will be notified once approved.'
@@ -374,7 +487,501 @@ export function SellerOnboardingForm() {
             <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Step content would be rendered here - for brevity, showing the navigation */}
+            {/* Step 1: Personal Info */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => updateFormData('name', e.target.value)}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bio">About You</Label>
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => updateFormData('bio', e.target.value)}
+                    placeholder="Tell us about yourself and your craft journey"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      value={formData.location.city}
+                      onChange={(e) => updateNestedFormData('location', 'city', e.target.value)}
+                      placeholder="Enter city"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State *</Label>
+                    <Select
+                      value={formData.location.state}
+                      onValueChange={(value) => updateNestedFormData('location', 'state', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label>Profile Photo</Label>
+                  <ImageUpload
+                    images={formData.avatar ? [formData.avatar] : []}
+                    onImagesChange={(images) => updateFormData('avatar', images[0] || '')}
+                    maxImages={1}
+                    singleMode={true}
+                    category="artisans"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Business Details */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="businessName">Business Name *</Label>
+                  <Input
+                    id="businessName"
+                    value={formData.businessInfo.businessName}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'businessName', e.target.value)}
+                    placeholder="Enter your business name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.businessInfo.contact.email}
+                    onChange={(e) => updateDoubleNestedFormData('businessInfo', 'contact', 'email', e.target.value)}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.businessInfo.contact.phone}
+                    onChange={(e) => updateDoubleNestedFormData('businessInfo', 'contact', 'phone', e.target.value)}
+                    placeholder="10-digit phone number"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="village">Village/Town</Label>
+                    <Input
+                      id="village"
+                      value={formData.businessInfo.contact.address.village}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        businessInfo: {
+                          ...prev.businessInfo,
+                          contact: {
+                            ...prev.businessInfo.contact,
+                            address: {
+                              ...prev.businessInfo.contact.address,
+                              village: e.target.value
+                            }
+                          }
+                        }
+                      }))}
+                      placeholder="Enter village/town"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="district">District</Label>
+                    <Input
+                      id="district"
+                      value={formData.businessInfo.contact.address.district}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        businessInfo: {
+                          ...prev.businessInfo,
+                          contact: {
+                            ...prev.businessInfo.contact,
+                            address: {
+                              ...prev.businessInfo.contact.address,
+                              district: e.target.value
+                            }
+                          }
+                        }
+                      }))}
+                      placeholder="Enter district"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="addressState">State</Label>
+                    <Select
+                      value={formData.businessInfo.contact.address.state}
+                      onValueChange={(value) => setFormData(prev => ({
+                        ...prev,
+                        businessInfo: {
+                          ...prev.businessInfo,
+                          contact: {
+                            ...prev.businessInfo.contact,
+                            address: {
+                              ...prev.businessInfo.contact.address,
+                              state: value
+                            }
+                          }
+                        }
+                      }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="pincode">Pincode</Label>
+                    <Input
+                      id="pincode"
+                      value={formData.businessInfo.contact.address.pincode}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        businessInfo: {
+                          ...prev.businessInfo,
+                          contact: {
+                            ...prev.businessInfo.contact,
+                            address: {
+                              ...prev.businessInfo.contact.address,
+                              pincode: e.target.value
+                            }
+                          }
+                        }
+                      }))}
+                      placeholder="6-digit pincode"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="experience">Years of Experience</Label>
+                  <Input
+                    id="experience"
+                    type="number"
+                    value={formData.experience}
+                    onChange={(e) => updateFormData('experience', parseInt(e.target.value) || 0)}
+                    placeholder="Enter years of experience"
+                  />
+                </div>
+                <div>
+                  <Label>Seller Type</Label>
+                  <Select
+                    value={formData.businessInfo.sellerType}
+                    onValueChange={(value) => updateNestedFormData('businessInfo', 'sellerType', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select seller type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gst">GST Registered</SelectItem>
+                      <SelectItem value="non-gst">Non-GST</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.businessInfo.sellerType === 'gst' && (
+                  <div>
+                    <Label htmlFor="gstNumber">GST Number</Label>
+                    <Input
+                      id="gstNumber"
+                      value={formData.businessInfo.gstNumber}
+                      onChange={(e) => updateNestedFormData('businessInfo', 'gstNumber', e.target.value)}
+                      placeholder="Enter GST number"
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="panNumber">PAN Number *</Label>
+                  <Input
+                    id="panNumber"
+                    value={formData.businessInfo.panNumber}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'panNumber', e.target.value)}
+                    placeholder="Enter PAN number (ABCDE1234F)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="aadhaarNumber">Aadhaar Number *</Label>
+                  <Input
+                    id="aadhaarNumber"
+                    value={formData.businessInfo.aadhaarNumber}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'aadhaarNumber', e.target.value)}
+                    placeholder="12-digit Aadhaar number"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Product Information */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Craft Specialties *</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {CRAFT_SPECIALTIES.map((specialty) => (
+                      <div key={specialty} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={specialty}
+                          checked={formData.specialties.includes(specialty)}
+                          onCheckedChange={(checked) => handleSpecialtyChange(specialty, checked as boolean)}
+                        />
+                        <Label htmlFor={specialty} className="text-sm">{specialty}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="productDescription">Product Description *</Label>
+                  <Textarea
+                    id="productDescription"
+                    value={formData.productInfo.description}
+                    onChange={(e) => updateNestedFormData('productInfo', 'description', e.target.value)}
+                    placeholder="Describe your products and craftsmanship"
+                    rows={4}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="materials">Materials Used *</Label>
+                  <Textarea
+                    id="materials"
+                    value={formData.productInfo.materials}
+                    onChange={(e) => updateNestedFormData('productInfo', 'materials', e.target.value)}
+                    placeholder="List materials and techniques used"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minPrice">Minimum Price (₹)</Label>
+                    <Input
+                      id="minPrice"
+                      type="number"
+                      value={formData.productInfo.priceRange.min}
+                      onChange={(e) => updateDoubleNestedFormData('productInfo', 'priceRange', 'min', parseInt(e.target.value) || 0)}
+                      placeholder="Min price"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxPrice">Maximum Price (₹)</Label>
+                    <Input
+                      id="maxPrice"
+                      type="number"
+                      value={formData.productInfo.priceRange.max}
+                      onChange={(e) => updateDoubleNestedFormData('productInfo', 'priceRange', 'max', parseInt(e.target.value) || 0)}
+                      placeholder="Max price"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="stockQuantity">Stock Quantity</Label>
+                  <Input
+                    id="stockQuantity"
+                    type="number"
+                    value={formData.productInfo.stockQuantity}
+                    onChange={(e) => updateNestedFormData('productInfo', 'stockQuantity', parseInt(e.target.value) || 0)}
+                    placeholder="Current stock quantity"
+                  />
+                </div>
+                <div>
+                  <Label>Product Photos</Label>
+                  <ImageUpload
+                    images={formData.productInfo.photos}
+                    onImagesChange={(images) => updateNestedFormData('productInfo', 'photos', images)}
+                    maxImages={10}
+                    category="products"
+                  />
+                  {formData.productInfo.photos.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {formData.productInfo.photos.map((photo, index) => (
+                        <img key={index} src={photo} alt={`Product ${index + 1}`} className="w-16 h-16 object-cover rounded" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Logistics */}
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="dispatchTime">Dispatch Time *</Label>
+                  <Select
+                    value={formData.logistics.dispatchTime}
+                    onValueChange={(value) => updateNestedFormData('logistics', 'dispatchTime', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select dispatch time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-2 days">1-2 days</SelectItem>
+                      <SelectItem value="3-5 days">3-5 days</SelectItem>
+                      <SelectItem value="1 week">1 week</SelectItem>
+                      <SelectItem value="2 weeks">2 weeks</SelectItem>
+                      <SelectItem value="Custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="packagingType">Packaging Type *</Label>
+                  <Select
+                    value={formData.logistics.packagingType}
+                    onValueChange={(value) => updateNestedFormData('logistics', 'packagingType', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select packaging type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Eco-friendly">Eco-friendly</SelectItem>
+                      <SelectItem value="Traditional">Traditional</SelectItem>
+                      <SelectItem value="Custom">Custom</SelectItem>
+                      <SelectItem value="Standard">Standard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="sameAddress"
+                      checked={formData.logistics.pickupAddress.sameAsMain}
+                      onCheckedChange={(checked) => updateDoubleNestedFormData('logistics', 'pickupAddress', 'sameAsMain', checked)}
+                    />
+                    <Label htmlFor="sameAddress">Pickup address same as main address</Label>
+                  </div>
+                </div>
+                {!formData.logistics.pickupAddress.sameAsMain && (
+                  <div>
+                    <Label htmlFor="pickupAddress">Pickup Address</Label>
+                    <Textarea
+                      id="pickupAddress"
+                      value={formData.logistics.pickupAddress.address}
+                      onChange={(e) => updateDoubleNestedFormData('logistics', 'pickupAddress', 'address', e.target.value)}
+                      placeholder="Enter pickup address"
+                      rows={3}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 5: Documents */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <div>
+                  <Label>GST Certificate {formData.businessInfo.sellerType === 'gst' && '*'}</Label>
+                  <ImageUpload
+                    images={formData.documents.gstCertificate ? [formData.documents.gstCertificate] : []}
+                    onImagesChange={(images) => updateNestedFormData('documents', 'gstCertificate', images[0] || '')}
+                    maxImages={1}
+                    singleMode={true}
+                    category="documents"
+                  />
+                </div>
+                <div>
+                  <Label>Aadhaar Proof *</Label>
+                  <ImageUpload
+                    images={formData.documents.aadhaarProof ? [formData.documents.aadhaarProof] : []}
+                    onImagesChange={(images) => updateNestedFormData('documents', 'aadhaarProof', images[0] || '')}
+                    maxImages={1}
+                    singleMode={true}
+                    category="documents"
+                  />
+                </div>
+                <div>
+                  <Label>Craft Video</Label>
+                  <ImageUpload
+                    images={formData.documents.craftVideo ? [formData.documents.craftVideo] : []}
+                    onImagesChange={(images) => updateNestedFormData('documents', 'craftVideo', images[0] || '')}
+                    maxImages={1}
+                    singleMode={true}
+                    category="videos"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 6: Payment */}
+            {currentStep === 6 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="bankName">Bank Name</Label>
+                  <Input
+                    id="bankName"
+                    value={formData.businessInfo.bankName}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'bankName', e.target.value)}
+                    placeholder="Enter bank name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="accountNumber">Account Number</Label>
+                  <Input
+                    id="accountNumber"
+                    value={formData.businessInfo.accountNumber}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'accountNumber', e.target.value)}
+                    placeholder="Enter account number (9-18 digits)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ifscCode">IFSC Code</Label>
+                  <Input
+                    id="ifscCode"
+                    value={formData.businessInfo.ifscCode}
+                    onChange={(e) => updateNestedFormData('businessInfo', 'ifscCode', e.target.value)}
+                    placeholder="Enter IFSC code (e.g., SBIN0001234)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="upiId">UPI ID *</Label>
+                  <Input
+                    id="upiId"
+                    value={formData.payment.upiId}
+                    onChange={(e) => updateNestedFormData('payment', 'upiId', e.target.value)}
+                    placeholder="Enter UPI ID (e.g., user@paytm)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="paymentFrequency">Payment Frequency</Label>
+                  <Select
+                    value={formData.payment.paymentFrequency}
+                    onValueChange={(value) => updateNestedFormData('payment', 'paymentFrequency', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             
             {/* Navigation Buttons */}
             <div className="flex justify-between pt-6">

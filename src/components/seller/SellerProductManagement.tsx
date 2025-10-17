@@ -197,6 +197,15 @@ export function SellerProductManagement() {
                       />
                     </div>
                   </div>
+                  
+                  <div>
+                    <ImageUpload
+                      images={formData.images}
+                      onImagesChange={(images) => setFormData({ ...formData, images })}
+                      maxImages={5}
+                      category="products"
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                     <Button type="submit">{editingId ? 'Update' : 'Create'}</Button>

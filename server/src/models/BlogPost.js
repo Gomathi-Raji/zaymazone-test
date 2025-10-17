@@ -66,7 +66,7 @@ blogPostSchema.virtual('url').get(function() {
 
 // Pre-save middleware to generate slug and set publishedAt
 blogPostSchema.pre('save', function(next) {
-	if (this.isModified('title') && !this.slug) {
+	if (!this.slug) {
 		this.slug = this.title
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, '-')

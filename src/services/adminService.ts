@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:4000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 
 class AdminService {
   private token: string | null = null
@@ -225,6 +225,25 @@ class AdminService {
     return response.json()
   }
 
+  async createUser(userData: { name: string; email: string; password: string; role?: string; phone?: string; address?: any }) {
+    const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(userData)
+    })
+    if (!response.ok) throw new Error('Failed to create user')
+    return response.json()
+  }
+
+  async deleteUser(id: string) {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders()
+    })
+    if (!response.ok) throw new Error('Failed to delete user')
+    return response.json()
+  }
+
   // Orders Management
   async getOrders(params?: { page?: number; limit?: number; status?: string; search?: string }) {
     const searchParams = new URLSearchParams()
@@ -261,27 +280,26 @@ class AdminService {
 
   async getCategoryAnalytics() {
     try {
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      const response = await fetch(`${LIVE_API}/products`)
+      const response = await fetch(`${API_BASE_URL}/products`)
       if (!response.ok) throw new Error('Failed to fetch products')
-      
+
       const data = await response.json()
       const products = data.products || []
-      
+
       // Calculate category distribution
       const categoryCount = {}
       products.forEach(product => {
         const category = product.category || 'Uncategorized'
         categoryCount[category] = (categoryCount[category] || 0) + 1
       })
-      
+
       const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff']
       const categoryData = Object.entries(categoryCount).map(([name, value], index) => ({
         name,
         value,
         color: colors[index % colors.length]
       }))
-      
+
       return categoryData
     } catch (error) {
       console.error('Error fetching category analytics:', error)
@@ -291,13 +309,12 @@ class AdminService {
 
   async getTopProducts(limit = 5) {
     try {
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      const response = await fetch(`${LIVE_API}/products`)
+      const response = await fetch(`${API_BASE_URL}/products`)
       if (!response.ok) throw new Error('Failed to fetch products')
-      
+
       const data = await response.json()
       const products = data.products || []
-      
+
       // Sort by some metric - since we don't have sales data, sort by rating or use random
       // In a real system, this would come from order analytics
       const topProducts = products
@@ -307,7 +324,7 @@ class AdminService {
           name: product.name,
           sales: Math.floor(Math.random() * 100) + 10 // Mock sales data for now
         }))
-      
+
       return topProducts
     } catch (error) {
       console.error('Error fetching top products:', error)
@@ -328,10 +345,9 @@ class AdminService {
       }
       
       // Fallback: Generate activities from recent data
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const [productsRes, artisansRes] = await Promise.all([
-        fetch(`${LIVE_API}/products?limit=10`),
-        fetch(`${LIVE_API}/artisans?limit=10`)
+        fetch(`${API_BASE_URL}/products?limit=10`),
+        fetch(`${API_BASE_URL}/artisans?limit=10`)
       ])
       
       const activities = []
@@ -676,9 +692,8 @@ class AdminService {
       }
       
       // Fallback: Generate report from available data
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
       const [productsRes, ordersRes] = await Promise.all([
-        fetch(`${LIVE_API}/products`),
+        fetch(`${API_BASE_URL}/products`),
         fetch(`${API_BASE_URL}/orders`, { headers: this.getAuthHeaders() }).catch(() => ({ ok: false }))
       ])
       
@@ -736,18 +751,17 @@ class AdminService {
 
   async getArtisanReport() {
     try {
-      const LIVE_API = 'https://zaymazone-test.onrender.com/api'
-      const response = await fetch(`${LIVE_API}/artisans`)
-      
+      const response = await fetch(`${API_BASE_URL}/artisans`)
+
       if (!response.ok) throw new Error('Failed to fetch artisans')
-      
+
       const data = await response.json()
       const artisans = data.artisans || []
-      
+
       const totalArtisans = artisans.length
       const activeArtisans = artisans.filter(a => a.isActive).length
       const verifiedArtisans = artisans.filter(a => a.verification?.isVerified).length
-      
+
       // Top artisans (mock data since we don't have sales data)
       const topArtisans = artisans.slice(0, 3).map(artisan => ({
         name: artisan.name,
@@ -1050,54 +1064,55 @@ class AdminService {
   // ========== ARTISAN APPROVALS ==========
 
   async getPendingArtisans(page: number = 1, limit: number = 10) {
-    return this.apiCall(`/admin-approvals/pending-artisans?page=${page}&limit=${limit}`);
+    return this.apiCall(`/admin/artisans?status=pending&page=${page}&limit=${limit}`);
   }
 
   async getArtisanDetails(artisanId: string) {
-    return this.apiCall(`/admin-approvals/artisan-details/${artisanId}`);
+    return this.apiCall(`/admin/artisans/${artisanId}`);
   }
 
   async approveArtisan(artisanId: string, approvalNotes: string = '') {
-    return this.apiCall(`/admin-approvals/approve-artisan/${artisanId}`, 'PATCH', { approvalNotes });
+    return this.apiCall(`/admin/approvals/artisans/${artisanId}/approve`, 'POST', { approvalNotes });
   }
 
   async rejectArtisan(artisanId: string, rejectionReason: string) {
-    return this.apiCall(`/admin-approvals/reject-artisan/${artisanId}`, 'PATCH', { rejectionReason });
+    return this.apiCall(`/admin/approvals/artisans/${artisanId}/reject`, 'POST', { rejectionReason });
   }
 
   // ========== PRODUCT APPROVALS ==========
 
   async getPendingProducts(page: number = 1, limit: number = 10) {
-    return this.apiCall(`/admin-approvals/pending-products?page=${page}&limit=${limit}`);
+    return this.apiCall(`/admin/approvals/products?page=${page}&limit=${limit}`);
   }
 
   async approveProduct(productId: string, approvalNotes: string = '') {
-    return this.apiCall(`/admin-approvals/approve-product/${productId}`, 'PATCH', { approvalNotes });
+    return this.apiCall(`/admin/approvals/products/${productId}/approve`, 'POST', { approvalNotes });
   }
 
   async rejectProduct(productId: string, rejectionReason: string) {
-    return this.apiCall(`/admin-approvals/reject-product/${productId}`, 'PATCH', { rejectionReason });
+    return this.apiCall(`/admin/approvals/products/${productId}/reject`, 'POST', { rejectionReason });
   }
 
   // ========== BLOG APPROVALS ==========
 
   async getPendingBlogs(page: number = 1, limit: number = 10) {
-    return this.apiCall(`/admin-approvals/pending-blogs?page=${page}&limit=${limit}`);
+    return this.apiCall(`/admin/blog-posts?page=${page}&limit=${limit}&status=pending`);
   }
 
   async approveBlog(blogId: string, approvalNotes: string = '') {
-    return this.apiCall(`/admin-approvals/approve-blog/${blogId}`, 'PATCH', { approvalNotes });
+    return this.apiCall(`/admin/blog-posts/${blogId}/approve`, 'PATCH', { approvalNotes });
   }
 
   async rejectBlog(blogId: string, rejectionReason: string) {
-    return this.apiCall(`/admin-approvals/reject-blog/${blogId}`, 'PATCH', { rejectionReason });
+    return this.apiCall(`/admin/blog-posts/${blogId}/reject`, 'PATCH', { rejectionReason });
   }
 
   // ========== USER APPROVALS ==========
 
   async getPendingUsers(page: number = 1, limit: number = 10) {
     try {
-      return await this.apiCall(`/api/users/pending?page=${page}&limit=${limit}`);
+      // Use the correct admin endpoint for pending/pending approvals
+      return await this.apiCall(`/admin/approvals/users?page=${page}&limit=${limit}`);
     } catch (error) {
       console.error('Error fetching pending users:', error);
       return { users: [], total: 0 };
@@ -1109,9 +1124,9 @@ class AdminService {
   async getDashboardStats() {
     try {
       const [pendingArtisans, pendingProducts, pendingBlogs] = await Promise.all([
-        this.apiCall('/admin-approvals/pending-artisans?limit=1'),
-        this.apiCall('/admin-approvals/pending-products?limit=1'),
-        this.apiCall('/admin-approvals/pending-blogs?limit=1')
+        this.apiCall('/admin/artisans?status=pending&limit=1'),
+        this.apiCall('/admin/approvals/products?limit=1'),
+        this.apiCall('/admin/blog-posts?status=pending&limit=1')
       ]);
 
       return {
@@ -1134,9 +1149,9 @@ class AdminService {
   async getPendingApprovals() {
     try {
       const [artisansResponse, productsResponse, blogsResponse] = await Promise.all([
-        this.apiCall('/admin-approvals/pending-artisans'),
-        this.apiCall('/admin-approvals/pending-products'),  
-        this.apiCall('/admin-approvals/pending-blogs')
+        this.apiCall('/admin/artisans?status=pending'),
+        this.apiCall('/admin/approvals/products'),  
+        this.apiCall('/admin/blog-posts?status=pending')
       ]);
 
       const approvals = [
@@ -1230,13 +1245,13 @@ class AdminService {
       
       switch (type) {
         case 'artisan':
-          endpoint = `/admin-approvals/artisans/${id}/${action}`;
+          endpoint = `/admin/approvals/artisans/${id}/${action}`;
           break;
         case 'product':
-          endpoint = `/admin-approvals/products/${id}/${action}`;
+          endpoint = `/admin/approvals/products/${id}/${action}`;
           break;
         case 'blog':
-          endpoint = `/admin-approvals/blogs/${id}/${action}`;
+          endpoint = `/admin/blog-posts/${id}/${action}`;
           break;
         default:
           throw new Error(`Unknown approval type: ${type}`);

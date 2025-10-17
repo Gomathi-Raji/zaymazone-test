@@ -131,7 +131,7 @@ export const sellerApi = {
       craftVideo: formData.craftVideo ? await fileToBase64(formData.craftVideo) : null
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/onboarding/artisan`, {
+    const response = await fetch(`${API_BASE_URL}/onboarding/artisan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -321,6 +321,82 @@ export const pageContentApi = {
             subcategories: ["Madhubani", "Kalamkari", "Warli", "Miniature"],
             featured: false,
             artisanCount: 18
+          }
+        ]
+      };
+    }
+  },
+
+  async getArtisans() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/artisans`);
+      return handleResponse(response);
+    } catch (error) {
+      console.warn('Failed to fetch artisans, using defaults:', error);
+      // Return default artisans if API fails
+      return [
+        {
+          _id: '1',
+          name: 'Rajesh Kumar',
+          bio: 'Master potter with 20 years of experience in traditional pottery',
+          avatar: 'https://via.placeholder.com/200x200?text=Rajesh',
+          category: 'Pottery & Ceramics',
+          specialty: 'Handwheel pottery',
+          location: 'Jaipur, Rajasthan',
+          productsCount: 45,
+          rating: 4.8,
+          reviews: 127,
+          slug: 'rajesh-kumar'
+        },
+        {
+          _id: '2',
+          name: 'Priya Sharma',
+          bio: 'Traditional textile weaver specializing in hand block prints',
+          avatar: 'https://via.placeholder.com/200x200?text=Priya',
+          category: 'Textiles & Fabrics',
+          specialty: 'Hand block printing',
+          location: 'Udaipur, Rajasthan',
+          productsCount: 38,
+          rating: 4.9,
+          reviews: 95,
+          slug: 'priya-sharma'
+        }
+      ];
+    }
+  },
+
+  async getBlogs() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/blogs`);
+      return handleResponse(response);
+    } catch (error) {
+      console.warn('Failed to fetch blogs, using defaults:', error);
+      // Return default blogs if API fails
+      return {
+        blogs: [
+          {
+            _id: '1',
+            title: 'The Art of Handcrafted Pottery',
+            slug: 'art-of-handcrafted-pottery',
+            excerpt: 'Discover the timeless techniques and traditions behind handcrafted pottery',
+            author: 'Rajesh Kumar',
+            image: 'https://via.placeholder.com/600x400?text=Pottery+Art',
+            category: 'Pottery',
+            tags: ['pottery', 'handcraft', 'traditional'],
+            publishedAt: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+            views: 234
+          },
+          {
+            _id: '2',
+            title: 'Sustainable Textiles: Traditional Weaving',
+            slug: 'sustainable-textiles-traditional-weaving',
+            excerpt: 'Learn about eco-friendly textile production and traditional weaving methods',
+            author: 'Priya Sharma',
+            image: 'https://via.placeholder.com/600x400?text=Textiles',
+            category: 'Textiles',
+            tags: ['textiles', 'sustainable', 'weaving'],
+            publishedAt: new Date(Date.now() - 5*24*60*60*1000).toISOString(),
+            views: 456
           }
         ]
       };

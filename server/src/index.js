@@ -201,15 +201,20 @@ async function uploadTeamImagesOnStartup() {
 async function start() {
 	try {
 		console.log('🔌 Connecting to MongoDB...');
-		await mongoose.connect(mongoUri)
-		console.log('✅ Connected to MongoDB');
-		
-		initGridFS() // Initialize GridFS after database connection
-		console.log('✅ GridFS initialized');
+		try {
+			await mongoose.connect(mongoUri)
+			console.log('✅ Connected to MongoDB');
+			
+			initGridFS() // Initialize GridFS after database connection
+			console.log('✅ GridFS initialized');
 
-		// Upload team images if they exist
-		await uploadTeamImagesOnStartup()
-		console.log('✅ Team images checked');
+			// Upload team images if they exist
+			await uploadTeamImagesOnStartup()
+			console.log('✅ Team images checked');
+		} catch (dbError) {
+			console.warn('⚠️  MongoDB connection failed:', dbError.message)
+			console.warn('⚠️  Server will continue without database features')
+		}
 
 		app.listen(port, '0.0.0.0', () => {
 			console.log(`🚀 API listening on http://localhost:${port}`)

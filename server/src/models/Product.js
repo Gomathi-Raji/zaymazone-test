@@ -20,14 +20,14 @@ const productSchema = new mongoose.Schema({
 	colors: [{ type: String, trim: true }],
 	tags: [{ type: String, trim: true, lowercase: true }],
 	inStock: { type: Boolean, default: true },
-	stockCount: { type: Number, default: 0, min: 0 }, // Changed from stock to stockCount to match frontend
+	stock: { type: Number, default: 0, min: 0 }, // Changed from stockCount to stock to match seed script
 	isHandmade: { type: Boolean, default: true },
 	shippingTime: { type: String, default: '3-5 days' },
 	rating: { type: Number, min: 0, max: 5, default: 0 },
 	reviewCount: { type: Number, default: 0 },
 	viewCount: { type: Number, default: 0 },
 	salesCount: { type: Number, default: 0 },
-	featured: { type: Boolean, default: false }, // Changed from isFeatured to featured to match frontend
+	isFeatured: { type: Boolean, default: false }, // Changed from featured to isFeatured to match seed script
 	isActive: { type: Boolean, default: true },
 	// Approval workflow fields
 	approvalStatus: { 

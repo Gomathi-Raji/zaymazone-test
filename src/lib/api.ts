@@ -693,7 +693,7 @@ export const artisansApi = {
 			});
 		}
 		const queryString = searchParams.toString();
-		return apiRequest<Artisan[]>(`/api/artisans${queryString ? `?${queryString}` : ''}`);
+		return apiRequest<Artisan[]>(`/api/products/artisans${queryString ? `?${queryString}` : ''}`);
 	},
 	
 	getById: (id: string) =>

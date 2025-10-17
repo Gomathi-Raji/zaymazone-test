@@ -73,7 +73,7 @@ export const useSellerStats = (refreshInterval: number = 30000) => {
 
 // Hook for seller products with pagination and search
 export const useSellerProducts = (page: number = 1, limit: number = 10, search?: string, status?: string) => {
-  const [products, setProducts] = useState<unknown[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

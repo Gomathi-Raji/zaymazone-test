@@ -21,7 +21,9 @@ export function ApprovalManagement() {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadPendingApprovals();
+    if (adminService.isAuthenticated()) {
+      loadPendingApprovals();
+    }
   }, []);
 
   const loadPendingApprovals = async () => {
@@ -108,7 +110,7 @@ export function ApprovalManagement() {
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <Avatar className="w-16 h-16">
-            <AvatarImage src={product.images?.[0] || "/api/placeholder/100/100"} />
+            <AvatarImage src={product.images?.[0] || "/placeholder.svg"} />
             <AvatarFallback><Package className="w-6 h-6" /></AvatarFallback>
           </Avatar>
           <div className="flex-1">
@@ -217,19 +219,18 @@ export function ApprovalManagement() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold text-lg">{artisan.name}</h3>
-                <p className="text-sm text-muted-foreground">{artisan.email}</p>
-                <p className="text-sm text-muted-foreground">{artisan.location}</p>
-                <Badge variant="outline" className="mt-1">{artisan.specialization}</Badge>
+                <p className="text-sm text-muted-foreground">{artisan.businessInfo?.businessName || 'Business name not provided'}</p>
+                <p className="text-sm text-muted-foreground">{artisan.location?.city}, {artisan.location?.state}</p>
+                <Badge variant="outline" className="mt-1">{artisan.specialties?.[0] || 'No specialty'}</Badge>
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium">{artisan.experience || 'N/A'} experience</p>
+                <p className="text-sm font-medium">{artisan.experience || 'N/A'} years experience</p>
                 <p className="text-sm text-muted-foreground">
                   {new Date(artisan.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
             <div className="mt-2">
-              <p className="text-sm"><strong>Phone:</strong> {artisan.phone || 'Not provided'}</p>
               <p className="text-sm"><strong>Bio:</strong> {artisan.bio || 'No bio provided'}</p>
             </div>
             <div className="flex gap-2 mt-4">
@@ -248,24 +249,32 @@ export function ApprovalManagement() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium">Email</label>
-                        <p>{artisan.email}</p>
+                        <label className="text-sm font-medium">Business Name</label>
+                        <p>{artisan.businessInfo?.businessName || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Contact Email</label>
+                        <p>{artisan.businessInfo?.contact?.email || 'Not provided'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Phone</label>
-                        <p>{artisan.phone || 'Not provided'}</p>
+                        <p>{artisan.businessInfo?.contact?.phone || 'Not provided'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Location</label>
-                        <p>{artisan.location}</p>
+                        <p>{artisan.location?.city}, {artisan.location?.state}, {artisan.location?.country}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Specialization</label>
-                        <p>{artisan.specialization}</p>
+                        <label className="text-sm font-medium">Specialties</label>
+                        <p>{artisan.specialties?.join(', ') || 'Not specified'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Experience</label>
-                        <p>{artisan.experience || 'Not specified'}</p>
+                        <p>{artisan.experience ? `${artisan.experience} years` : 'Not specified'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">GST Number</label>
+                        <p>{artisan.businessInfo?.gstNumber || 'Not provided'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium">Applied</label>
@@ -275,6 +284,10 @@ export function ApprovalManagement() {
                     <div>
                       <label className="text-sm font-medium">Bio</label>
                       <p>{artisan.bio || 'No bio provided'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Product Description</label>
+                      <p>{artisan.productInfo?.description || 'Not provided'}</p>
                     </div>
                   </div>
                 </DialogContent>
@@ -422,7 +435,7 @@ export function ApprovalManagement() {
                 </div>
               ) : (
                 pendingProducts.map(product => (
-                  <ProductApprovalCard key={product.id} product={product} />
+                  <ProductApprovalCard key={product._id} product={product} />
                 ))
               )}
             </CardContent>
@@ -448,7 +461,7 @@ export function ApprovalManagement() {
                 </div>
               ) : (
                 pendingArtisans.map(artisan => (
-                  <ArtisanApprovalCard key={artisan.id} artisan={artisan} />
+                  <ArtisanApprovalCard key={artisan._id} artisan={artisan} />
                 ))
               )}
             </CardContent>
@@ -474,7 +487,7 @@ export function ApprovalManagement() {
                 </div>
               ) : (
                 pendingUsers.map(user => (
-                  <UserApprovalCard key={user.id} user={user} />
+                  <UserApprovalCard key={user._id} user={user} />
                 ))
               )}
             </CardContent>

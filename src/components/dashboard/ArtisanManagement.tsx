@@ -233,7 +233,7 @@ export function ArtisanManagement() {
       avatar: artisan.avatar ? [artisan.avatar] : [],
       coverImage: artisan.coverImage ? [artisan.coverImage] : [],
       specialties: artisan.specialties.join(', '),
-      experience: artisan.experience.toString(),
+      experience: artisan.experience?.toString() || '0',
       userId: (artisan as any).userId || ""
     });
     setIsEditDialogOpen(true);

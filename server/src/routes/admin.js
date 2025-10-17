@@ -3,6 +3,7 @@ import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import multer from 'multer'
 import User from '../models/User.js'
 import Product from '../models/Product.js'
 import Artisan from '../models/Artisan.js'
@@ -11,8 +12,23 @@ import Category from '../models/Category.js'
 import BlogPost from '../models/BlogPost.js'
 import Comment from '../models/Comment.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { uploadImageToGridFS } from '../services/imageService.js'
 
 const router = Router()
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage()
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only image files are allowed'))
+    }
+  }
+})
 
 // Helper function to generate tokens
 const generateTokens = (userId, email) => {
@@ -245,9 +261,90 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
 })
 
 // Approval Management Endpoints
+router.post('/products', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      price,
+      originalPrice,
+      images,
+      category,
+      subcategory,
+      materials,
+      colors,
+      tags,
+      stockCount,
+      dimensions,
+      weight,
+      shippingTime,
+      isHandmade,
+      featured,
+      artisanId
+    } = req.body
+
+    // Validation
+    if (!name || !price || !category) {
+      return res.status(400).json({
+        error: 'Missing required fields: name, price, category'
+      })
+    }
+
+    // If artisanId is provided, verify it exists
+    if (artisanId) {
+      const artisan = await Artisan.findById(artisanId)
+      if (!artisan) {
+        return res.status(400).json({ error: 'Invalid artisanId' })
+      }
+    }
+
+    const product = new Product({
+      name,
+      description,
+      price: parseFloat(price),
+      originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
+      images: Array.isArray(images) ? images : [],
+      artisanId: artisanId || null, // Allow null for admin-created products
+      category,
+      subcategory,
+      materials,
+      colors,
+      tags,
+      stockCount: parseInt(stockCount) || 0,
+      inStock: parseInt(stockCount) > 0,
+      dimensions,
+      weight,
+      shippingTime,
+      isHandmade: isHandmade !== false,
+      featured: featured === true,
+      isActive: true, // Admin-created products are active by default
+      approvalStatus: 'approved' // Admin-created products are pre-approved
+    })
+
+    await product.save()
+
+    // Update artisan product count if artisanId is provided
+    if (artisanId) {
+      const artisan = await Artisan.findById(artisanId)
+      if (artisan) {
+        artisan.totalProducts = (artisan.totalProducts || 0) + 1
+        await artisan.save()
+      }
+    }
+
+    res.status(201).json({
+      message: 'Product created successfully',
+      product
+    })
+  } catch (error) {
+    console.error('Admin create product error:', error)
+    res.status(500).json({ error: 'Failed to create product' })
+  }
+})
+
 router.get('/approvals/products', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const pendingProducts = await Product.find({ isActive: false })
+    const pendingProducts = await Product.find({ approvalStatus: 'pending' })
       .populate('artisanId', 'name email')
       .sort({ createdAt: -1 })
 
@@ -255,18 +352,6 @@ router.get('/approvals/products', requireAuth, requireAdmin, async (req, res) =>
   } catch (error) {
     console.error('Get pending products error:', error)
     res.status(500).json({ error: 'Failed to fetch pending products' })
-  }
-})
-
-router.get('/approvals/artisans', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const pendingArtisans = await Artisan.find({ 'verification.isVerified': false })
-      .sort({ createdAt: -1 })
-
-    res.json({ artisans: pendingArtisans })
-  } catch (error) {
-    console.error('Get pending artisans error:', error)
-    res.status(500).json({ error: 'Failed to fetch pending artisans' })
   }
 })
 
@@ -450,6 +535,66 @@ router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Update user role error:', error)
     res.status(500).json({ error: 'Failed to update user role' })
+  }
+})
+
+// Create new user
+router.post('/users', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, email, password, role, phone, address } = req.body
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email })
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' })
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    const user = new User({
+      name,
+      email,
+      passwordHash,
+      role: role || 'user',
+      phone,
+      address,
+      isEmailVerified: true // Admin created users are auto-verified
+    })
+
+    await user.save()
+
+    const userResponse = user.toObject()
+    delete userResponse.passwordHash
+    delete userResponse.refreshTokens
+
+    res.status(201).json({ message: 'User created successfully', user: userResponse })
+  } catch (error) {
+    console.error('Create user error:', error)
+    res.status(500).json({ error: 'Failed to create user' })
+  }
+})
+
+// Delete user
+router.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    // Prevent deleting admin users
+    if (user.role === 'admin') {
+      return res.status(400).json({ error: 'Cannot delete admin users' })
+    }
+
+    await User.findByIdAndDelete(req.params.id)
+
+    res.json({ message: 'User deleted successfully' })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    res.status(500).json({ error: 'Failed to delete user' })
   }
 })
 
@@ -897,7 +1042,7 @@ router.get('/artisans', requireAuth, requireAdmin, async (req, res) => {
 
     let query = {}
     if (status !== 'all') {
-      query.status = status
+      query.approvalStatus = status
     }
     if (search) {
       query.$or = [
@@ -1453,12 +1598,14 @@ router.get('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
 
 router.post('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
   try {
+    // Handle file uploads - for now, just use URLs from request body
+    let featuredImageUrl = req.body.featuredImage || ''
+    let imageUrls = req.body.images ? (Array.isArray(req.body.images) ? req.body.images : [req.body.images]) : []
+
     const { 
       title, 
       excerpt, 
       content, 
-      featuredImage, 
-      images,
       author, 
       category, 
       tags, 
@@ -1479,7 +1626,7 @@ router.post('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Content is required' })
     }
-    if (!featuredImage || !featuredImage.trim()) {
+    if (!featuredImageUrl || !featuredImageUrl.trim()) {
       return res.status(400).json({ error: 'Featured image is required' })
     }
     if (!author || !author.name || !author.name.trim()) {
@@ -1502,10 +1649,11 @@ router.post('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
     // Create new blog post
     const postData = {
       title: title.trim(),
+      slug: title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
       excerpt: excerpt.trim(),
       content: content.trim(),
-      featuredImage: featuredImage.trim(),
-      images: Array.isArray(images) ? images.filter(img => img && img.trim()) : [],
+      featuredImage: featuredImageUrl.trim(),
+      images: imageUrls.filter(img => img && img.trim()),
       author: {
         name: author.name.trim(),
         bio: author.bio ? author.bio.trim() : '',
@@ -1534,10 +1682,11 @@ router.post('/blog-posts', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (error) {
     console.error('Create blog post error:', error)
+    console.error('Error details:', error.message)
     if (error.code === 11000) {
       res.status(400).json({ error: 'Blog post with this title already exists' })
     } else {
-      res.status(500).json({ error: 'Failed to create blog post' })
+      res.status(500).json({ error: 'Failed to create blog post', details: error.message })
     }
   }
 })
@@ -2269,6 +2418,154 @@ router.get('/sellers/stats', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Get seller stats error:', error)
     res.status(500).json({ error: 'Failed to fetch seller statistics' })
+  }
+})
+
+// ============= REPORTS ENDPOINTS =============
+
+// Get sales report
+router.get('/reports/sales', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { period = '30days' } = req.query
+    
+    let dateFilter = {}
+    const now = new Date()
+    
+    switch (period) {
+      case '7days':
+        dateFilter = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }
+        break
+      case '30days':
+        dateFilter = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
+        break
+      case '90days':
+        dateFilter = { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) }
+        break
+      case '1year':
+        dateFilter = { $gte: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()) }
+        break
+      default:
+        dateFilter = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
+    }
+
+    const [salesData, topProducts, categoryData, totalRevenue, totalOrders] = await Promise.all([
+      Order.aggregate([
+        { $match: { createdAt: dateFilter, status: { $in: ['completed', 'shipped'] } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' }
+            },
+            revenue: { $sum: '$totalAmount' },
+            orders: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: dateFilter, status: { $in: ['completed', 'shipped'] } } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.product',
+            sales: { $sum: '$items.quantity' },
+            revenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+          }
+        },
+        { $lookup: { from: 'products', localField: '_id', foreignField: '_id', as: 'product' } },
+        { $unwind: { path: '$product', preserveNullAndEmptyArrays: true } },
+        { $sort: { sales: -1 } },
+        { $limit: 10 }
+      ]),
+      Product.aggregate([
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: dateFilter, status: { $in: ['completed', 'shipped'] } } },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      ]),
+      Order.countDocuments({ createdAt: dateFilter, status: { $in: ['completed', 'shipped'] } })
+    ])
+
+    const revenue = totalRevenue[0]?.total || 0
+
+    res.json({
+      totalRevenue: revenue,
+      totalOrders,
+      averageOrderValue: totalOrders > 0 ? Math.round(revenue / totalOrders) : 0,
+      topProducts: topProducts.map(p => ({
+        name: p.product?.name || 'Unknown Product',
+        sales: p.sales,
+        revenue: p.revenue
+      })),
+      categoryData: categoryData.map(c => ({
+        name: c._id || 'Uncategorized',
+        value: c.count
+      })),
+      salesData: salesData.map(s => ({
+        date: `${s._id.year}-${String(s._id.month).padStart(2, '0')}-${String(s._id.day).padStart(2, '0')}`,
+        revenue: s.revenue,
+        orders: s.orders
+      }))
+    })
+  } catch (error) {
+    console.error('Get sales report error:', error)
+    res.status(500).json({ error: 'Failed to fetch sales report' })
+  }
+})
+
+// ============= INVOICES ENDPOINTS =============
+
+// Get invoices
+router.get('/invoices', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, search } = req.query
+    const skip = (page - 1) * limit
+
+    const filter = {}
+    if (status) filter.status = status
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } },
+        { 'user.name': { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    const orders = await Order.find(filter)
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+
+    const invoices = orders.map((order, idx) => ({
+      id: `INV-${new Date().getFullYear()}-${String(idx + 1).padStart(5, '0')}`,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      customer: order.user?.name || 'Customer',
+      amount: order.totalAmount,
+      status: order.status || 'pending',
+      date: order.createdAt,
+      dueDate: new Date(order.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000)
+    }))
+
+    const total = await Order.countDocuments(filter)
+
+    res.json({
+      invoices,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error('Get invoices error:', error)
+    res.status(500).json({ error: 'Failed to fetch invoices' })
   }
 })
 

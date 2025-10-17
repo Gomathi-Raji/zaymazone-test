@@ -3,6 +3,7 @@ import { z } from 'zod'
 import Product from '../models/Product.js'
 import Artisan from '../models/Artisan.js'
 import Category from '../models/Category.js'
+import BlogPost from '../models/BlogPost.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { authenticateToken } from '../middleware/firebase-auth.js'
 import { validate, paginationSchema, searchSchema } from '../middleware/validation.js'
@@ -156,6 +157,62 @@ router.get('/',
 	}
 )
 
+// Public endpoints for page content and categories - MUST BE BEFORE /:id route
+router.get('/page-content/:pageId', async (req, res) => {
+	try {
+		const { pageId } = req.params
+		
+		// For now, return mock data. In production, this would come from a database
+		const pageContents = {
+			shop: {
+				title: "Shop Artisan Crafts",
+				description: "Discover authentic handcrafted treasures from skilled artisans across India"
+			},
+			artisans: {
+				title: "Meet Our Artisans",
+				description: "Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience and passion to their craft, preserving ancient traditions while creating contemporary masterpieces."
+			},
+			categories: {
+				title: "Explore Categories",
+				description: "Browse our curated collection of handcrafted products organized by traditional craft categories"
+			},
+			blog: {
+				title: "Craft Stories & Insights",
+				description: "Read about the stories behind the crafts, artisan journeys, and insights into India's rich craft heritage"
+			}
+		}
+
+		const content = pageContents[pageId]
+		if (!content) {
+			return res.status(404).json({ error: 'Page content not found' })
+		}
+
+		res.json(content)
+	} catch (error) {
+		console.error('Get page content error:', error)
+		res.status(500).json({ error: 'Failed to fetch page content' })
+	}
+})
+
+// Get artisans endpoint
+router.get('/artisans', async (req, res) => {
+	try {
+		console.log('🔍 Starting artisans endpoint...')
+		
+		// Get artisans from database
+		const artisans = await Artisan.find({ 
+			isActive: true,
+			approvalStatus: 'approved'
+		}).limit(20)
+		
+		console.log(`🔍 Found ${artisans.length} artisans`)
+		res.json(artisans)
+	} catch (error) {
+		console.error('❌ Get artisans error:', error)
+		res.status(500).json({ error: 'Server error' })
+	}
+})
+
 // Get single product with artisan details
 router.get('/:id', optionalAuth, async (req, res) => {
 	try {
@@ -215,7 +272,15 @@ router.post('/', requireAuth, async (req, res) => {
 	if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message })
 	const existsArtisan = await Artisan.findById(parsed.data.artisanId)
 	if (!existsArtisan) return res.status(400).json({ error: 'Invalid artisanId' })
-	const created = await Product.create(parsed.data)
+
+	// If artisan is approved, auto-approve the product
+	const productData = {
+		...parsed.data,
+		approvalStatus: existsArtisan.approvalStatus === 'approved' ? 'approved' : 'pending',
+		isActive: existsArtisan.approvalStatus === 'approved'
+	}
+
+	const created = await Product.create(productData)
 	return res.status(201).json(created)
 })
 
@@ -276,83 +341,185 @@ router.get('/artisan/my-products',
 	}
 )
 
-// Public endpoints for page content and categories
-router.get('/page-content/:pageId', async (req, res) => {
-	try {
-		const { pageId } = req.params
-		
-		// For now, return mock data. In production, this would come from a database
-		const pageContents = {
-			shop: {
-				title: "Shop Artisan Crafts",
-				description: "Discover authentic handcrafted treasures from skilled artisans across India"
-			},
-			artisans: {
-				title: "Meet Our Artisans",
-				description: "Discover the talented craftspeople behind our beautiful products. Each artisan brings decades of experience and passion to their craft, preserving ancient traditions while creating contemporary masterpieces."
-			},
-			categories: {
-				title: "Explore Categories",
-				description: "Browse our curated collection of handcrafted products organized by traditional craft categories"
-			},
-			blog: {
-				title: "Craft Stories & Insights",
-				description: "Read about the stories behind the crafts, artisan journeys, and insights into India's rich craft heritage"
-			}
-		}
-
-		const content = pageContents[pageId]
-		if (!content) {
-			return res.status(404).json({ error: 'Page content not found' })
-		}
-
-		res.json(content)
-	} catch (error) {
-		console.error('Get page content error:', error)
-		res.status(500).json({ error: 'Failed to fetch page content' })
-	}
-})
-
 router.get('/categories', async (req, res) => {
 	try {
 		console.log('🔍 Starting categories endpoint...')
 		
 		// Get categories from database
 		console.log('🔍 Fetching categories from database...')
-		const categories = await Category.find({ isActive: true })
-			.sort({ featured: -1, displayOrder: 1, name: 1 })
-		console.log(`🔍 Found ${categories.length} categories`)
+		try {
+			const categories = await Category.find({ isActive: true })
+				.sort({ featured: -1, displayOrder: 1, name: 1 })
+			console.log(`🔍 Found ${categories.length} categories`)
 
-		// Update counts before sending
-		console.log('🔍 Updating category counts...')
-		await Category.updateCounts()
-		console.log('🔍 Category counts updated')
+			// Transform for frontend compatibility  
+			console.log('🔍 Transforming categories for frontend...')
+			const transformedCategories = categories.map(cat => ({
+				id: cat.slug,
+				_id: cat._id,
+				name: cat.name,
+				slug: cat.slug,
+				description: cat.description,
+				image: cat.image,
+				icon: cat.icon,
+				subcategories: cat.subcategories,
+				featured: cat.featured,
+				productCount: cat.productCount,
+				artisanCount: cat.artisanCount,
+				displayOrder: cat.displayOrder,
+				createdAt: cat.createdAt,
+				updatedAt: cat.updatedAt
+			}))
+			console.log('🔍 Categories transformed successfully')
 
-		// Transform for frontend compatibility  
-		console.log('🔍 Transforming categories for frontend...')
-		const transformedCategories = categories.map(cat => ({
-			id: cat.slug,
-			_id: cat._id,
-			name: cat.name,
-			slug: cat.slug,
-			description: cat.description,
-			image: cat.image,
-			icon: cat.icon,
-			subcategories: cat.subcategories,
-			featured: cat.featured,
-			productCount: cat.productCount,
-			artisanCount: cat.artisanCount,
-			displayOrder: cat.displayOrder,
-			createdAt: cat.createdAt,
-			updatedAt: cat.updatedAt
-		}))
-		console.log('🔍 Categories transformed successfully')
-
-		res.json({ categories: transformedCategories })
-		console.log('🔍 Categories response sent successfully')
+			res.json({ categories: transformedCategories })
+			console.log('🔍 Categories response sent successfully')
+		} catch (dbError) {
+			console.warn('⚠️  Database error fetching categories, returning mock data:', dbError.message)
+			
+			// Return mock categories when database is unavailable
+			const mockCategories = [
+				{
+					id: 'pottery',
+					_id: '1',
+					name: 'Pottery & Ceramics',
+					slug: 'pottery',
+					description: 'Beautiful handcrafted pottery and ceramic pieces',
+					image: 'https://via.placeholder.com/300x300?text=Pottery',
+					icon: 'Palette',
+					subcategories: ['Bowls', 'Vases', 'Plates', 'Decorative'],
+					featured: true,
+					productCount: 45,
+					artisanCount: 12,
+					displayOrder: 1,
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				},
+				{
+					id: 'textiles',
+					_id: '2',
+					name: 'Textiles & Fabrics',
+					slug: 'textiles',
+					description: 'Traditional handwoven textiles and fabrics',
+					image: 'https://via.placeholder.com/300x300?text=Textiles',
+					icon: 'Layers',
+					subcategories: ['Sarees', 'Scarves', 'Dhurries', 'Cushions'],
+					featured: true,
+					productCount: 38,
+					artisanCount: 15,
+					displayOrder: 2,
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				},
+				{
+					id: 'jewelry',
+					_id: '3',
+					name: 'Jewelry & Accessories',
+					slug: 'jewelry',
+					description: 'Handcrafted jewelry and accessories',
+					image: 'https://via.placeholder.com/300x300?text=Jewelry',
+					icon: 'Sparkles',
+					subcategories: ['Necklaces', 'Earrings', 'Bracelets', 'Rings'],
+					featured: true,
+					productCount: 52,
+					artisanCount: 18,
+					displayOrder: 3,
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				},
+				{
+					id: 'woodwork',
+					_id: '4',
+					name: 'Woodwork & Carvings',
+					slug: 'woodwork',
+					description: 'Intricate wooden crafts and carvings',
+					image: 'https://via.placeholder.com/300x300?text=Woodwork',
+					icon: 'Hammer2',
+					subcategories: ['Boxes', 'Figurines', 'Furniture', 'Decorative'],
+					featured: false,
+					productCount: 28,
+					artisanCount: 8,
+					displayOrder: 4,
+					createdAt: new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				}
+			]
+			
+			res.json({ categories: mockCategories })
+		}
 	} catch (error) {
 		console.error('❌ Get categories error:', error)
 		// Return proper error response
+		res.status(500).json({ error: 'Server error' })
+	}
+})
+
+// Get blogs endpoint
+router.get('/blogs', async (req, res) => {
+	try {
+		console.log('🔍 Starting blogs endpoint...')
+		
+		try {
+			// Try to get blogs from database
+			console.log('🔍 Fetching blogs from database...')
+			const blogs = await BlogPost.find({ isPublished: true })
+				.select('_id title slug excerpt content author image category tags publishedAt views')
+				.sort({ publishedAt: -1 })
+				.limit(12)
+			console.log(`🔍 Found ${blogs.length} blogs`)
+			
+			res.json({ blogs })
+			console.log('🔍 Blogs response sent successfully')
+		} catch (dbError) {
+			console.warn('⚠️  Database error fetching blogs, returning mock data:', dbError.message)
+			
+			// Return mock blogs when database is unavailable
+			const mockBlogs = [
+				{
+					_id: '1',
+					title: 'The Art of Handcrafted Pottery',
+					slug: 'art-of-handcrafted-pottery',
+					excerpt: 'Discover the timeless techniques and traditions behind handcrafted pottery',
+					content: 'Full article content here...',
+					author: 'Rajesh Kumar',
+					image: 'https://via.placeholder.com/600x400?text=Pottery+Art',
+					category: 'Pottery',
+					tags: ['pottery', 'handcraft', 'traditional'],
+					publishedAt: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+					views: 234
+				},
+				{
+					_id: '2',
+					title: 'Sustainable Textiles: Traditional Weaving',
+					slug: 'sustainable-textiles-traditional-weaving',
+					excerpt: 'Learn about eco-friendly textile production and traditional weaving methods',
+					content: 'Full article content here...',
+					author: 'Priya Sharma',
+					image: 'https://via.placeholder.com/600x400?text=Textiles',
+					category: 'Textiles',
+					tags: ['textiles', 'sustainable', 'weaving'],
+					publishedAt: new Date(Date.now() - 5*24*60*60*1000).toISOString(),
+					views: 456
+				},
+				{
+					_id: '3',
+					title: 'Contemporary Jewelry Design with Traditional Roots',
+					slug: 'contemporary-jewelry-traditional-roots',
+					excerpt: 'Blending modern aesthetics with age-old jewelry craftsmanship',
+					content: 'Full article content here...',
+					author: 'Arjun Patel',
+					image: 'https://via.placeholder.com/600x400?text=Jewelry',
+					category: 'Jewelry',
+					tags: ['jewelry', 'design', 'craftsmanship'],
+					publishedAt: new Date(Date.now() - 3*24*60*60*1000).toISOString(),
+					views: 567
+				}
+			]
+			
+			res.json({ blogs: mockBlogs })
+		}
+	} catch (error) {
+		console.error('❌ Get blogs error:', error)
 		res.status(500).json({ error: 'Server error' })
 	}
 })

@@ -227,9 +227,15 @@ router.post('/', requireAuth, async (req, res) => {
 			return res.status(400).json({ error: 'Validation failed', details: parsed.error.errors })
 		}
 		
+		// Check if the author is an approved artisan
+		const artisan = await mongoose.model('Artisan').findOne({ userId: req.user.id })
+		const isApprovedArtisan = artisan && artisan.approvalStatus === 'approved'
+		
 		const postData = {
 			...parsed.data,
-			authorId: req.user.id
+			authorId: req.user.id,
+			approvalStatus: isApprovedArtisan ? 'approved' : 'pending',
+			isActive: isApprovedArtisan
 		}
 		
 		const post = new BlogPost(postData)
