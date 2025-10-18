@@ -29,6 +29,7 @@ import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import type { Product } from '@/lib/api';
+import { VideoManager } from '@/components/VideoManager';
 
 const ArtisanProducts = () => {
   const { user } = useAuth();
@@ -51,7 +52,14 @@ const ArtisanProducts = () => {
     stockCount: '',
     category: '',
     tags: '',
-    images: [] as string[]
+    images: [] as string[],
+    videos: [] as Array<{
+      type: 'demonstration' | 'making-of' | 'usage';
+      title: string;
+      url: string;
+      thumbnail: string;
+      duration: number;
+    }>
   });
 
   const loadProducts = useCallback(async (silent = false) => {

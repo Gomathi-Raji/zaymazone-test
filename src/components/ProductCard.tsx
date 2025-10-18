@@ -185,7 +185,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
               <Button 
                 size="sm"
                 onClick={() => setIsQuickViewOpen(true)}
-                className="bg-card text-card-foreground hover:bg-card/90 border border-border/20 shadow-soft"
+                className="bg-card text-card-foreground hover:bg-card/90 border border-gray-200 shadow-soft"
               >
                 Quick View
               </Button>
@@ -193,7 +193,7 @@ export const ProductCard = ({ product, onQuickView, onAddToComparison }: Product
                 <Button 
                   size="sm"
                   onClick={() => onAddToComparison(product)}
-                  className="bg-card/90 text-card-foreground hover:bg-card border border-border/20 shadow-soft"
+                  className="bg-card/90 text-card-foreground hover:bg-card border border-gray-200 shadow-soft"
                 >
                   <BarChart3 className="w-3 h-3 mr-1" />
                   Compare

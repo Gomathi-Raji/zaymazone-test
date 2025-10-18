@@ -30,6 +30,7 @@ import {
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from '@/components/ImageUpload';
+import { VideoManager } from '@/components/VideoManager';
 
 interface Product {
   _id: string;
@@ -38,6 +39,13 @@ interface Product {
   price: number;
   originalPrice?: number;
   images: string[];
+  videos?: Array<{
+    type: 'demonstration' | 'making-of' | 'usage';
+    title: string;
+    url: string;
+    thumbnail: string;
+    duration: number;
+  }>;
   category: string;
   subcategory?: string;
   artisan?: {
@@ -111,7 +119,14 @@ export function ProductManagement() {
     shippingTime: '',
     isFeatured: false, // Changed from featured
     artisanId: '',
-    images: [] as string[]
+    images: [] as string[],
+    videos: [] as Array<{
+      type: 'demonstration' | 'making-of' | 'usage';
+      title: string;
+      url: string;
+      thumbnail: string;
+      duration: number;
+    }>
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -133,7 +148,14 @@ export function ProductManagement() {
     shippingTime: '',
     isFeatured: false, // Changed from featured
     artisanId: '',
-    images: [] as string[]
+    images: [] as string[],
+    videos: [] as Array<{
+      type: 'demonstration' | 'making-of' | 'usage';
+      title: string;
+      url: string;
+      thumbnail: string;
+      duration: number;
+    }>
   });
   const { toast } = useToast();
 
@@ -291,7 +313,8 @@ export function ProductManagement() {
         shippingTime: createFormData.shippingTime || undefined,
         isFeatured: createFormData.isFeatured, // Changed from featured
         artisanId: createFormData.artisanId,
-        images: createFormData.images
+        images: createFormData.images,
+        videos: createFormData.videos
       };
 
       await adminService.createProduct(productData);
@@ -319,7 +342,8 @@ export function ProductManagement() {
         shippingTime: '',
         isFeatured: false, // Changed from featured
         artisanId: '',
-        images: []
+        images: [],
+        videos: []
       });
       loadProducts();
     } catch (error) {
@@ -375,7 +399,8 @@ export function ProductManagement() {
         shippingTime: editFormData.shippingTime || undefined,
         isFeatured: editFormData.isFeatured, // Changed from featured
         artisanId: editFormData.artisanId,
-        images: editFormData.images
+        images: editFormData.images,
+        videos: editFormData.videos
       };
 
       console.log('Sending product data:', productData);
@@ -434,7 +459,8 @@ export function ProductManagement() {
       shippingTime: (product as any).shippingTime || '',
       isFeatured: (product as any).isFeatured || false, // Changed from featured
       artisanId: product.artisan?._id || '',
-      images: product.images || []
+      images: product.images || [],
+      videos: (product as any).videos || []
     });
     console.log('Edit form data set:', {
       name: product.name,
@@ -761,7 +787,8 @@ export function ProductManagement() {
             shippingTime: '',
             isFeatured: false, // Changed from featured
             artisanId: '',
-            images: []
+            images: [],
+            videos: []
           });
         }
       }}>
@@ -992,6 +1019,15 @@ export function ProductManagement() {
                 }}
                 maxImages={5}
                 category="products"
+              />
+            </div>
+
+            {/* Videos */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Videos</h3>
+              <VideoManager
+                videos={editFormData.videos}
+                onChange={(videos) => setEditFormData({ ...editFormData, videos })}
               />
             </div>
           </div>
@@ -1233,6 +1269,15 @@ export function ProductManagement() {
                 onImagesChange={(images) => setCreateFormData({ ...createFormData, images })}
                 maxImages={5}
                 category="products"
+              />
+            </div>
+
+            {/* Videos */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Videos</h3>
+              <VideoManager
+                videos={createFormData.videos}
+                onChange={(videos) => setCreateFormData({ ...createFormData, videos })}
               />
             </div>
           </div>

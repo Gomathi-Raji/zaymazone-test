@@ -41,7 +41,62 @@ const productSchema = new mongoose.Schema({
 	approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 	approvedAt: { type: Date },
 	seoTitle: { type: String, trim: true },
-	seoDescription: { type: String, trim: true }
+	seoDescription: { type: String, trim: true },
+	// New enhanced features
+	images360: [{
+		angle: { type: Number, min: 0, max: 360 },
+		url: { type: String },
+		alt: { type: String, default: '' }
+	}],
+	has360View: { type: Boolean, default: false },
+	videos: [{
+		type: { type: String, enum: ['demonstration', 'making-of', 'usage'], default: 'demonstration' },
+		title: { type: String, trim: true },
+		url: { type: String },
+		thumbnail: { type: String },
+		duration: { type: Number, min: 0 }, // in seconds
+		fileSize: { type: Number, min: 0 }, // in bytes
+		uploadedAt: { type: Date, default: Date.now }
+	}],
+	sizeGuide: {
+		category: { type: String, enum: ['clothing', 'jewelry', 'accessories', 'home-decor'] },
+		measurements: [{
+			name: { type: String },
+			unit: { type: String, enum: ['cm', 'inches'], default: 'cm' },
+			description: { type: String },
+			howToMeasure: { type: String }
+		}],
+		sizeChart: [{
+			size: { type: String }, // "XS", "S", "M", "L", "XL"
+			measurements: { type: Map, of: Number },
+			bodyType: { type: String, enum: ['slim', 'regular', 'plus'], default: 'regular' }
+		}],
+		visualGuide: { type: String } // URL to measurement diagram
+	},
+	careInstructions: {
+		materials: [{ type: String }], // Array of material names
+		washing: {
+			method: { type: String },
+			temperature: { type: String },
+			detergent: { type: String },
+			specialNotes: { type: String }
+		},
+		drying: {
+			method: { type: String },
+			temperature: { type: String },
+			specialNotes: { type: String }
+		},
+		ironing: {
+			temperature: { type: String },
+			method: { type: String },
+			specialNotes: { type: String }
+		},
+		storage: { type: String },
+		cleaning: { type: String },
+		warnings: [{ type: String }],
+		icons: [{ type: String }], // URLs to care symbols
+		videoTutorial: { type: String } // URL to care video
+	}
 }, { timestamps: true })
 
 // Array length validator

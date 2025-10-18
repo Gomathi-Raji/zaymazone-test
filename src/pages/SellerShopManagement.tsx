@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUpload } from '@/components/ImageUpload';
+import { VideoManager } from '@/components/VideoManager';
 import { useSellerProducts } from '@/hooks/useSeller';
 import { sellerService } from '@/services/sellerService';
 import { 
@@ -51,6 +52,13 @@ interface ProductFormData {
   stockCount: string;
   category: string;
   images: string[];
+  videos: Array<{
+    type: 'demonstration' | 'making-of' | 'usage';
+    title: string;
+    url: string;
+    thumbnail: string;
+    duration: number;
+  }>;
   isActive: boolean;
 }
 
@@ -62,6 +70,7 @@ const INITIAL_FORM_DATA: ProductFormData = {
   stockCount: '',
   category: '',
   images: [],
+  videos: [],
   isActive: true
 };
 
@@ -107,6 +116,7 @@ export function SellerShopManagement() {
         stockCount: parseInt(formData.stockCount),
         category: formData.category,
         images: formData.images,
+        videos: formData.videos,
         isActive: formData.isActive
       };
 
@@ -619,6 +629,18 @@ export function SellerShopManagement() {
                 value={formData.images}
                 onChange={(urls) => setFormData(prev => ({ ...prev, images: urls }))}
                 maxFiles={5}
+              />
+            </div>
+
+            {/* Videos */}
+            <div>
+              <Label>Product Videos</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Add videos to showcase your product (demonstration, making-of, or usage videos)
+              </p>
+              <VideoManager
+                videos={formData.videos}
+                onChange={(videos) => setFormData(prev => ({ ...prev, videos }))}
               />
             </div>
 

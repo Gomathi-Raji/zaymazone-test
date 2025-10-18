@@ -176,6 +176,68 @@ export interface Product {
 	isHandmade: boolean;
 	shippingTime: string;
 	featured: boolean;
+	// New enhanced features
+	images360?: Array<{
+		angle: number;
+		url: string;
+		alt: string;
+	}>;
+	has360View?: boolean;
+	videos?: Array<{
+		type: 'demonstration' | 'making-of' | 'usage';
+		title: string;
+		url: string;
+		thumbnail: string;
+		duration: number;
+		fileSize: number;
+		uploadedAt: string;
+	}>;
+	sizeGuide?: {
+		category: 'clothing' | 'jewelry' | 'accessories' | 'home-decor';
+		measurements: Array<{
+			name: string;
+			unit: 'cm' | 'inches';
+			description: string;
+			howToMeasure: string;
+		}>;
+		sizeChart: Array<{
+			size: string;
+			measurements: Record<string, number>;
+			bodyType: 'slim' | 'regular' | 'plus';
+		}>;
+		visualGuide?: string;
+	};
+	careInstructions?: {
+		materials: string[];
+		washing?: {
+			method?: string;
+			temperature?: string;
+			detergent?: string;
+			specialNotes?: string;
+		};
+		drying?: {
+			method?: string;
+			temperature?: string;
+			specialNotes?: string;
+		};
+		ironing?: {
+			temperature?: string;
+			method?: string;
+			specialNotes?: string;
+		};
+		storage?: string;
+		cleaning?: string;
+		warnings?: string[];
+		icons?: string[];
+		videoTutorial?: string;
+	};
+	model3d?: {
+		url: string;
+		format: string;
+		thumbnail: string;
+		title: string;
+		description: string;
+	};
 }
 
 export interface CartItem {

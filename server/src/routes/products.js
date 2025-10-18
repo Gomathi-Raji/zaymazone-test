@@ -137,7 +137,12 @@ router.get('/',
 				tags: Array.isArray(product.tags) ? product.tags : [],
 				isHandmade: product.isHandmade,
 				shippingTime: product.shippingTime,
-				featured: product.featured
+				featured: product.featured,
+				// Enhanced features
+				images360: product.images360 || [],
+				videos: product.videos || [],
+				sizeGuide: product.sizeGuide || null,
+				careInstructions: product.careInstructions || null
 			}))
 
 			const totalPages = Math.ceil(total / limit)
@@ -280,7 +285,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
 			tags: Array.isArray(product.tags) ? product.tags : [],
 			isHandmade: product.isHandmade,
 			shippingTime: product.shippingTime,
-			featured: product.featured
+			featured: product.featured,
+			// Enhanced features
+			images360: product.images360 || [],
+			videos: product.videos || [],
+			sizeGuide: product.sizeGuide || null,
+			careInstructions: product.careInstructions || null,
+			model3d: product.model3d || null,
+			model3d: product.model3d || null
 		}
 
 		// Increment view count (fire and forget)

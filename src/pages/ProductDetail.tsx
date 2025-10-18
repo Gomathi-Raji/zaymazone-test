@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Heart, Share2, Star, MapPin, Truck, Shield, RotateCcw, ArrowLeft, ShoppingCart, ShoppingBag } from "lucide-react";
+import { Heart, Share2, Star, MapPin, Truck, Shield, RotateCcw, ArrowLeft, ShoppingCart, ShoppingBag, FileText, Settings, MessageSquare, Play, Ruler, Box, Pause, ZoomIn, ZoomOut, RotateCcw as ResetIcon, RotateCw } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,20 @@ import { analytics } from "@/lib/analytics";
 import { useEffect } from "react";
 import SocialShare from "@/components/SocialShare";
 import SEO from "@/components/SEO";
+import { ProductVideoPlayer } from "@/components/ProductVideoPlayer";
+import { MaterialCareGuide } from "@/components/MaterialCareGuide";
+import { parseVideoUrl } from "@/lib/videoUtils";
+import { VideoEmbed } from "@/components/VideoEmbed";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isAutoSpinning, setIsAutoSpinning] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [spinInterval, setSpinInterval] = useState<NodeJS.Timeout | null>(null);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   const { data: product, isLoading, error } = useProduct(id || '');
   const { addToCart, isLoading: cartLoading } = useCart();
@@ -39,6 +47,51 @@ const ProductDetail = () => {
       });
     }
   }, [product]);
+
+  // Combine images and videos into a single media array for unified display
+  const combinedMedia = product ? [
+    ...(product.images || []).map((image, index) => ({
+      type: 'image' as const,
+      url: image,
+      thumbnail: image,
+      index: index,
+      alt: `${product.name} view ${index + 1}`
+    })),
+    ...(product.videos || []).map((video, index) => ({
+      type: 'video' as const,
+      url: video.url,
+      thumbnail: video.thumbnail || video.url,
+      index: (product.images || []).length + index,
+      alt: video.title || `${product.name} video ${index + 1}`,
+      title: video.title,
+      duration: video.duration
+    }))
+  ] : [];
+
+  // Auto-spin functionality
+  useEffect(() => {
+    if (isAutoSpinning && combinedMedia.length > 1) {
+      const interval = setInterval(() => {
+        setSelectedMediaIndex((prev) => (prev + 1) % combinedMedia.length);
+      }, 2000); // Change media every 2 seconds
+      setSpinInterval(interval);
+      return () => clearInterval(interval);
+    } else {
+      if (spinInterval) {
+        clearInterval(spinInterval);
+        setSpinInterval(null);
+      }
+    }
+  }, [isAutoSpinning, combinedMedia.length]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (spinInterval) {
+        clearInterval(spinInterval);
+      }
+    };
+  }, [spinInterval]);
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
@@ -83,6 +136,30 @@ const ProductDetail = () => {
       navigate('/checkout');
     } catch (error) {
       // Error is already handled in the cart context
+    }
+  };
+
+  const toggleAutoSpin = () => {
+    setIsAutoSpinning(!isAutoSpinning);
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 3)); // Max zoom 3x
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5)); // Min zoom 0.5x
+  };
+
+  const resetZoom = () => {
+    setZoomLevel(1);
+  };
+
+  const handleMediaClick = (index: number) => {
+    setSelectedMediaIndex(index);
+    // Stop auto-spin when user manually selects media
+    if (isAutoSpinning) {
+      setIsAutoSpinning(false);
     }
   };
 
@@ -177,36 +254,139 @@ const ProductDetail = () => {
         </Link>
 
         <div className="grid lg:grid-cols-2 gap-6 lg:gap-12">
-          {/* Product Images */}
+          {/* Product Images and Videos */}
           <div className="w-full">
-            {/* Main Image */}
-            <div className="aspect-square bg-card rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 max-w-full">
-              <img
-                src={getImageUrl(product.images[selectedImageIndex])}
-                alt={product.name}
-                className="w-full h-full object-cover object-center"
-              />
+            {/* Main Media Display with Controls */}
+            <div className="relative aspect-square bg-card rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 max-w-full group">
+              {combinedMedia[selectedMediaIndex]?.type === 'video' ? (
+                <VideoEmbed
+                  url={combinedMedia[selectedMediaIndex].url}
+                  title={combinedMedia[selectedMediaIndex].title}
+                  thumbnail={combinedMedia[selectedMediaIndex].thumbnail}
+                  className="w-full h-full object-cover object-center"
+                  style={{
+                    transform: `scale(${zoomLevel})`,
+                    transformOrigin: 'center center'
+                  }}
+                  onPlay={() => setIsAutoSpinning(false)} // Stop auto-spin when video plays
+                />
+              ) : (
+                <img
+                  src={getImageUrl(combinedMedia[selectedMediaIndex]?.url)}
+                  alt={combinedMedia[selectedMediaIndex]?.alt}
+                  className="w-full h-full object-cover object-center transition-transform duration-300 ease-in-out"
+                  style={{
+                    transform: `scale(${zoomLevel})`,
+                    transformOrigin: 'center center'
+                  }}
+                />
+              )}
+
+              {/* Media Controls Overlay */}
+              <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {/* Auto-spin Control */}
+                {combinedMedia.length > 1 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={toggleAutoSpin}
+                    className="w-10 h-10 p-0 bg-black/50 hover:bg-black/70 border-0 text-white backdrop-blur-sm"
+                    title={isAutoSpinning ? "Stop auto-spin" : "Start auto-spin"}
+                  >
+                    {isAutoSpinning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </Button>
+                )}
+
+                {/* Zoom Controls - Only show for images */}
+                {combinedMedia[selectedMediaIndex]?.type === 'image' && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 3}
+                      className="w-10 h-10 p-0 bg-black/50 hover:bg-black/70 border-0 text-white backdrop-blur-sm disabled:opacity-50"
+                      title="Zoom in"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 0.5}
+                      className="w-10 h-10 p-0 bg-black/50 hover:bg-black/70 border-0 text-white backdrop-blur-sm disabled:opacity-50"
+                      title="Zoom out"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={resetZoom}
+                      disabled={zoomLevel === 1}
+                      className="w-10 h-10 p-0 bg-black/50 hover:bg-black/70 border-0 text-white backdrop-blur-sm disabled:opacity-50"
+                      title="Reset zoom"
+                    >
+                      <ResetIcon className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Auto-spin Indicator */}
+              {isAutoSpinning && (
+                <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                  <RotateCw className="w-3 h-3 animate-spin" />
+                  Auto-spinning
+                </div>
+              )}
+
+              {/* Video Indicator */}
+              {combinedMedia[selectedMediaIndex]?.type === 'video' && (
+                <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                  <Play className="w-3 h-3" />
+                  Video
+                </div>
+              )}
             </div>
 
-            {/* Thumbnail Images */}
-            {product.images.length > 1 && (
+            {/* Thumbnail Images and Videos */}
+            {combinedMedia.length > 1 && (
               <div className="grid grid-cols-4 gap-2 max-w-full overflow-hidden">
-                {product.images.map((image, index) => (
+                {combinedMedia.map((media, index) => (
                   <button
                     key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    aria-label={`View ${product.name} image ${index + 1} of ${product.images.length}`}
-                    className={`aspect-square rounded-md sm:rounded-lg overflow-hidden border-2 transition-colors max-w-full ${
-                      selectedImageIndex === index
+                    onClick={() => handleMediaClick(index)}
+                    aria-label={`View ${media.alt}`}
+                    className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden border-2 transition-colors max-w-full ${
+                      selectedMediaIndex === index
                         ? 'border-primary'
                         : 'border-transparent hover:border-primary/50'
                     }`}
                   >
-                    <img
-                      src={image}
-                      alt={`${product.name} view ${index + 1}`}
-                      className="w-full h-full object-cover object-center"
-                    />
+                    {media.type === 'video' ? (
+                      <>
+                        <img
+                          src={media.thumbnail}
+                          alt={media.alt}
+                          className="w-full h-full object-cover object-center"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-black/50 rounded-full p-1">
+                            <Play className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <img
+                        src={media.url}
+                        alt={media.alt}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    )}
                   </button>
                 ))}
               </div>
@@ -395,10 +575,29 @@ const ProductDetail = () => {
         {/* Product Details Tabs */}
         <div className="mt-8 sm:mt-16">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
-              <TabsTrigger value="description" className="text-xs sm:text-sm px-2 py-2">Description</TabsTrigger>
-              <TabsTrigger value="specifications" className="text-xs sm:text-sm px-2 py-2">Specs</TabsTrigger>
-              <TabsTrigger value="reviews" className="text-xs sm:text-sm px-2 py-2">Reviews</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
+              <TabsTrigger value="description" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">Description</span>
+                <span className="sm:hidden">Desc</span>
+              </TabsTrigger>
+              <TabsTrigger value="specifications" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Specs</span>
+                <span className="sm:hidden">Specs</span>
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                <MessageSquare className="w-4 h-4" />
+                <span className="hidden sm:inline">Reviews</span>
+                <span className="sm:hidden">Reviews</span>
+              </TabsTrigger>
+              {product.model3d && (
+                <TabsTrigger value="3dmodel" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all border-2 border-purple-500/20 data-[state=active]:border-purple-500">
+                  <Box className="w-4 h-4 text-purple-500" />
+                  <span className="hidden sm:inline">3D Model</span>
+                  <span className="sm:hidden">3D</span>
+                </TabsTrigger>
+              )}
             </TabsList>
             
             <TabsContent value="description" className="mt-4 sm:mt-6">
@@ -568,6 +767,46 @@ const ProductDetail = () => {
                 </Button>
               </div>
             </TabsContent>
+
+            {/* 3D Model Tab */}
+            {product.model3d && (
+              <TabsContent value="3dmodel" className="mt-4 sm:mt-6">
+                <div className="max-w-4xl mx-auto">
+                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">{product.model3d.title}</h3>
+                      <p className="text-gray-600">{product.model3d.description}</p>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                      <model-viewer
+                        src={product.model3d.url}
+                        alt={product.model3d.title}
+                        camera-controls
+                        auto-rotate
+                        ar
+                        ar-modes="webxr scene-viewer quick-look"
+                        style={{ width: '100%', height: '500px' }}
+                        class="model-viewer"
+                      >
+                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-sm font-medium text-gray-700">
+                          🖱️ Drag to rotate • 🔍 Scroll to zoom • 👆 Tap for AR
+                        </div>
+                        <div slot="progress-bar" className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                          <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 text-sm text-gray-600">
+                            Loading 3D model...
+                          </div>
+                        </div>
+                      </model-viewer>
+                    </div>
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-500">
+                        Interactive 3D model - Rotate, zoom, and view in augmented reality
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </main>
