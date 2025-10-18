@@ -1009,8 +1009,8 @@ export const api = {
 export function getImageUrl(path: string): string {
   if (!path) return '/placeholder.svg';
 
-  // If it's already a full URL, return as is
-  if (path.startsWith('http://') || path.startsWith('https://')) {
+  // If it's already a full URL or data URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
   }
 

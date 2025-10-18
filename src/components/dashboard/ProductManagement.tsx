@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,19 +45,47 @@ interface Product {
     _id: string;
   };
   inStock: boolean;
-  stockCount: number;
+  stock: number; // Changed from stockCount to match database
   rating?: number;
   reviewCount?: number;
   isActive?: boolean;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   createdAt: string;
-  totalSales?: number;
-  views?: number;
+  salesCount?: number; // Changed from totalSales to match database
+  viewCount?: number; // Changed from views to match database
+  isFeatured?: boolean; // Changed from featured to match database
+}
+
+interface Artisan {
+  _id: string;
+  name: string;
+  bio: string;
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  avatar: string;
+  coverImage: string;
+  specialties: string[];
+  experience: number;
+  rating: number;
+  totalRatings: number;
+  totalProducts: number;
+  totalSales: number;
+  verification: {
+    isVerified: boolean;
+    verifiedAt?: Date;
+  };
+  isActive: boolean;
+  joinedDate: Date;
 }
 
 export function ProductManagement() {
+  const queryClient = useQueryClient();
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingProducts, setPendingProducts] = useState<Product[]>([]);
+  const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -70,8 +99,18 @@ export function ProductManagement() {
     description: '',
     price: '',
     originalPrice: '',
-    stockCount: '',
+    stock: '', // Changed from stockCount
     category: '',
+    subcategory: '',
+    materials: '',
+    dimensions: '',
+    weight: '',
+    colors: '',
+    tags: '',
+    isHandmade: true,
+    shippingTime: '',
+    isFeatured: false, // Changed from featured
+    artisanId: '',
     images: [] as string[]
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -82,14 +121,25 @@ export function ProductManagement() {
     description: '',
     price: '',
     originalPrice: '',
-    stockCount: '',
+    stock: '', // Changed from stockCount
     category: '',
+    subcategory: '',
+    materials: '',
+    dimensions: '',
+    weight: '',
+    colors: '',
+    tags: '',
+    isHandmade: true,
+    shippingTime: '',
+    isFeatured: false, // Changed from featured
+    artisanId: '',
     images: [] as string[]
   });
   const { toast } = useToast();
 
   useEffect(() => {
     loadProducts();
+    loadArtisans();
   }, []);
 
   const loadProducts = async () => {
@@ -100,8 +150,25 @@ export function ProductManagement() {
         adminService.getPendingProducts()
       ]);
 
-      setProducts(approvedResponse.products || []);
-      setPendingProducts(pendingResponse.products || []);
+      // Transform products to match frontend interface
+      const transformedProducts = (approvedResponse.products || []).map((product: any) => ({
+        ...product,
+        artisan: product.artisanId ? {
+          _id: product.artisanId._id || product.artisanId,
+          name: product.artisanId.name || 'Unknown'
+        } : undefined
+      }));
+
+      const transformedPendingProducts = (pendingResponse.products || []).map((product: any) => ({
+        ...product,
+        artisan: product.artisanId ? {
+          _id: product.artisanId._id || product.artisanId,
+          name: product.artisanId.name || 'Unknown'
+        } : undefined
+      }));
+
+      setProducts(transformedProducts);
+      setPendingProducts(transformedPendingProducts);
     } catch (error) {
       console.error('Error loading products:', error);
       toast({
@@ -111,6 +178,53 @@ export function ProductManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadArtisans = async () => {
+    try {
+      const response = await adminService.getArtisans();
+      setArtisans(response.artisans || []);
+    } catch (error) {
+      console.error('Error loading artisans:', error);
+      // Try fallback: get artisans from public API
+      try {
+        const { api } = await import('@/lib/api');
+        const publicResponse = await api.getArtisans();
+        // Transform public artisans to match our interface
+        const transformedArtisans = publicResponse.map((artisan: any) => ({
+          _id: artisan.id || artisan._id,
+          name: artisan.name,
+          bio: artisan.description || artisan.bio || '',
+          location: {
+            city: artisan.location?.split(',')[0]?.trim() || '',
+            state: artisan.location?.split(',')[1]?.trim() || '',
+            country: 'India'
+          },
+          avatar: artisan.avatar || artisan.image || '',
+          coverImage: artisan.image || '',
+          specialties: [artisan.specialty || 'Artisan'],
+          experience: parseInt(artisan.experience) || 0,
+          rating: artisan.rating || 0,
+          totalRatings: artisan.reviews || 0,
+          totalProducts: artisan.products || artisan.productCount || 0,
+          totalSales: 0,
+          verification: {
+            isVerified: true,
+            verifiedAt: new Date()
+          },
+          isActive: true,
+          joinedDate: new Date()
+        }));
+        setArtisans(transformedArtisans);
+      } catch (fallbackError) {
+        console.error('Fallback artisan loading also failed:', fallbackError);
+        toast({
+          title: "Error",
+          description: "Failed to load artisans. Please ensure you're logged in as admin.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -149,10 +263,10 @@ export function ProductManagement() {
   };
 
   const handleCreateProduct = async () => {
-    if (!createFormData.name || !createFormData.price || !createFormData.stockCount || !createFormData.category) {
+    if (!createFormData.name || !createFormData.price || !createFormData.stock || !createFormData.category) {
       toast({
         title: "Validation Error",
-        description: "Please fill all required fields",
+        description: "Please fill name, price, stock, and category fields",
         variant: "destructive"
       });
       return;
@@ -165,8 +279,18 @@ export function ProductManagement() {
         description: createFormData.description,
         price: parseFloat(createFormData.price),
         originalPrice: createFormData.originalPrice ? parseFloat(createFormData.originalPrice) : undefined,
-        stockCount: parseInt(createFormData.stockCount),
+        stock: parseInt(createFormData.stock), // Changed from stockCount
         category: createFormData.category,
+        subcategory: createFormData.subcategory || undefined,
+        materials: createFormData.materials ? createFormData.materials.split(',').map(m => m.trim()).filter(m => m) : [],
+        dimensions: createFormData.dimensions || undefined,
+        weight: createFormData.weight || undefined,
+        colors: createFormData.colors ? createFormData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
+        tags: createFormData.tags ? createFormData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
+        isHandmade: createFormData.isHandmade,
+        shippingTime: createFormData.shippingTime || undefined,
+        isFeatured: createFormData.isFeatured, // Changed from featured
+        artisanId: createFormData.artisanId,
         images: createFormData.images
       };
 
@@ -175,14 +299,26 @@ export function ProductManagement() {
         title: "Success",
         description: "Product created successfully",
       });
+      // Invalidate public product queries to sync with frontend
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsCreateDialogOpen(false);
       setCreateFormData({
         name: '',
         description: '',
         price: '',
         originalPrice: '',
-        stockCount: '',
+        stock: '', // Changed from stockCount
         category: '',
+        subcategory: '',
+        materials: '',
+        dimensions: '',
+        weight: '',
+        colors: '',
+        tags: '',
+        isHandmade: true,
+        shippingTime: '',
+        isFeatured: false, // Changed from featured
+        artisanId: '',
         images: []
       });
       loadProducts();
@@ -199,12 +335,22 @@ export function ProductManagement() {
   };
 
   const handleEditProduct = async () => {
-    if (!editingProduct) return;
+    console.log('handleEditProduct called', { editingProduct, editFormData });
 
-    if (!editFormData.name || !editFormData.price || !editFormData.stockCount || !editFormData.category) {
+    if (!editingProduct) {
+      console.log('No editing product');
+      return;
+    }
+
+    if (!editFormData.name || !editFormData.price || !editFormData.category) {
+      console.log('Validation failed', {
+        name: editFormData.name,
+        price: editFormData.price,
+        category: editFormData.category
+      });
       toast({
         title: "Validation Error",
-        description: "Please fill all required fields",
+        description: "Please fill name, price, and category fields",
         variant: "destructive"
       });
       return;
@@ -217,16 +363,30 @@ export function ProductManagement() {
         description: editFormData.description,
         price: parseFloat(editFormData.price),
         originalPrice: editFormData.originalPrice ? parseFloat(editFormData.originalPrice) : undefined,
-        stockCount: parseInt(editFormData.stockCount),
+        stock: parseInt(editFormData.stock), // Changed from stockCount
         category: editFormData.category,
+        subcategory: editFormData.subcategory || undefined,
+        materials: editFormData.materials ? editFormData.materials.split(',').map(m => m.trim()).filter(m => m) : [],
+        dimensions: editFormData.dimensions || undefined,
+        weight: editFormData.weight || undefined,
+        colors: editFormData.colors ? editFormData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
+        tags: editFormData.tags ? editFormData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
+        isHandmade: editFormData.isHandmade,
+        shippingTime: editFormData.shippingTime || undefined,
+        isFeatured: editFormData.isFeatured, // Changed from featured
+        artisanId: editFormData.artisanId,
         images: editFormData.images
       };
+
+      console.log('Sending product data:', productData);
 
       await adminService.updateProduct(editingProduct._id, productData);
       toast({
         title: "Success",
         description: "Product updated successfully",
       });
+      // Invalidate public product queries to sync with frontend
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       setIsEditDialogOpen(false);
       setEditingProduct(null);
       loadProducts();
@@ -243,14 +403,43 @@ export function ProductManagement() {
   };
 
   const openEditDialog = (product: Product) => {
-    setEditingProduct(product);
-    setEditFormData({
+    console.log('openEditDialog called with product:', product);
+    console.log('Product properties:', {
       name: product.name,
       description: product.description,
-      price: product.price.toString(),
-      originalPrice: product.originalPrice?.toString() || '',
-      stockCount: product.stockCount.toString(),
+      price: product.price,
+      priceType: typeof product.price,
+      originalPrice: product.originalPrice,
+      stock: product.stock, // Changed from stockCount
       category: product.category,
+      artisan: product.artisan,
+      images: product.images
+    });
+
+    setEditingProduct(product);
+    setEditFormData({
+      name: product.name || '',
+      description: product.description || '',
+      price: (product.price != null ? product.price.toString() : ''),
+      originalPrice: (product.originalPrice != null ? product.originalPrice.toString() : ''),
+      stock: (product.stock != null ? product.stock.toString() : ''), // Changed from stockCount
+      category: product.category || '',
+      subcategory: (product as any).subcategory || '',
+      materials: (product as any).materials?.join(', ') || '',
+      dimensions: (product as any).dimensions || '',
+      weight: (product as any).weight || '',
+      colors: (product as any).colors?.join(', ') || '',
+      tags: (product as any).tags?.join(', ') || '',
+      isHandmade: (product as any).isHandmade !== false,
+      shippingTime: (product as any).shippingTime || '',
+      isFeatured: (product as any).isFeatured || false, // Changed from featured
+      artisanId: product.artisan?._id || '',
+      images: product.images || []
+    });
+    console.log('Edit form data set:', {
+      name: product.name,
+      description: product.description,
+      price: product.price,
       images: product.images
     });
     setIsEditDialogOpen(true);
@@ -263,6 +452,8 @@ export function ProductManagement() {
         title: "Success",
         description: "Product deleted successfully",
       });
+      // Invalidate public product queries to sync with frontend
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       loadProducts();
     } catch (error) {
       toast({
@@ -539,7 +730,7 @@ export function ProductManagement() {
                   <p className="font-medium">${viewingProduct.price}</p>
                   <p>Category: {viewingProduct.category}</p>
                   <p>Artisan: {viewingProduct.artisan?.name}</p>
-                  <p>Stock: {viewingProduct.stockCount}</p>
+                  <p>Stock: {viewingProduct.stock}</p>
                   <p>Rating: {viewingProduct.rating} ({viewingProduct.reviewCount} reviews)</p>
                 </div>
               </div>
@@ -549,92 +740,256 @@ export function ProductManagement() {
       </Dialog>
 
       {/* Edit Product Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setEditingProduct(null);
+          setEditFormData({
+            name: '',
+            description: '',
+            price: '',
+            originalPrice: '',
+            stock: '', // Changed from stockCount
+            category: '',
+            subcategory: '',
+            materials: '',
+            dimensions: '',
+            weight: '',
+            colors: '',
+            tags: '',
+            isHandmade: true,
+            shippingTime: '',
+            isFeatured: false, // Changed from featured
+            artisanId: '',
+            images: []
+          });
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>
               Update product information. Changes will be reflected immediately on the platform.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-name">Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  placeholder="Product name"
-                />
+          <div className="space-y-6 py-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    placeholder="Product name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <Select value={editFormData.category} onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pottery">Pottery</SelectItem>
+                      <SelectItem value="textiles">Textiles</SelectItem>
+                      <SelectItem value="jewelry">Jewelry</SelectItem>
+                      <SelectItem value="woodwork">Woodwork</SelectItem>
+                      <SelectItem value="metalwork">Metalwork</SelectItem>
+                      <SelectItem value="paintings">Paintings</SelectItem>
+                      <SelectItem value="crafts">Crafts</SelectItem>
+                      <SelectItem value="toys">Toys</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               <div>
-                <Label htmlFor="edit-category">Category *</Label>
-                <Select value={editFormData.category} onValueChange={(value) => setEditFormData({ ...editFormData, category: value })}>
+                <Label htmlFor="edit-artisan">Artisan *</Label>
+                <Select value={editFormData.artisanId} onValueChange={(value) => setEditFormData({ ...editFormData, artisanId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select artisan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pottery">Pottery</SelectItem>
-                    <SelectItem value="textiles">Textiles</SelectItem>
-                    <SelectItem value="jewelry">Jewelry</SelectItem>
-                    <SelectItem value="woodwork">Woodwork</SelectItem>
-                    <SelectItem value="metalwork">Metalwork</SelectItem>
-                    <SelectItem value="paintings">Paintings</SelectItem>
-                    <SelectItem value="crafts">Crafts</SelectItem>
-                    <SelectItem value="toys">Toys</SelectItem>
+                    {artisans.map((artisan) => (
+                      <SelectItem key={artisan._id} value={artisan._id}>
+                        {artisan.name} - {artisan.location.city}, {artisan.location.state}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={editFormData.description}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                placeholder="Product description"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
+
               <div>
-                <Label htmlFor="edit-price">Price *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={editFormData.price}
-                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-original-price">Original Price</Label>
-                <Input
-                  id="edit-original-price"
-                  type="number"
-                  step="0.01"
-                  value={editFormData.originalPrice}
-                  onChange={(e) => setEditFormData({ ...editFormData, originalPrice: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-stock">Stock Count *</Label>
-                <Input
-                  id="edit-stock"
-                  type="number"
-                  value={editFormData.stockCount}
-                  onChange={(e) => setEditFormData({ ...editFormData, stockCount: e.target.value })}
-                  placeholder="0"
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  placeholder="Product description"
+                  rows={3}
                 />
               </div>
             </div>
-            <div>
+
+            {/* Product Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-subcategory">Subcategory</Label>
+                  <Input
+                    id="edit-subcategory"
+                    value={editFormData.subcategory}
+                    onChange={(e) => setEditFormData({ ...editFormData, subcategory: e.target.value })}
+                    placeholder="e.g., Vases, Tableware"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-materials">Materials</Label>
+                  <Input
+                    id="edit-materials"
+                    value={editFormData.materials}
+                    onChange={(e) => setEditFormData({ ...editFormData, materials: e.target.value })}
+                    placeholder="e.g., Clay, Cotton, Wood (comma separated)"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-colors">Colors</Label>
+                  <Input
+                    id="edit-colors"
+                    value={editFormData.colors}
+                    onChange={(e) => setEditFormData({ ...editFormData, colors: e.target.value })}
+                    placeholder="e.g., Red, Blue, Green (comma separated)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-tags">Tags</Label>
+                  <Input
+                    id="edit-tags"
+                    value={editFormData.tags}
+                    onChange={(e) => setEditFormData({ ...editFormData, tags: e.target.value })}
+                    placeholder="e.g., handmade, traditional, eco-friendly (comma separated)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing & Inventory */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Pricing & Inventory</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="edit-price">Price *</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    step="0.01"
+                    value={editFormData.price}
+                    onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-original-price">Original Price</Label>
+                  <Input
+                    id="edit-original-price"
+                    type="number"
+                    step="0.01"
+                    value={editFormData.originalPrice}
+                    onChange={(e) => setEditFormData({ ...editFormData, originalPrice: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-stock">Stock Count *</Label>
+                  <Input
+                    id="edit-stock"
+                    type="number"
+                    value={editFormData.stock}
+                    onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Physical Properties */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Physical Properties</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-dimensions">Dimensions</Label>
+                  <Input
+                    id="edit-dimensions"
+                    value={editFormData.dimensions}
+                    onChange={(e) => setEditFormData({ ...editFormData, dimensions: e.target.value })}
+                    placeholder="e.g., 10x5x8 inches"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-weight">Weight</Label>
+                  <Input
+                    id="edit-weight"
+                    value={editFormData.weight}
+                    onChange={(e) => setEditFormData({ ...editFormData, weight: e.target.value })}
+                    placeholder="e.g., 2.5 kg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-shipping-time">Shipping Time</Label>
+                <Input
+                  id="edit-shipping-time"
+                  value={editFormData.shippingTime}
+                  onChange={(e) => setEditFormData({ ...editFormData, shippingTime: e.target.value })}
+                  placeholder="e.g., 3-5 business days"
+                />
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Settings</h3>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-handmade"
+                    checked={editFormData.isHandmade}
+                    onChange={(e) => setEditFormData({ ...editFormData, isHandmade: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-handmade">Handmade</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-featured"
+                    checked={editFormData.isFeatured}
+                    onChange={(e) => setEditFormData({ ...editFormData, isFeatured: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-featured">Featured Product</Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Images</h3>
               <ImageUpload
                 images={editFormData.images}
-                onImagesChange={(images) => setEditFormData({ ...editFormData, images })}
+                onImagesChange={(images) => {
+                  console.log('Images changed:', images);
+                  setEditFormData({ ...editFormData, images });
+                }}
                 maxImages={5}
                 category="products"
               />
@@ -654,88 +1009,225 @@ export function ProductManagement() {
 
       {/* Create Product Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Product</DialogTitle>
             <DialogDescription>
               Add a new product to the platform. It will be automatically approved and made available for sale.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="create-name">Name *</Label>
-                <Input
-                  id="create-name"
-                  value={createFormData.name}
-                  onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-                  placeholder="Product name"
-                />
+          <div className="space-y-6 py-4">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-name">Name *</Label>
+                  <Input
+                    id="create-name"
+                    value={createFormData.name}
+                    onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
+                    placeholder="Product name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-category">Category *</Label>
+                  <Select value={createFormData.category} onValueChange={(value) => setCreateFormData({ ...createFormData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pottery">Pottery</SelectItem>
+                      <SelectItem value="textiles">Textiles</SelectItem>
+                      <SelectItem value="jewelry">Jewelry</SelectItem>
+                      <SelectItem value="woodwork">Woodwork</SelectItem>
+                      <SelectItem value="metalwork">Metalwork</SelectItem>
+                      <SelectItem value="paintings">Paintings</SelectItem>
+                      <SelectItem value="crafts">Crafts</SelectItem>
+                      <SelectItem value="toys">Toys</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               <div>
-                <Label htmlFor="create-category">Category *</Label>
-                <Select value={createFormData.category} onValueChange={(value) => setCreateFormData({ ...createFormData, category: value })}>
+                <Label htmlFor="create-artisan">Artisan *</Label>
+                <Select value={createFormData.artisanId} onValueChange={(value) => setCreateFormData({ ...createFormData, artisanId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select artisan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pottery">Pottery</SelectItem>
-                    <SelectItem value="textiles">Textiles</SelectItem>
-                    <SelectItem value="jewelry">Jewelry</SelectItem>
-                    <SelectItem value="woodwork">Woodwork</SelectItem>
-                    <SelectItem value="metalwork">Metalwork</SelectItem>
-                    <SelectItem value="paintings">Paintings</SelectItem>
-                    <SelectItem value="crafts">Crafts</SelectItem>
-                    <SelectItem value="toys">Toys</SelectItem>
+                    {artisans.map((artisan) => (
+                      <SelectItem key={artisan._id} value={artisan._id}>
+                        {artisan.name} - {artisan.location.city}, {artisan.location.state}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="create-description">Description</Label>
-              <Textarea
-                id="create-description"
-                value={createFormData.description}
-                onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
-                placeholder="Product description"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
+
               <div>
-                <Label htmlFor="create-price">Price *</Label>
-                <Input
-                  id="create-price"
-                  type="number"
-                  step="0.01"
-                  value={createFormData.price}
-                  onChange={(e) => setCreateFormData({ ...createFormData, price: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="create-original-price">Original Price</Label>
-                <Input
-                  id="create-original-price"
-                  type="number"
-                  step="0.01"
-                  value={createFormData.originalPrice}
-                  onChange={(e) => setCreateFormData({ ...createFormData, originalPrice: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="create-stock">Stock Count *</Label>
-                <Input
-                  id="create-stock"
-                  type="number"
-                  value={createFormData.stockCount}
-                  onChange={(e) => setCreateFormData({ ...createFormData, stockCount: e.target.value })}
-                  placeholder="0"
+                <Label htmlFor="create-description">Description</Label>
+                <Textarea
+                  id="create-description"
+                  value={createFormData.description}
+                  onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
+                  placeholder="Product description"
+                  rows={3}
                 />
               </div>
             </div>
-            <div>
+
+            {/* Product Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-subcategory">Subcategory</Label>
+                  <Input
+                    id="create-subcategory"
+                    value={createFormData.subcategory}
+                    onChange={(e) => setCreateFormData({ ...createFormData, subcategory: e.target.value })}
+                    placeholder="e.g., Vases, Tableware"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-materials">Materials</Label>
+                  <Input
+                    id="create-materials"
+                    value={createFormData.materials}
+                    onChange={(e) => setCreateFormData({ ...createFormData, materials: e.target.value })}
+                    placeholder="e.g., Clay, Cotton, Wood (comma separated)"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-colors">Colors</Label>
+                  <Input
+                    id="create-colors"
+                    value={createFormData.colors}
+                    onChange={(e) => setCreateFormData({ ...createFormData, colors: e.target.value })}
+                    placeholder="e.g., Red, Blue, Green (comma separated)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-tags">Tags</Label>
+                  <Input
+                    id="create-tags"
+                    value={createFormData.tags}
+                    onChange={(e) => setCreateFormData({ ...createFormData, tags: e.target.value })}
+                    placeholder="e.g., handmade, traditional, eco-friendly (comma separated)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing & Inventory */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Pricing & Inventory</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="create-price">Price *</Label>
+                  <Input
+                    id="create-price"
+                    type="number"
+                    step="0.01"
+                    value={createFormData.price}
+                    onChange={(e) => setCreateFormData({ ...createFormData, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-original-price">Original Price</Label>
+                  <Input
+                    id="create-original-price"
+                    type="number"
+                    step="0.01"
+                    value={createFormData.originalPrice}
+                    onChange={(e) => setCreateFormData({ ...createFormData, originalPrice: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-stock">Stock Count *</Label>
+                  <Input
+                    id="create-stock"
+                    type="number"
+                    value={createFormData.stock}
+                    onChange={(e) => setCreateFormData({ ...createFormData, stock: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Physical Properties */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Physical Properties</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-dimensions">Dimensions</Label>
+                  <Input
+                    id="create-dimensions"
+                    value={createFormData.dimensions}
+                    onChange={(e) => setCreateFormData({ ...createFormData, dimensions: e.target.value })}
+                    placeholder="e.g., 10x5x8 inches"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-weight">Weight</Label>
+                  <Input
+                    id="create-weight"
+                    value={createFormData.weight}
+                    onChange={(e) => setCreateFormData({ ...createFormData, weight: e.target.value })}
+                    placeholder="e.g., 2.5 kg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="create-shipping-time">Shipping Time</Label>
+                <Input
+                  id="create-shipping-time"
+                  value={createFormData.shippingTime}
+                  onChange={(e) => setCreateFormData({ ...createFormData, shippingTime: e.target.value })}
+                  placeholder="e.g., 3-5 business days"
+                />
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Settings</h3>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="create-handmade"
+                    checked={createFormData.isHandmade}
+                    onChange={(e) => setCreateFormData({ ...createFormData, isHandmade: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="create-handmade">Handmade</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="create-featured"
+                    checked={createFormData.isFeatured}
+                    onChange={(e) => setCreateFormData({ ...createFormData, isFeatured: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="create-featured">Featured Product</Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Product Images</h3>
               <ImageUpload
                 images={createFormData.images}
                 onImagesChange={(images) => setCreateFormData({ ...createFormData, images })}

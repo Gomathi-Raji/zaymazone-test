@@ -209,7 +209,29 @@ router.get('/artisans', async (req, res) => {
 		}).limit(20)
 		
 		console.log(`🔍 Found ${artisans.length} artisans`)
-		res.json(artisans)
+		
+		// Transform artisans to match frontend interface
+		const transformedArtisans = artisans.map(artisan => ({
+			id: artisan._id.toString(),
+			name: artisan.name,
+			specialty: artisan.specialties && artisan.specialties.length > 0 ? artisan.specialties[0] : 'Artisan',
+			location: `${artisan.location.city}, ${artisan.location.state}`,
+			experience: `${artisan.experience} years`,
+			rating: artisan.rating || 0,
+			products: artisan.totalProducts || 0,
+			image: artisan.coverImage ? `${process.env.FRONTEND_URL || 'http://localhost:8080'}/api/images/${artisan.coverImage.split('/').pop()}` : '/placeholder.svg',
+			avatar: artisan.avatar || '/placeholder.svg',
+			description: artisan.bio || '',
+			achievements: [
+				'Verified Artisan', 
+				`${artisan.totalProducts || 0} Products`, 
+				`${artisan.experience || 0}+ Years Experience`
+			],
+			joinedYear: artisan.joinedDate ? new Date(artisan.joinedDate).getFullYear().toString() : undefined,
+			specialties: artisan.specialties || []
+		}))
+		
+		res.json({ artisans: transformedArtisans })
 	} catch (error) {
 		console.error('❌ Get artisans error:', error)
 		res.status(500).json({ error: 'Server error' })

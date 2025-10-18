@@ -65,8 +65,21 @@ export const useArtisans = () => {
   return useQuery({
     queryKey: ['artisans'],
     queryFn: async () => {
-      const artisans = await api.getArtisans()
-      return artisans.map(transformArtisan)
+      const response = await api.getArtisans() as any; // API returns { artisans: [...] }
+      // API returns { artisans: [...] }, extract the artisans array
+      const artisans = response.artisans || response || [];
+      if (artisans && artisans.length > 0) {
+        // Check if artisans are already transformed (have 'id' field instead of '_id')
+        const firstArtisan = artisans[0] as any;
+        if (firstArtisan.id && !firstArtisan._id) {
+          // Artisans are already transformed by the API
+          return artisans;
+        } else {
+          // Artisans need frontend transformation
+          return artisans.map(transformArtisan);
+        }
+      }
+      return artisans || [];
     }
   })
 }
