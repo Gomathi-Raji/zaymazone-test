@@ -225,6 +225,16 @@ class AdminService {
     return response.json()
   }
 
+  async updateUser(id: string, userData: any) {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(userData)
+    })
+    if (!response.ok) throw new Error('Failed to update user')
+    return response.json()
+  }
+
   async createUser(userData: { name: string; email: string; password: string; role?: string; phone?: string; address?: any }) {
     const response = await fetch(`${API_BASE_URL}/admin/users`, {
       method: 'POST',

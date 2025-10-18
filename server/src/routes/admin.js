@@ -541,6 +541,38 @@ router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
+// Update user details
+router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { name, email, phone, avatar, address, isEmailVerified, isActive, preferences } = req.body
+
+    const updateData = {}
+    if (name !== undefined) updateData.name = name
+    if (email !== undefined) updateData.email = email
+    if (phone !== undefined) updateData.phone = phone
+    if (avatar !== undefined) updateData.avatar = avatar
+    if (address !== undefined) updateData.address = address
+    if (isEmailVerified !== undefined) updateData.isEmailVerified = isEmailVerified
+    if (isActive !== undefined) updateData.isActive = isActive
+    if (preferences !== undefined) updateData.preferences = preferences
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).select('-passwordHash -refreshTokens')
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    res.json({ message: 'User updated successfully', user })
+  } catch (error) {
+    console.error('Update user error:', error)
+    res.status(500).json({ error: 'Failed to update user' })
+  }
+})
+
 // Create new user
 router.post('/users', requireAuth, requireAdmin, async (req, res) => {
   try {

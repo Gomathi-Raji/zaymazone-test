@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus,
   Search,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from '@/components/ImageUpload';
 
 interface User {
   _id: string;
@@ -32,7 +34,16 @@ interface User {
     zipCode: string;
     country: string;
   };
+  preferences?: {
+    newsletter: boolean;
+    notifications: boolean;
+    language: string;
+  };
+  authProvider?: string;
+  firebaseUid?: string;
+  lastLogin?: string;
   isEmailVerified: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -50,11 +61,19 @@ export function UserManagement() {
     password: "",
     role: "user",
     phone: "",
+    avatar: "",
     street: "",
     city: "",
     state: "",
     zipCode: "",
-    country: "India"
+    country: "India",
+    preferences: {
+      newsletter: true,
+      notifications: true,
+      language: "en"
+    },
+    isEmailVerified: false,
+    isActive: true
   });
   const { toast } = useToast();
 
@@ -98,11 +117,19 @@ export function UserManagement() {
       password: "",
       role: "user",
       phone: "",
+      avatar: "",
       street: "",
       city: "",
       state: "",
       zipCode: "",
-      country: "India"
+      country: "India",
+      preferences: {
+        newsletter: true,
+        notifications: true,
+        language: "en"
+      },
+      isEmailVerified: false,
+      isActive: true
     });
   };
 
@@ -114,13 +141,15 @@ export function UserManagement() {
         password: formData.password,
         role: formData.role,
         phone: formData.phone || undefined,
+        avatar: formData.avatar || undefined,
         address: formData.street ? {
           street: formData.street,
           city: formData.city,
           state: formData.state,
           zipCode: formData.zipCode,
           country: formData.country
-        } : undefined
+        } : undefined,
+        preferences: formData.preferences
       };
 
       await adminService.createUser(userData);
@@ -150,17 +179,20 @@ export function UserManagement() {
         email: formData.email,
         role: formData.role,
         phone: formData.phone || undefined,
+        avatar: formData.avatar || undefined,
         address: formData.street ? {
           street: formData.street,
           city: formData.city,
           state: formData.state,
           zipCode: formData.zipCode,
           country: formData.country
-        } : undefined
+        } : undefined,
+        preferences: formData.preferences,
+        isEmailVerified: formData.isEmailVerified,
+        isActive: formData.isActive
       };
 
-      // Update user details (we'll need to add this method to adminService)
-      await adminService.updateUserRole(editingUser._id, userData.role);
+      await adminService.updateUser(editingUser._id, userData);
 
       toast({
         title: "Success",
@@ -208,11 +240,19 @@ export function UserManagement() {
       password: "", // Don't show password
       role: user.role,
       phone: user.phone || "",
+      avatar: user.avatar || "",
       street: user.address?.street || "",
       city: user.address?.city || "",
       state: user.address?.state || "",
       zipCode: user.address?.zipCode || "",
-      country: user.address?.country || "India"
+      country: user.address?.country || "India",
+      preferences: user.preferences || {
+        newsletter: true,
+        notifications: true,
+        language: "en"
+      },
+      isEmailVerified: user.isEmailVerified || false,
+      isActive: user.isActive !== false // Default to true if not set
     });
     setIsEditDialogOpen(true);
   };
@@ -354,6 +394,82 @@ export function UserManagement() {
                   className="col-span-3"
                 />
               </div>
+
+              {/* Profile Image */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Profile Image</h3>
+                <ImageUpload
+                  images={formData.avatar ? [formData.avatar] : []}
+                  onImagesChange={(images) => setFormData({ ...formData, avatar: images[0] || '' })}
+                  maxImages={1}
+                  category="avatars"
+                  singleMode={true}
+                />
+              </div>
+
+              {/* User Preferences */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">User Preferences</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="language">Language</Label>
+                    <Select
+                      value={formData.preferences.language}
+                      onValueChange={(value) => setFormData({
+                        ...formData,
+                        preferences: {
+                          ...formData.preferences,
+                          language: value
+                        }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="hi">Hindi</SelectItem>
+                        <SelectItem value="es">Spanish</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="newsletter"
+                      checked={formData.preferences.newsletter}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        preferences: {
+                          ...formData.preferences,
+                          newsletter: e.target.checked
+                        }
+                      })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="newsletter">Subscribe to newsletter</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="notifications"
+                      checked={formData.preferences.notifications}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        preferences: {
+                          ...formData.preferences,
+                          notifications: e.target.checked
+                        }
+                      })}
+                      className="rounded"
+                    />
+                    <Label htmlFor="notifications">Enable notifications</Label>
+                  </div>
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button type="submit" onClick={handleCreateUser}>
@@ -393,95 +509,110 @@ export function UserManagement() {
       </div>
 
       {/* Users List */}
-      <div className="grid gap-6">
-        {users.map((user) => (
-          <Card key={user._id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm font-medium">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {user.name}
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>Manage all user accounts in the system</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Auth Provider</TableHead>
+                <TableHead>Last Login</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user._id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-medium">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{user.name}</p>
+                        {user.phone && (
+                          <p className="text-sm text-muted-foreground">{user.phone}</p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === 'admin' ? "destructive" : user.role === 'artisan' ? "default" : "secondary"}>
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {user.authProvider || 'firebase'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={user.isActive ? "default" : "secondary"}>
+                        {user.isActive ? "Active" : "Inactive"}
+                      </Badge>
                       {user.isEmailVerified ? (
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500" />
                       )}
-                    </CardTitle>
-                    <CardDescription>
-                      {user.email}
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={user.role === 'admin' ? "destructive" : user.role === 'artisan' ? "default" : "secondary"}>
-                    {user.role}
-                  </Badge>
-                  <Badge variant={user.isEmailVerified ? "default" : "outline"}>
-                    {user.isEmailVerified ? "Verified" : "Unverified"}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                  {user.phone && <span>📞 {user.phone}</span>}
-                  {user.address && (
-                    <span>
-                      📍 {user.address.city}, {user.address.state}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(user)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  {user.role !== 'admin' && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user._id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(user)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      {user.role !== 'admin' && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user._id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
-        {users.length === 0 && (
-          <Card>
-            <CardContent className="flex items-center justify-center h-64">
+          {users.length === 0 && (
+            <div className="text-center py-8">
               <p className="text-muted-foreground">No users found</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
@@ -592,6 +723,109 @@ export function UserManagement() {
                 onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                 className="col-span-3"
               />
+            </div>
+
+            {/* Profile Image */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Profile Image</h3>
+              <ImageUpload
+                images={formData.avatar ? [formData.avatar] : []}
+                onImagesChange={(images) => setFormData({ ...formData, avatar: images[0] || '' })}
+                maxImages={1}
+                category="avatars"
+                singleMode={true}
+              />
+            </div>
+
+            {/* User Preferences */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">User Preferences</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-language">Language</Label>
+                  <Select
+                    value={formData.preferences.language}
+                    onValueChange={(value) => setFormData({
+                      ...formData,
+                      preferences: {
+                        ...formData.preferences,
+                        language: value
+                      }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="hi">Hindi</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-newsletter"
+                    checked={formData.preferences.newsletter}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      preferences: {
+                        ...formData.preferences,
+                        newsletter: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-newsletter">Subscribe to newsletter</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-notifications"
+                    checked={formData.preferences.notifications}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      preferences: {
+                        ...formData.preferences,
+                        notifications: e.target.checked
+                      }
+                    })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-notifications">Enable notifications</Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Account Settings */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Account Settings</h3>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-email-verified"
+                    checked={formData.isEmailVerified}
+                    onChange={(e) => setFormData({ ...formData, isEmailVerified: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-email-verified">Email Verified</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-active"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="edit-active">Account Active</Label>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
