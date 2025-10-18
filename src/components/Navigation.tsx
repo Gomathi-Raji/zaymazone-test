@@ -166,18 +166,6 @@ export const Navigation = () => {
                     alt="ZAYMAZONE Logo"
                     className="h-28 w-auto object-contain group-hover:scale-110 transition-all duration-500 drop-shadow-xl filter group-hover:brightness-110 dark:group-hover:brightness-125 dark:drop-shadow-2xl"
                   />
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-glow/20 rounded-lg blur-xl dark:from-primary/40 dark:to-primary-glow/40 dark:blur-2xl"
-                    animate={{ 
-                      opacity: [0, 0.3, 0],
-                      scale: [0.8, 1.2, 0.8] 
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut" 
-                    }}
-                  />
                 </div>
               </Link>
             </motion.div>
