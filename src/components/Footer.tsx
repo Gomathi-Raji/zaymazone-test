@@ -182,7 +182,7 @@ export const Footer = () => {
                     <img 
                       src="/logo.png" 
                       alt="ZAYMAZONE Logo" 
-                      className="h-16 w-auto object-contain group-hover:scale-110 transition-transform duration-300"
+                      className="h-28 w-auto object-contain group-hover:scale-110 transition-transform duration-300"
                     />
                     <div className="ml-3">
                       <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent dark:from-primary dark:to-primary-glow drop-shadow-sm dark:drop-shadow-lg">

@@ -164,7 +164,7 @@ export const Navigation = () => {
                   <img
                     src="/logo.png"
                     alt="ZAYMAZONE Logo"
-                    className="h-16 w-auto object-contain group-hover:scale-110 transition-all duration-500 drop-shadow-xl filter group-hover:brightness-110 dark:group-hover:brightness-125 dark:drop-shadow-2xl"
+                    className="h-28 w-auto object-contain group-hover:scale-110 transition-all duration-500 drop-shadow-xl filter group-hover:brightness-110 dark:group-hover:brightness-125 dark:drop-shadow-2xl"
                   />
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary-glow/20 rounded-lg blur-xl dark:from-primary/40 dark:to-primary-glow/40 dark:blur-2xl"
@@ -178,14 +178,6 @@ export const Navigation = () => {
                       ease: "easeInOut" 
                     }}
                   />
-                </div>
-                <div className="ml-3 hidden sm:block">
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent dark:from-primary dark:to-primary-glow drop-shadow-sm dark:drop-shadow-lg">
-                    ZAYMAZONE
-                  </h1>
-                  <p className="text-xs text-muted-foreground font-medium tracking-wide dark:text-muted-foreground drop-shadow-sm">
-                    Crafting Culture
-                  </p>
                 </div>
               </Link>
             </motion.div>
