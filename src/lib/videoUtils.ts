@@ -40,11 +40,11 @@ export function detectVideoPlatform(url: string): VideoPlatform | null {
     };
   }
 
-  // Gumlet patterns (Gumlet doesn't allow iframe embedding)
-  if (cleanUrl.includes('gumlet.com') || cleanUrl.includes('gumlet.tv')) {
+  // Gumlet patterns - Gumlet supports iframe embedding through play.gumlet.io
+  if (cleanUrl.includes('gumlet.com') || cleanUrl.includes('gumlet.tv') || cleanUrl.includes('play.gumlet.io')) {
     return {
       name: 'Gumlet',
-      embedUrl: '', // Gumlet doesn't support iframe embedding
+      embedUrl: 'https://play.gumlet.io/embed/',
       thumbnailUrl: '' // Thumbnail should be provided separately
     };
   }
@@ -82,8 +82,25 @@ export function extractVideoId(url: string, platform: VideoPlatform): string | n
       return vimeoMatch ? vimeoMatch[1] : null;
 
     case 'Gumlet':
-      // For Gumlet, we'll use the full URL as the video ID since it's typically a direct video URL
-      return cleanUrl;
+      // Handle various Gumlet URL formats
+      if (cleanUrl.includes('play.gumlet.io/embed/')) {
+        // Already an embed URL: https://play.gumlet.io/embed/{videoId}
+        const match = cleanUrl.match(/play\.gumlet\.io\/embed\/([a-zA-Z0-9]+)/);
+        return match ? match[1] : null;
+      }
+      if (cleanUrl.includes('gumlet.tv/watch/')) {
+        // Watch URL: https://gumlet.tv/watch/{videoId}
+        const match = cleanUrl.match(/gumlet\.tv\/watch\/([a-zA-Z0-9]+)/);
+        return match ? match[1] : null;
+      }
+      if (cleanUrl.includes('gumlet.com/')) {
+        // General Gumlet URL - try to extract ID from path
+        const match = cleanUrl.match(/gumlet\.com\/(?:.*\/)?([a-zA-Z0-9]{20,})/);
+        return match ? match[1] : null;
+      }
+      // Fallback: try to extract any long alphanumeric string that might be a video ID
+      const fallbackMatch = cleanUrl.match(/([a-zA-Z0-9]{20,})/);
+      return fallbackMatch ? fallbackMatch[1] : null;
   }
 
   return null;
@@ -114,22 +131,8 @@ export function parseVideoUrl(url: string): ParsedVideoUrl | null {
       break;
 
     case 'Gumlet':
-      // Try to construct embed URL for Gumlet
-      // Some video services have embed endpoints that don't have X-Frame-Options restrictions
-      if (url.includes('gumlet.tv/watch/')) {
-        // Try embed URL pattern
-        const videoId = url.split('gumlet.tv/watch/')[1]?.split('?')[0];
-        if (videoId) {
-          embedUrl = `https://gumlet.tv/embed/${videoId}`;
-        } else {
-          embedUrl = url; // fallback
-        }
-      } else if (url.includes('gumlet.com/')) {
-        // Try different embed pattern
-        embedUrl = url.replace('gumlet.com/', 'gumlet.com/embed/');
-      } else {
-        embedUrl = url; // fallback to original URL
-      }
+      // Construct embed URL using the extracted video ID
+      embedUrl = `${platform.embedUrl}${videoId}`;
       thumbnailUrl = ''; // Thumbnail should be provided in component props
       break;
   }
