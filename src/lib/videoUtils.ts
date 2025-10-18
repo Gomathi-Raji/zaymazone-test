@@ -40,12 +40,12 @@ export function detectVideoPlatform(url: string): VideoPlatform | null {
     };
   }
 
-  // Gumlet patterns (assuming standard video hosting)
+  // Gumlet patterns (Gumlet doesn't allow iframe embedding)
   if (cleanUrl.includes('gumlet.com') || cleanUrl.includes('gumlet.tv')) {
     return {
       name: 'Gumlet',
-      embedUrl: '', // Gumlet typically uses direct video URLs
-      thumbnailUrl: '' // Will need to be provided manually
+      embedUrl: '', // Gumlet doesn't support iframe embedding
+      thumbnailUrl: '' // Thumbnail should be provided separately
     };
   }
 
@@ -114,9 +114,23 @@ export function parseVideoUrl(url: string): ParsedVideoUrl | null {
       break;
 
     case 'Gumlet':
-      // For Gumlet, use direct video URL
-      embedUrl = url;
-      thumbnailUrl = ''; // Will need to be provided manually
+      // Try to construct embed URL for Gumlet
+      // Some video services have embed endpoints that don't have X-Frame-Options restrictions
+      if (url.includes('gumlet.tv/watch/')) {
+        // Try embed URL pattern
+        const videoId = url.split('gumlet.tv/watch/')[1]?.split('?')[0];
+        if (videoId) {
+          embedUrl = `https://gumlet.tv/embed/${videoId}`;
+        } else {
+          embedUrl = url; // fallback
+        }
+      } else if (url.includes('gumlet.com/')) {
+        // Try different embed pattern
+        embedUrl = url.replace('gumlet.com/', 'gumlet.com/embed/');
+      } else {
+        embedUrl = url; // fallback to original URL
+      }
+      thumbnailUrl = ''; // Thumbnail should be provided in component props
       break;
   }
 

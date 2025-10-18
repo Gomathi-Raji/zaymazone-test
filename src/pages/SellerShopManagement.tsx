@@ -38,6 +38,13 @@ interface Product {
   stockCount: number;
   category: string;
   images: string[];
+  videos: Array<{
+    type: 'demonstration' | 'making-of' | 'usage';
+    title: string;
+    url: string;
+    thumbnail: string;
+    duration: number;
+  }>;
   isActive: boolean;
   rating?: number;
   reviewCount?: number;
@@ -92,7 +99,7 @@ export function SellerShopManagement() {
   const [loading, setLoading] = useState(false);
   
   const { toast } = useToast();
-  const { products, pagination, loading: productsLoading, error, refetch } = useSellerProducts(page, 10, search);
+  const { products, pagination, loading: productsLoading, error } = useSellerProducts(page, 10, search);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +137,6 @@ export function SellerShopManagement() {
 
       setIsModalOpen(false);
       resetForm();
-      refetch();
     } catch (error) {
       console.error('Error:', error);
       toast({ 
@@ -153,6 +159,7 @@ export function SellerShopManagement() {
       stockCount: product.stockCount.toString(),
       category: product.category,
       images: product.images,
+      videos: product.videos || [],
       isActive: product.isActive
     });
     setIsModalOpen(true);
@@ -164,7 +171,6 @@ export function SellerShopManagement() {
     try {
       await sellerService.deleteProduct(productId);
       toast({ title: 'Success', description: 'Product deleted successfully' });
-      refetch();
     } catch (error) {
       toast({ 
         title: 'Error', 
@@ -181,7 +187,6 @@ export function SellerShopManagement() {
         title: 'Success', 
         description: `Product ${!currentStatus ? 'activated' : 'deactivated'} successfully` 
       });
-      refetch();
     } catch (error) {
       toast({ 
         title: 'Error', 
@@ -224,7 +229,7 @@ export function SellerShopManagement() {
           <p className="text-muted-foreground">Manage your products and inventory</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={refetch} className="gap-2">
+          <Button variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
@@ -505,7 +510,7 @@ export function SellerShopManagement() {
           )}
 
           {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
+          {pagination && pagination.pages > 1 && (
             <div className="flex justify-center gap-2 mt-6">
               <Button
                 variant="outline"
@@ -515,12 +520,12 @@ export function SellerShopManagement() {
                 Previous
               </Button>
               <span className="px-4 py-2 text-sm">
-                Page {page} of {pagination.totalPages}
+                Page {page} of {pagination.pages}
               </span>
               <Button
                 variant="outline"
                 onClick={() => setPage(page + 1)}
-                disabled={page === pagination.totalPages}
+                disabled={page === pagination.pages}
               >
                 Next
               </Button>
@@ -626,9 +631,9 @@ export function SellerShopManagement() {
                 Upload up to 5 images of your product
               </p>
               <ImageUpload
-                value={formData.images}
-                onChange={(urls) => setFormData(prev => ({ ...prev, images: urls }))}
-                maxFiles={5}
+                images={formData.images}
+                onImagesChange={(urls) => setFormData(prev => ({ ...prev, images: urls }))}
+                maxImages={5}
               />
             </div>
 

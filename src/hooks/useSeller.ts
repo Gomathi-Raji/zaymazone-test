@@ -17,6 +17,8 @@ interface Pagination {
   [key: string]: unknown;
 }
 
+export type { Pagination };
+
 interface AnalyticsData {
   data?: unknown[];
   [key: string]: unknown;

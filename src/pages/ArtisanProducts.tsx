@@ -119,7 +119,8 @@ const ArtisanProducts = () => {
       stockCount: product.stockCount.toString(),
       category: product.category,
       tags: product.tags.join(', '),
-      images: product.images
+      images: product.images,
+      videos: product.videos || []
     });
     setIsEditDialogOpen(true);
   };
@@ -132,7 +133,8 @@ const ArtisanProducts = () => {
       stockCount: '',
       category: '',
       tags: '',
-      images: []
+      images: [],
+      videos: []
     });
     setIsCreateDialogOpen(true);
   };

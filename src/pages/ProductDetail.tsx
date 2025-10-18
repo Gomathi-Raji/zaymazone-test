@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Heart, Share2, Star, MapPin, Truck, Shield, RotateCcw, ArrowLeft, ShoppingCart, ShoppingBag, FileText, Settings, MessageSquare, Play, Ruler, Box, Pause, ZoomIn, ZoomOut, RotateCcw as ResetIcon, RotateCw } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
@@ -8,6 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// Declare model-viewer custom element for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': any;
+    }
+  }
+}
 import { useProduct } from "@/hooks/useProducts";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,12 +34,14 @@ import { VideoEmbed } from "@/components/VideoEmbed";
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAutoSpinning, setIsAutoSpinning] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [spinInterval, setSpinInterval] = useState<NodeJS.Timeout | null>(null);
-  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const mediaContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: product, isLoading, error } = useProduct(id || '');
   const { addToCart, isLoading: cartLoading } = useCart();
@@ -155,6 +166,26 @@ const ProductDetail = () => {
     setZoomLevel(1);
   };
 
+  const handleMouseEnter = () => {
+    if (combinedMedia[selectedMediaIndex]?.type === 'image') {
+      setIsHovering(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!mediaContainerRef.current) return;
+
+    const rect = mediaContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    setMousePosition({ x, y });
+  };
+
   const handleMediaClick = (index: number) => {
     setSelectedMediaIndex(index);
     // Stop auto-spin when user manually selects media
@@ -257,11 +288,17 @@ const ProductDetail = () => {
           {/* Product Images and Videos */}
           <div className="w-full">
             {/* Main Media Display with Controls */}
-            <div className="relative aspect-square bg-card rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 max-w-full group">
+            <div
+              ref={mediaContainerRef}
+              className="relative aspect-square bg-card rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 max-w-full group cursor-zoom-in"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onMouseMove={handleMouseMove}
+            >
               {combinedMedia[selectedMediaIndex]?.type === 'video' ? (
                 <VideoEmbed
                   url={combinedMedia[selectedMediaIndex].url}
-                  title={combinedMedia[selectedMediaIndex].title}
+                  title={combinedMedia[selectedMediaIndex].title || combinedMedia[selectedMediaIndex].alt}
                   thumbnail={combinedMedia[selectedMediaIndex].thumbnail}
                   className="w-full h-full object-cover object-center"
                   style={{
@@ -276,14 +313,14 @@ const ProductDetail = () => {
                   alt={combinedMedia[selectedMediaIndex]?.alt}
                   className="w-full h-full object-cover object-center transition-transform duration-300 ease-in-out"
                   style={{
-                    transform: `scale(${zoomLevel})`,
-                    transformOrigin: 'center center'
+                    transform: isHovering ? 'scale(2)' : `scale(${zoomLevel})`,
+                    transformOrigin: isHovering ? `${mousePosition.x}% ${mousePosition.y}%` : 'center center'
                   }}
                 />
               )}
 
               {/* Media Controls Overlay */}
-              <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className={`absolute top-3 right-3 flex flex-col gap-2 transition-opacity duration-200 ${isHovering ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
                 {/* Auto-spin Control */}
                 {combinedMedia.length > 1 && (
                   <Button
@@ -336,11 +373,19 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Auto-spin Indicator */}
-              {isAutoSpinning && (
+              {/* Zoom Indicator */}
+              {combinedMedia[selectedMediaIndex]?.type === 'image' && !isHovering && (
+                <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <ZoomIn className="w-3 h-3" />
+                  Hover to zoom
+                </div>
+              )}
+
+              {/* Zoom Level Indicator */}
+              {combinedMedia[selectedMediaIndex]?.type === 'image' && isHovering && (
                 <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs flex items-center gap-2">
-                  <RotateCw className="w-3 h-3 animate-spin" />
-                  Auto-spinning
+                  <ZoomIn className="w-3 h-3" />
+                  Zoomed
                 </div>
               )}
 
@@ -575,24 +620,24 @@ const ProductDetail = () => {
         {/* Product Details Tabs */}
         <div className="mt-8 sm:mt-16">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
-              <TabsTrigger value="description" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl border border-border/50">
+              <TabsTrigger value="description" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border hover:bg-background/80 hover:text-foreground hover:shadow-sm transition-all duration-200 ease-in-out text-muted-foreground">
                 <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">Description</span>
                 <span className="sm:hidden">Desc</span>
               </TabsTrigger>
-              <TabsTrigger value="specifications" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+              <TabsTrigger value="specifications" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border hover:bg-background/80 hover:text-foreground hover:shadow-sm transition-all duration-200 ease-in-out text-muted-foreground">
                 <Settings className="w-4 h-4" />
                 <span className="hidden sm:inline">Specs</span>
                 <span className="sm:hidden">Specs</span>
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+              <TabsTrigger value="reviews" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border hover:bg-background/80 hover:text-foreground hover:shadow-sm transition-all duration-200 ease-in-out text-muted-foreground">
                 <MessageSquare className="w-4 h-4" />
                 <span className="hidden sm:inline">Reviews</span>
                 <span className="sm:hidden">Reviews</span>
               </TabsTrigger>
               {product.model3d && (
-                <TabsTrigger value="3dmodel" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all border-2 border-purple-500/20 data-[state=active]:border-purple-500">
+                <TabsTrigger value="3dmodel" className="flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-3 py-3 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-purple-500/50 data-[state=active]:border-2 hover:bg-background/80 hover:text-foreground hover:shadow-sm hover:border-purple-500/30 transition-all duration-200 ease-in-out text-muted-foreground border border-purple-500/20">
                   <Box className="w-4 h-4 text-purple-500" />
                   <span className="hidden sm:inline">3D Model</span>
                   <span className="sm:hidden">3D</span>
