@@ -56,16 +56,17 @@ export const VideoEmbed: React.FC<VideoEmbedProps> = ({
       case 'Gumlet':
         // Gumlet supports iframe embedding through play.gumlet.io
         return (
-          <iframe
-            src={parsedVideo.embedUrl}
-            title={title || 'Gumlet Video'}
-            className={`w-full h-full ${className}`}
-            style={style}
-            frameBorder="0"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
-            onLoad={onPlay}
-          />
+          <div className={`w-full h-full flex items-center justify-center ${className}`} style={style}>
+            <iframe
+              src={parsedVideo.embedUrl}
+              title={title || 'Gumlet Video'}
+              className="w-full max-w-2xl aspect-video"
+              frameBorder="0"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+              onLoad={onPlay}
+            />
+          </div>
         );
 
       default:
