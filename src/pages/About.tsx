@@ -163,70 +163,139 @@ const About = () => {
         </div>
 
         {/* Team Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-semibold text-foreground mb-8 text-center">Meet Our Team</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img
-                    src={getImageUrl('team1.jpg')}
-                    alt="Harishwaran"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
-                </div>
-                <h3 className="font-semibold text-lg">Harishwaran P</h3>
-                <p className="text-primary text-sm mb-2">Chief Executive Officer</p>
-                <p className="text-xs text-muted-foreground">
-                  Chief Executive Officer with a vision to empower artisans and preserve heritage
-                </p>
-              </CardContent>
-            </Card>
+        <section className="py-20 bg-gradient-to-br from-background via-background to-muted/20 relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-pattern-artisan-fabric opacity-30"></div>
 
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img
-                    src={getImageUrl('team2.png')}
-                    alt="Jayamurugan"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
-                </div>
-                <h3 className="font-semibold text-lg">Jayamurugan V</h3>
-                <p className="text-primary text-sm mb-2">Founder & CEO</p>
-                <p className="text-xs text-muted-foreground">
-                  Founder with a passion for traditional crafts and sustainable development
-                </p>
-              </CardContent>
-            </Card>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            {/* Section Header */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-6">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-4xl font-bold text-gradient-primary mb-4">Our Leadership Team</h3>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Led by experienced professionals committed to delivering excellence in software development
+                and driving innovation in the artisan marketplace ecosystem.
+              </p>
+              <div className="w-24 h-1 bg-gradient-to-r from-primary to-primary-glow mx-auto mt-6 rounded-full"></div>
+            </div>
 
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <div className="w-24 h-24 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img
-                    src={getImageUrl('team3.jpg')}
-                    alt="Dinesh"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
+            {/* Team Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {/* Harishwaran - CEO */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-primary shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/harishwaran.png"
+                      alt="Harishwaran - Chief Executive Officer"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-lg">Dinesh S</h3>
-                <p className="text-primary text-sm mb-2">Chief Technology Officer</p>
-                <p className="text-xs text-muted-foreground">
-                  CTO driving tech innovations to connect artisans with the world.
-                </p>
-              </CardContent>
-            </Card>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Harishwaran</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Chief Executive Officer</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Strategic leadership and business development driving company growth and vision</p>
+              </div>
+
+              {/* Jayamurugan - Founder */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-foreground shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/jayamuruganv.png"
+                      alt="Jayamurugan - Founder"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-foreground/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
+                </div>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Jayamurugan</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Founder</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Technical innovation and company vision shaping the future of artisan commerce</p>
+              </div>
+
+              {/* Dinesh S - CTO */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-accent shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/dineshs.png"
+                      alt="Dinesh S - Chief Technology Officer"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
+                </div>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Dinesh S</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Chief Technology Officer</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Technology architecture and development excellence powering our platform</p>
+              </div>
+
+              {/* Naveen K - Digital Marketing */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-success shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/naveenk.png"
+                      alt="Naveen K - Digital Marketing Head"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-success/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
+                </div>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Naveen K</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Digital Marketing Head</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Brand strategy and digital growth initiatives expanding our reach</p>
+              </div>
+
+              {/* Ranjan R - Market Analyst */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-info shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/ranjan.png"
+                      alt="Ranjan R - Chief Market Analyst"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-info/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
+                </div>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Ranjan R</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Chief Market Analyst</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Market research and business intelligence guiding strategic decisions</p>
+              </div>
+
+              {/* Udhayakumar S - Finance */}
+              <div className="card-artisan group text-center relative">
+                <div className="decoration-sparkle">
+                  <div className="w-36 h-36 mx-auto mb-6 overflow-hidden rounded-full border-4 border-warning shadow-warm group-hover:shadow-glow transition-all duration-300 ease-out relative">
+                    <img
+                      src="/team_members/udhayakumar.png"
+                      alt="Udhayakumar S - Finance Management Head"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-warning/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-full"></div>
+                  </div>
+                </div>
+                <h5 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">Udhayakumar S</h5>
+                <p className="text-primary font-semibold mb-3 text-sm uppercase tracking-wide">Finance Management Head</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Financial planning and business operations ensuring sustainable growth</p>
+              </div>
+            </div>
+
+            {/* Bottom decorative element */}
+            <div className="text-center mt-16">
+              <div className="inline-flex items-center space-x-2 text-muted-foreground">
+                <div className="w-8 h-px bg-gradient-to-r from-transparent to-primary"></div>
+                <span className="text-sm font-medium">Together Building the Future</span>
+                <div className="w-8 h-px bg-gradient-to-l from-transparent to-primary"></div>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* CTA */}
         <div className="text-center bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-12">
