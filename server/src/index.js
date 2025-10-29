@@ -167,8 +167,12 @@ app.use(notFoundHandler)
 app.use(errorHandler)
 
 // DB and server
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://dinesh_zayma:ehODIoXrZP6U00HS@zayma-test.w2omvt0.mongodb.net/?retryWrites=true&w=majority&appName=zayma-test'
+const mongoUri = process.env.MONGODB_URI
 const port = process.env.PORT || 4000
+
+console.log('🔍 Environment check:')
+console.log('MONGODB_URI loaded:', !!process.env.MONGODB_URI)
+console.log('Using MongoDB URI:', mongoUri ? mongoUri.replace(/:(\/\/.*:).*@/, ':$1***@') : 'NOT SET')
 
 // Upload team images on startup
 async function uploadTeamImagesOnStartup() {
