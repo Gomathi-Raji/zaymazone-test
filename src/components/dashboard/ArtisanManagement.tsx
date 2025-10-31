@@ -16,7 +16,8 @@ import {
   Eye,
   Loader2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Shield
 } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
@@ -121,7 +122,16 @@ export function ArtisanManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
   const [editingArtisan, setEditingArtisan] = useState<Artisan | null>(null);
+  const [verificationData, setVerificationData] = useState({
+    profilePhoto: false,
+    gstCertificate: false,
+    aadhaarProof: false,
+    craftVideo: false,
+    productPhotos: false,
+    bankDetails: false
+  });
   const [formData, setFormData] = useState({
     name: "",
     bio: "",
@@ -339,14 +349,60 @@ export function ArtisanManagement() {
         title: "Success",
         description: "Artisan deleted successfully"
       });
-      // Invalidate public artisan queries to sync with frontend
-      queryClient.invalidateQueries({ queryKey: ['artisans'] });
       loadArtisans();
     } catch (error) {
       console.error('Error deleting artisan:', error);
       toast({
         title: "Error",
         description: "Failed to delete artisan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const openVerificationDialog = (artisan: Artisan) => {
+    setEditingArtisan(artisan);
+    setVerificationData({
+      profilePhoto: artisan.documentVerification?.profilePhoto || false,
+      gstCertificate: artisan.documentVerification?.gstCertificate || false,
+      aadhaarProof: artisan.documentVerification?.aadhaarProof || false,
+      craftVideo: artisan.documentVerification?.craftVideo || false,
+      productPhotos: artisan.documentVerification?.productPhotos || false,
+      bankDetails: artisan.documentVerification?.bankDetails || false
+    });
+    setIsVerificationDialogOpen(true);
+  };
+
+  const handleUpdateVerification = async () => {
+    if (!editingArtisan) return;
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`/api/admin/artisans/${editingArtisan._id}/verification`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ documentVerification: verificationData })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Document verification updated successfully"
+        });
+        setIsVerificationDialogOpen(false);
+        setEditingArtisan(null);
+        loadArtisans();
+      } else {
+        throw new Error('Failed to update verification');
+      }
+    } catch (error) {
+      console.error('Error updating verification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update document verification",
         variant: "destructive"
       });
     }
@@ -881,7 +937,7 @@ export function ArtisanManagement() {
                   <span>{artisan.totalProducts} products</span>
                   <span>Rating: {artisan.rating}/5</span>
                 </div>
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2 flex-wrap gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -893,6 +949,17 @@ export function ArtisanManagement() {
                     <Eye className="h-4 w-4 mr-1" />
                     View Details
                   </Button>
+                  {artisan.approvalStatus === 'approved' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      onClick={() => openVerificationDialog(artisan)}
+                    >
+                      <Shield className="h-4 w-4 mr-1" />
+                      Edit Verification
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -1540,6 +1607,229 @@ export function ArtisanManagement() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Verification Dialog */}
+      <Dialog open={isVerificationDialogOpen} onOpenChange={(open) => {
+        setIsVerificationDialogOpen(open);
+        if (!open) {
+          setEditingArtisan(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Document Verification</DialogTitle>
+            <DialogDescription>
+              Update verification status for {editingArtisan?.name}'s documents
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingArtisan && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-4">
+                {/* Profile Photo */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.profilePhoto ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">Profile Photo</p>
+                      <p className="text-sm text-muted-foreground">Artisan's profile picture</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.profilePhoto}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        profilePhoto: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.profilePhoto ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* GST Certificate */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.gstCertificate ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">GST Certificate</p>
+                      <p className="text-sm text-muted-foreground">Business GST registration</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.gstCertificate}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        gstCertificate: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.gstCertificate ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Aadhaar Proof */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.aadhaarProof ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">Aadhaar Proof</p>
+                      <p className="text-sm text-muted-foreground">Identity verification document</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.aadhaarProof}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        aadhaarProof: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.aadhaarProof ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Craft Video */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.craftVideo ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">Craft Video</p>
+                      <p className="text-sm text-muted-foreground">Video demonstrating craft skills</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.craftVideo}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        craftVideo: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.craftVideo ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Product Photos */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.productPhotos ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">Product Photos</p>
+                      <p className="text-sm text-muted-foreground">Sample product images</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.productPhotos}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        productPhotos: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.productPhotos ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Bank Details */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {verificationData.bankDetails ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <div>
+                      <p className="font-medium">Bank Details</p>
+                      <p className="text-sm text-muted-foreground">Account information for payments</p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={verificationData.bankDetails}
+                      onChange={(e) => setVerificationData({
+                        ...verificationData,
+                        bankDetails: e.target.checked
+                      })}
+                      className="form-checkbox h-5 w-5"
+                    />
+                    <span className="text-sm">
+                      {verificationData.bankDetails ? 'Verified' : 'Not Verified'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm text-muted-foreground mb-2">Verification Summary:</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    {Object.values(verificationData).filter(Boolean).length} of 6 documents verified
+                  </span>
+                  {Object.values(verificationData).every(Boolean) && (
+                    <Badge variant="default" className="ml-2">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Fully Verified
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsVerificationDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateVerification}>
+              <Shield className="w-4 h-4 mr-2" />
+              Update Verification
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -1190,6 +1190,47 @@ router.delete('/artisans/:id', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
+// Update artisan document verification status
+router.patch('/artisans/:id/verification', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { documentVerification } = req.body
+
+    if (!documentVerification) {
+      return res.status(400).json({ error: 'Document verification data is required' })
+    }
+
+    const artisan = await Artisan.findById(req.params.id)
+
+    if (!artisan) {
+      return res.status(404).json({ error: 'Artisan not found' })
+    }
+
+    // Update document verification
+    artisan.documentVerification = {
+      profilePhoto: documentVerification.profilePhoto || false,
+      gstCertificate: documentVerification.gstCertificate || false,
+      aadhaarProof: documentVerification.aadhaarProof || false,
+      craftVideo: documentVerification.craftVideo || false,
+      productPhotos: documentVerification.productPhotos || false,
+      bankDetails: documentVerification.bankDetails || false
+    }
+
+    await artisan.save()
+
+    res.json({
+      message: 'Document verification updated successfully',
+      artisan: {
+        _id: artisan._id,
+        name: artisan.name,
+        documentVerification: artisan.documentVerification
+      }
+    })
+  } catch (error) {
+    console.error('Update verification error:', error)
+    res.status(500).json({ error: 'Failed to update document verification' })
+  }
+})
+
 // Page Content Management Endpoints
 router.get('/page-content', requireAuth, requireAdmin, async (req, res) => {
   try {
