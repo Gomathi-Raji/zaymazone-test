@@ -12,6 +12,21 @@ import { auth, googleProvider } from '@/lib/firebase';
 import { firebaseAuthApi, setFirebaseToken, getFirebaseToken, User as ApiUser } from '@/lib/api';
 import { toast } from 'sonner';
 
+// Get API base URL
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const apiUrl = import.meta.env?.VITE_API_BASE_URL;
+    if (apiUrl) {
+      const urls = apiUrl.split(',').map((url: string) => url.trim());
+      return urls[0]; // Use first URL
+    }
+  }
+  // Production fallback
+  return "https://zaymazone-backend.onrender.com";
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 interface User {
   id: string;
   email: string;
@@ -139,20 +154,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signIn = async (email: string, password: string, role: 'user' | 'artisan' = 'user'): Promise<void> => {
     try {
       setIsLoading(true);
-      const credential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Sync with MongoDB and check role
-      const dbUser = await syncUserWithMongoDB(credential.user, role);
-      
-      if (dbUser.role !== role) {
-        await firebaseSignOut(auth);
-        throw new Error(`This account is registered as ${dbUser.role}, not ${role}`);
+
+      if (role === 'artisan') {
+        // Use custom artisan signin endpoint that checks approval status
+        const response = await fetch(`${API_BASE_URL}/auth/artisan/signin`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Sign in failed');
+        }
+
+        const data = await response.json();
+
+        // Store tokens
+        localStorage.setItem('token', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        setUser(data.user);
+
+        toast.success('Successfully signed in as artisan!');
+      } else {
+        // Use Firebase for regular users
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+
+        // Sync with MongoDB and check role
+        const dbUser = await syncUserWithMongoDB(credential.user, role);
+
+        if (dbUser.role !== role) {
+          await firebaseSignOut(auth);
+          throw new Error(`This account is registered as ${dbUser.role}, not ${role}`);
+        }
+
+        toast.success('Successfully signed in!');
       }
-      
-      toast.success('Successfully signed in!');
-    } catch (error: any) {
-      toast.error(error.message || 'Sign in failed');
-      throw error;
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Sign in failed');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -172,9 +217,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await syncUserWithMongoDB(credential.user, role);
 
       toast.success('Account created successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Sign up failed');
-      throw error;
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Sign up failed');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -195,9 +241,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       toast.success('Successfully signed in with Google!');
-    } catch (error: any) {
-      toast.error(error.message || 'Google sign in failed');
-      throw error;
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Google sign in failed');
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -208,8 +255,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await firebaseSignOut(auth);
       setFirebaseToken(null);
       toast.success('Signed out successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Sign out failed');
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Sign out failed');
     }
   };
 
@@ -250,9 +298,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       setUser(userProfile);
       toast.success('Profile updated successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
-      throw error;
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Failed to update profile');
+      throw err;
     }
   };
 

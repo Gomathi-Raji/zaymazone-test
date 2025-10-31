@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { AuthDebugPanel } from "@/components/AuthDebugPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,8 @@ export default function SellerOnboarding() {
     businessName: "",
     ownerName: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     address: {
       village: "",
@@ -330,22 +333,12 @@ export default function SellerOnboarding() {
       }
 
       if (currentStep === 5) {
-        setIsLoading(true);
-        try {
-          await sellerApi.verifyBankAccount(formData);
-          setCurrentStep(currentStep + 1);
-        } catch (error) {
-          toast({
-            title: "Bank Account Verification Failed",
-            description: error instanceof Error ? error.message : "Please check your bank details",
-            variant: "destructive"
-          });
-        } finally {
-          setIsLoading(false);
-        }
+        // Skip bank verification - just proceed to next step
+        setCurrentStep(currentStep + 1);
         return;
       }
 
+      // Normal step progression
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
       }
@@ -433,6 +426,9 @@ export default function SellerOnboarding() {
       {/* Main Content */}
       <section className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Debug Panel - Remove in production */}
+          <AuthDebugPanel />
+          
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
@@ -500,14 +496,51 @@ export default function SellerOnboarding() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="email">Email Address</Label>
+                          <Label htmlFor="email">Email Address *</Label>
                           <Input
                             id="email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                             placeholder="your@email.com"
+                            required
                           />
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="password">Password *</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                            placeholder="Create a strong password (min 6 characters)"
+                            required
+                            className={errors.password ? "border-red-500" : ""}
+                          />
+                          {errors.password && (
+                            <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            You'll use this password to sign in after admin approval
+                          </p>
+                        </div>
+                        <div>
+                          <Label htmlFor="confirmPassword">Re-enter Password *</Label>
+                          <Input
+                            id="confirmPassword"
+                            type="password"
+                            value={formData.confirmPassword}
+                            onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                            placeholder="Re-enter your password"
+                            required
+                            className={errors.confirmPassword ? "border-red-500" : ""}
+                          />
+                          {errors.confirmPassword && (
+                            <p className="text-sm text-red-500 mt-1">{errors.confirmPassword}</p>
+                          )}
                         </div>
                       </div>
 
@@ -578,15 +611,24 @@ export default function SellerOnboarding() {
 
                       <div>
                         <Label>Profile Photo</Label>
-                        <div 
+                        <div
                           className={`border-2 border-dashed ${errors.profilePhoto ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer`}
                           onClick={() => document.getElementById('profilePhoto')?.click()}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Upload profile photo"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              document.getElementById('profilePhoto')?.click();
+                            }
+                          }}
                         >
                           {formData.profilePhoto ? (
                             <div className="flex items-center justify-center">
-                              <img 
-                                src={URL.createObjectURL(formData.profilePhoto)} 
-                                alt="Profile" 
+                              <img
+                                src={URL.createObjectURL(formData.profilePhoto)}
+                                alt="Profile"
                                 className="w-20 h-20 object-cover rounded-full"
                               />
                             </div>
@@ -604,6 +646,7 @@ export default function SellerOnboarding() {
                           accept="image/jpeg,image/png,image/jpg"
                           className="hidden"
                           onChange={(e) => handleFileInputChange(e, 'profilePhoto', 'image')}
+                          aria-label="Profile photo upload"
                         />
                         {errors.profilePhoto && (
                           <p className="text-sm text-red-500 mt-1">{errors.profilePhoto}</p>
@@ -667,6 +710,15 @@ export default function SellerOnboarding() {
                             <div 
                               className={`border-2 border-dashed ${errors.aadhaarProof ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
                               onClick={() => document.getElementById('aadhaarProof')?.click()}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Upload Aadhaar card"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  document.getElementById('aadhaarProof')?.click();
+                                }
+                              }}
                             >
                               {formData.aadhaarProof ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -681,6 +733,7 @@ export default function SellerOnboarding() {
                                       e.stopPropagation();
                                       setFormData({ ...formData, aadhaarProof: null });
                                     }}
+                                    aria-label="Remove Aadhaar card"
                                   >
                                     ×
                                   </button>
@@ -699,6 +752,7 @@ export default function SellerOnboarding() {
                               accept="application/pdf,image/jpeg,image/png,image/jpg"
                               className="hidden"
                               onChange={(e) => handleFileInputChange(e, 'aadhaarProof', 'document')}
+                              aria-label="Aadhaar card upload"
                             />
                             {errors.aadhaarProof && (
                               <p className="text-sm text-red-500 mt-1">{errors.aadhaarProof}</p>
@@ -723,6 +777,15 @@ export default function SellerOnboarding() {
                             <div 
                               className={`border-2 border-dashed ${errors.gstCertificate ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
                               onClick={() => document.getElementById('gstCertificate')?.click()}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Upload GST certificate"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  document.getElementById('gstCertificate')?.click();
+                                }
+                              }}
                             >
                               {formData.gstCertificate ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -737,6 +800,7 @@ export default function SellerOnboarding() {
                                       e.stopPropagation();
                                       setFormData({ ...formData, gstCertificate: null });
                                     }}
+                                    aria-label="Remove GST certificate"
                                   >
                                     ×
                                   </button>
@@ -755,6 +819,7 @@ export default function SellerOnboarding() {
                               accept="application/pdf,image/jpeg,image/png,image/jpg"
                               className="hidden"
                               onChange={(e) => handleFileInputChange(e, 'gstCertificate', 'document')}
+                              aria-label="GST certificate upload"
                             />
                             {errors.gstCertificate && (
                               <p className="text-sm text-red-500 mt-1">{errors.gstCertificate}</p>
@@ -870,7 +935,8 @@ export default function SellerOnboarding() {
                                     <button
                                       type="button"
                                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         const newPhotos = [...formData.productPhotos];
                                         newPhotos.splice(index, 1);
                                         setFormData({ ...formData, productPhotos: newPhotos });
@@ -883,35 +949,45 @@ export default function SellerOnboarding() {
                                   <div
                                     className="aspect-square flex flex-col items-center justify-center cursor-pointer"
                                     onClick={() => document.getElementById(`productPhoto${index}`)?.click()}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Upload product photo ${index + 1}`}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        document.getElementById(`productPhoto${index}`)?.click();
+                                      }
+                                    }}
                                   >
                                     <Upload className="w-8 h-8 text-muted-foreground mb-2" />
                                     <p className="text-sm font-medium">Upload Product {index + 1}</p>
                                     <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB</p>
-                                    <input
-                                      type="file"
-                                      id={`productPhoto${index}`}
-                                      accept="image/jpeg,image/png,image/jpg"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          const validatedFile = handleFileUpload(file, 'image', 5);
-                                          if (validatedFile) {
-                                            const newPhotos = [...formData.productPhotos];
-                                            newPhotos[index] = validatedFile;
-                                            setFormData({ ...formData, productPhotos: newPhotos });
-                                            toast({
-                                              title: "Image uploaded",
-                                              description: `Product photo ${index + 1} has been added`,
-                                            });
-                                          }
-                                        }
-                                        // Reset input
-                                        e.target.value = '';
-                                      }}
-                                    />
                                   </div>
                                 )}
+                                <input
+                                  type="file"
+                                  id={`productPhoto${index}`}
+                                  accept="image/jpeg,image/png,image/jpg"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const validatedFile = handleFileUpload(file, 'image', 5);
+                                      if (validatedFile) {
+                                        const newPhotos = [...formData.productPhotos];
+                                        newPhotos[index] = validatedFile;
+                                        setFormData({ ...formData, productPhotos: newPhotos });
+                                        toast({
+                                          title: "Image uploaded",
+                                          description: `Product photo ${index + 1} has been added`,
+                                        });
+                                      }
+                                    }
+                                    // Reset input
+                                    e.target.value = '';
+                                  }}
+                                  aria-label={`Product photo ${index + 1} upload`}
+                                />
                               </div>
                             );
                           })}
@@ -1009,19 +1085,17 @@ export default function SellerOnboarding() {
                     </div>
                   )}
 
-                  {/* Step 5: Banking */}
+
+                  {/* Step 5: Banking Information */}
                   {currentStep === 5 && (
                     <div className="space-y-6">
                       <div className="p-4 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CreditCard className="w-5 h-5 text-primary" />
-                          <h3 className="font-medium">Secure Payment Setup</h3>
-                        </div>
+                        <h3 className="font-medium mb-2">Bank Account Details</h3>
                         <p className="text-sm text-muted-foreground">
-                          Your banking information is encrypted and secure. We use this to transfer your earnings directly to your account.
+                          Provide your bank details for receiving payments. This information is kept secure and encrypted.
                         </p>
                       </div>
-                      
+
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="bankName">Bank Name *</Label>
@@ -1030,16 +1104,25 @@ export default function SellerOnboarding() {
                             value={formData.bankName}
                             onChange={(e) => setFormData({...formData, bankName: e.target.value})}
                             placeholder="e.g., State Bank of India"
+                            className={errors.bankName ? "border-red-500" : ""}
                           />
+                          {errors.bankName && (
+                            <p className="text-sm text-red-500 mt-1">{errors.bankName}</p>
+                          )}
                         </div>
                         <div>
                           <Label htmlFor="accountNumber">Account Number *</Label>
                           <Input
                             id="accountNumber"
+                            type="text"
                             value={formData.accountNumber}
                             onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
-                            placeholder="Enter account number"
+                            placeholder="Enter your account number"
+                            className={errors.accountNumber ? "border-red-500" : ""}
                           />
+                          {errors.accountNumber && (
+                            <p className="text-sm text-red-500 mt-1">{errors.accountNumber}</p>
+                          )}
                         </div>
                       </div>
 
@@ -1051,7 +1134,11 @@ export default function SellerOnboarding() {
                             value={formData.ifscCode}
                             onChange={(e) => setFormData({...formData, ifscCode: e.target.value})}
                             placeholder="e.g., SBIN0001234"
+                            className={errors.ifscCode ? "border-red-500" : ""}
                           />
+                          {errors.ifscCode && (
+                            <p className="text-sm text-red-500 mt-1">{errors.ifscCode}</p>
+                          )}
                         </div>
                         <div>
                           <Label htmlFor="upiId">UPI ID (Optional)</Label>
@@ -1059,29 +1146,52 @@ export default function SellerOnboarding() {
                             id="upiId"
                             value={formData.upiId}
                             onChange={(e) => setFormData({...formData, upiId: e.target.value})}
-                            placeholder="your-upi@bank"
+                            placeholder="e.g., user@paytm"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <Label>Payment Frequency Preference *</Label>
+                        <Label>Payment Frequency *</Label>
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                          {paymentFrequencyOptions.map(option => (
-                            <div key={option.value} className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id={option.value}
-                                name="paymentFrequency"
-                                value={option.value}
-                                checked={formData.paymentFrequency === option.value}
-                                onChange={(e) => setFormData({...formData, paymentFrequency: e.target.value})}
-                                className="form-radio"
-                              />
-                              <Label htmlFor={option.value}>{option.label}</Label>
-                            </div>
-                          ))}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="weekly"
+                              name="paymentFrequency"
+                              value="weekly"
+                              checked={formData.paymentFrequency === "weekly"}
+                              onChange={(e) => setFormData({...formData, paymentFrequency: e.target.value})}
+                              className="form-radio"
+                            />
+                            <Label htmlFor="weekly">Weekly</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="monthly"
+                              name="paymentFrequency"
+                              value="monthly"
+                              checked={formData.paymentFrequency === "monthly"}
+                              onChange={(e) => setFormData({...formData, paymentFrequency: e.target.value})}
+                              className="form-radio"
+                            />
+                            <Label htmlFor="monthly">Monthly</Label>
+                          </div>
                         </div>
+                        {errors.paymentFrequency && (
+                          <p className="text-sm text-red-500 mt-1">{errors.paymentFrequency}</p>
+                        )}
+                      </div>
+
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">Payment Information</h4>
+                        <ul className="text-sm text-blue-800 space-y-1">
+                          <li>• Payments are processed securely through banking channels</li>
+                          <li>• Minimum payout threshold: ₹1,000</li>
+                          <li>• Processing time: 3-5 business days</li>
+                          <li>• Platform fee: Only 8% on each sale</li>
+                        </ul>
                       </div>
                     </div>
                   )}

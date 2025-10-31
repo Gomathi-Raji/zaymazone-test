@@ -40,6 +40,41 @@ interface SellerApplication {
     state: string;
   };
   specialties: string[];
+  productInfo?: {
+    description: string;
+    materials: string[];
+    priceRange: {
+      min: number;
+      max: number;
+    };
+    photos: string[];
+  };
+  documents?: {
+    gstCertificate?: string;
+    aadhaarProof?: string;
+    craftVideo?: string;
+  };
+  logistics?: {
+    pickupAddress: {
+      street: string;
+      city: string;
+      state: string;
+      pincode: string;
+    };
+    dispatchTime: string;
+  };
+  payment?: {
+    upiId?: string;
+    bankDetails?: {
+      accountNumber: string;
+      ifscCode: string;
+      accountHolderName: string;
+    };
+  };
+  verification?: {
+    emailVerified: boolean;
+    phoneVerified: boolean;
+  };
   approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   approvedAt?: string;
@@ -459,6 +494,155 @@ export function AdminSellerApprovals() {
                   ))}
                 </div>
               </div>
+
+              {/* Product Information */}
+              {selectedApplication.productInfo && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Product Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Description:</strong> {selectedApplication.productInfo.description}</p>
+                    <p><strong>Price Range:</strong> ₹{selectedApplication.productInfo.priceRange.min} - ₹{selectedApplication.productInfo.priceRange.max}</p>
+                    {selectedApplication.productInfo.materials && selectedApplication.productInfo.materials.length > 0 && (
+                      <div>
+                        <strong>Materials:</strong>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {selectedApplication.productInfo.materials.map((material, index) => (
+                            <Badge key={index} variant="secondary">{material}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedApplication.productInfo.photos && selectedApplication.productInfo.photos.length > 0 && (
+                      <div>
+                        <strong>Product Photos:</strong>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {selectedApplication.productInfo.photos.map((photo, index) => (
+                            <img 
+                              key={index} 
+                              src={photo} 
+                              alt={`Product ${index + 1}`} 
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {selectedApplication.documents && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Submitted Documents</h3>
+                  <div className="space-y-2 text-sm">
+                    {selectedApplication.documents.gstCertificate && (
+                      <div>
+                        <strong>GST Certificate:</strong>
+                        <a 
+                          href={selectedApplication.documents.gstCertificate} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-600 hover:underline"
+                        >
+                          View Document
+                        </a>
+                      </div>
+                    )}
+                    {selectedApplication.documents.aadhaarProof && (
+                      <div>
+                        <strong>Aadhaar Proof:</strong>
+                        <a 
+                          href={selectedApplication.documents.aadhaarProof} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-600 hover:underline"
+                        >
+                          View Document
+                        </a>
+                      </div>
+                    )}
+                    {selectedApplication.documents.craftVideo && (
+                      <div>
+                        <strong>Craft Video:</strong>
+                        <a 
+                          href={selectedApplication.documents.craftVideo} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-600 hover:underline"
+                        >
+                          View Video
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Logistics Information */}
+              {selectedApplication.logistics && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Logistics & Shipping</h3>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <strong>Pickup Address:</strong>
+                      <p className="ml-4 mt-1">
+                        {selectedApplication.logistics.pickupAddress.street}<br />
+                        {selectedApplication.logistics.pickupAddress.city}, {selectedApplication.logistics.pickupAddress.state}<br />
+                        PIN: {selectedApplication.logistics.pickupAddress.pincode}
+                      </p>
+                    </div>
+                    <p><strong>Dispatch Time:</strong> {selectedApplication.logistics.dispatchTime}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Information */}
+              {selectedApplication.payment && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Payment Details</h3>
+                  <div className="space-y-2 text-sm">
+                    {selectedApplication.payment.upiId && (
+                      <p><strong>UPI ID:</strong> {selectedApplication.payment.upiId}</p>
+                    )}
+                    {selectedApplication.payment.bankDetails && (
+                      <div>
+                        <strong>Bank Account Details:</strong>
+                        <div className="ml-4 mt-1 space-y-1">
+                          <p>Account Holder: {selectedApplication.payment.bankDetails.accountHolderName}</p>
+                          <p>Account Number: {selectedApplication.payment.bankDetails.accountNumber}</p>
+                          <p>IFSC Code: {selectedApplication.payment.bankDetails.ifscCode}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Verification Status */}
+              {selectedApplication.verification && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Verification Status</h3>
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      {selectedApplication.verification.emailVerified ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-600" />
+                      )}
+                      <span>Email {selectedApplication.verification.emailVerified ? 'Verified' : 'Not Verified'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selectedApplication.verification.phoneVerified ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-600" />
+                      )}
+                      <span>Phone {selectedApplication.verification.phoneVerified ? 'Verified' : 'Not Verified'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4 border-t">
                 <Button

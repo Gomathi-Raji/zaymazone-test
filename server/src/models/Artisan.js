@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 const artisanSchema = new mongoose.Schema({
 	userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
 	name: { type: String, required: true, trim: true, maxLength: 120 },
+	email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+	password: { type: String, required: true },
 	bio: { type: String, default: '', maxLength: 1000 },
 	location: { 
 		city: { type: String, required: true, index: true },

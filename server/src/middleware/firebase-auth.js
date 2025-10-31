@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { verifyFirebaseToken } from '../lib/firebase-admin.js';
 import User from '../models/User.js';
+import Artisan from '../models/Artisan.js';
 
 // Middleware to authenticate requests with Firebase tokens or JWT tokens
 const authenticateToken = async (req, res, next) => {
@@ -63,15 +64,34 @@ const authenticateToken = async (req, res, next) => {
         
         console.log('Auth middleware - Trying JWT token verification...');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId);
+        let user = await User.findById(decoded.sub || decoded.userId);
+        
+        // If not found in User collection, try Artisan collection
+        if (!user) {
+          console.log('Auth middleware - User not found, checking Artisan collection...');
+          const artisan = await Artisan.findById(decoded.sub || decoded.userId);
+          
+          if (artisan && artisan.isActive && artisan.approvalStatus === 'approved') {
+            console.log('Auth middleware - Artisan found and approved:', artisan._id);
+            // Create a user-like object for artisan
+            user = {
+              _id: artisan.userId || artisan._id,
+              email: artisan.email,
+              name: artisan.name,
+              isActive: artisan.isActive,
+              firebaseUid: null,
+              authProvider: 'artisan-jwt'
+            };
+          }
+        }
         
         if (!user || !user.isActive) {
-          console.log('Auth middleware - JWT user not found or inactive');
+          console.log('Auth middleware - No valid user/artisan found');
           return res.status(401).json({ error: 'User not found or inactive' });
         }
         
         req.user = user;
-        console.log('Auth middleware - JWT user verified:', user._id);
+        console.log('Auth middleware - Authentication successful for:', user._id);
         return next();
         
       } catch (jwtError) {

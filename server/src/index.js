@@ -79,7 +79,8 @@ app.use(cors({
 	optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }))
 
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '20mb' }))
+app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 app.use(morgan('combined'))
 app.use(requestLogger)
 app.use(sanitize)

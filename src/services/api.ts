@@ -4,11 +4,13 @@ import { apiRequest } from '@/lib/api';
 let API_BASE_URL: string;
 
 try {
-  API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://zaymazone-backend.onrender.com';
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  console.log('VITE_API_BASE_URL from env:', envUrl);
+  API_BASE_URL = envUrl || 'http://localhost:4000/api';
   console.log('API configured with base URL:', API_BASE_URL);
 } catch (error) {
   console.warn('Environment variable not found, using default API URL');
-  API_BASE_URL = 'https://zaymazone-backend.onrender.com';
+  API_BASE_URL = 'http://localhost:4000/api';
 }
 
 // Helper function to handle API responses
@@ -54,6 +56,8 @@ export interface SellerFormData {
   businessName: string;
   ownerName: string;
   email: string;
+  password: string;
+  confirmPassword: string;
   phone: string;
   address: {
     village: string;
@@ -96,13 +100,33 @@ export interface SellerFormData {
 export const sellerApi = {
   // Complete seller onboarding with approval workflow
   async completeOnboarding(formData: SellerFormData) {
-    const token = localStorage.getItem('token');
+    // Get Firebase token (preferred) or fallback to JWT token
+    const firebaseToken = localStorage.getItem('firebase_id_token');
+    const jwtToken = localStorage.getItem('token');
+    const token = firebaseToken || jwtToken;
+    
+    console.log('=== Onboarding Submission Debug ===');
+    console.log('Firebase token exists:', !!firebaseToken);
+    console.log('JWT token exists:', !!jwtToken);
+    console.log('Using token type:', firebaseToken ? 'Firebase' : jwtToken ? 'JWT' : 'None');
+    
+    if (!token) {
+      const errorMsg = 'Please sign in to submit your application. No authentication token found.';
+      console.error(errorMsg);
+      console.log('LocalStorage contents:', {
+        firebase_id_token: localStorage.getItem('firebase_id_token'),
+        token: localStorage.getItem('token'),
+        user: localStorage.getItem('user')
+      });
+      throw new Error(errorMsg);
+    }
     
     // Prepare JSON payload with all form data
     const payload = {
       businessName: formData.businessName,
       ownerName: formData.ownerName,
       email: formData.email,
+      password: formData.password,
       phone: formData.phone,
       address: formData.address,
       yearsOfExperience: formData.yearsOfExperience,
@@ -131,6 +155,11 @@ export const sellerApi = {
       craftVideo: formData.craftVideo ? await fileToBase64(formData.craftVideo) : null
     };
 
+    const payloadSize = JSON.stringify(payload).length;
+    console.log('Submitting onboarding...');
+    console.log('Token preview:', token.substring(0, 30) + '...');
+    console.log('Payload size:', (payloadSize / 1024).toFixed(2), 'KB');
+
     const response = await fetch(`${API_BASE_URL}/onboarding/artisan`, {
       method: 'POST',
       headers: {
@@ -140,7 +169,17 @@ export const sellerApi = {
       body: JSON.stringify(payload)
     });
 
-    return handleResponse(response);
+    console.log('Response status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Onboarding failed:', errorText);
+      throw new Error(errorText || `Server error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Onboarding successful:', result);
+    return result;
   },
 
   // Register seller (legacy - kept for compatibility)

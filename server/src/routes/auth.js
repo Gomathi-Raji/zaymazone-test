@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { z } from 'zod'
 import User from '../models/User.js'
+import Artisan from '../models/Artisan.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
@@ -181,6 +182,65 @@ router.post('/logout', requireAuth, async (req, res) => {
 		return res.json({ message: 'Logged out successfully' })
 	} catch (error) {
 		console.error('Logout error:', error)
+		return res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+// Artisan signin - only allows approved artisans to sign in
+router.post('/artisan/signin', async (req, res) => {
+	try {
+		const parsed = signInSchema.safeParse(req.body)
+		if (!parsed.success) return res.status(400).json({ error: 'Invalid credentials' })
+		
+		const { email, password } = parsed.data
+		
+		// Find artisan by email and check if approved
+		const artisan = await Artisan.findOne({ 
+			email, 
+			approvalStatus: 'approved',
+			isActive: true 
+		})
+		
+		if (!artisan) {
+			return res.status(401).json({ error: 'Invalid credentials or account not approved' })
+		}
+		
+		// Verify password
+		const isValidPassword = await bcrypt.compare(password, artisan.password)
+		if (!isValidPassword) {
+			return res.status(401).json({ error: 'Invalid credentials' })
+		}
+		
+		// Generate tokens for artisan
+		const { accessToken, refreshToken } = generateTokens(artisan._id, email)
+		
+		// Store refresh token in user model (linked by userId)
+		const user = await User.findById(artisan.userId)
+		if (user) {
+			const refreshTokenExpiry = new Date()
+			refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 30) // 30 days
+			
+			user.refreshTokens.push({
+				token: refreshToken,
+				expiresAt: refreshTokenExpiry,
+				deviceInfo: req.headers['user-agent'] || 'Unknown'
+			})
+			await user.save()
+		}
+		
+		return res.json({ 
+			accessToken, 
+			refreshToken,
+			user: { 
+				id: artisan._id, 
+				name: artisan.name, 
+				email: artisan.email, 
+				role: 'artisan',
+				businessName: artisan.businessInfo?.businessName
+			} 
+		})
+	} catch (error) {
+		console.error('Artisan signin error:', error)
 		return res.status(500).json({ error: 'Internal server error' })
 	}
 })

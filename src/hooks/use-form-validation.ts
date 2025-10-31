@@ -15,13 +15,25 @@ export function useFormValidation(formData: SellerFormData) {
       case 1:
         if (!formData.businessName) newErrors.businessName = 'Business name is required';
         if (!formData.ownerName) newErrors.ownerName = 'Owner name is required';
+        if (!formData.email) {
+          newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          newErrors.email = 'Enter a valid email address';
+        }
+        if (!formData.password) {
+          newErrors.password = 'Password is required';
+        } else if (formData.password.length < 6) {
+          newErrors.password = 'Password must be at least 6 characters long';
+        }
+        if (!formData.confirmPassword) {
+          newErrors.confirmPassword = 'Please re-enter your password';
+        } else if (formData.password !== formData.confirmPassword) {
+          newErrors.confirmPassword = 'Passwords do not match';
+        }
         if (!formData.phone) {
           newErrors.phone = 'Phone number is required';
         } else if (!/^[6-9]\d{9}$/.test(formData.phone)) {
           newErrors.phone = 'Enter a valid Indian mobile number';
-        }
-        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          newErrors.email = 'Enter a valid email address';
         }
         if (!formData.address.village) newErrors.village = 'Village/Town is required';
         if (!formData.address.district) newErrors.district = 'District is required';
@@ -83,7 +95,7 @@ export function useFormValidation(formData: SellerFormData) {
         if (!formData.accountNumber) {
           newErrors.accountNumber = 'Account number is required';
         } else if (!/^\d{9,18}$/.test(formData.accountNumber)) {
-          newErrors.accountNumber = 'Enter a valid account number';
+          newErrors.accountNumber = 'Enter a valid account number (9-18 digits)';
         }
         if (!formData.ifscCode) {
           newErrors.ifscCode = 'IFSC code is required';
@@ -94,7 +106,7 @@ export function useFormValidation(formData: SellerFormData) {
         break;
 
       case 6:
-        // Story is optional
+        // Story and video are optional - no validation required
         break;
     }
 

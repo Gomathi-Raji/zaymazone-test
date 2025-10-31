@@ -20,7 +20,6 @@ router.get('/pending-artisans', requireAuth, requireAdmin, async (req, res) => {
     const sortObj = { [sortBy]: order === 'desc' ? -1 : 1 };
 
     const artisans = await Artisan.find(query)
-      .select('-documents -verification')
       .sort(sortObj)
       .skip(skip)
       .limit(parseInt(limit))
