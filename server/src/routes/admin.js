@@ -2334,7 +2334,7 @@ router.get('/sellers/:id', requireAuth, requireAdmin, async (req, res) => {
 // Approve seller application
 router.post('/sellers/:id/approve', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { approvalNotes } = req.body
+    const { approvalNotes, documentVerification } = req.body
     const adminId = req.user._id
 
     const artisan = await Artisan.findById(req.params.id)
@@ -2353,6 +2353,18 @@ router.post('/sellers/:id/approve', requireAuth, requireAdmin, async (req, res) 
     artisan.approvalNotes = approvalNotes || ''
     artisan.isActive = true
     artisan.rejectionReason = undefined
+    
+    // Save document verification status
+    if (documentVerification) {
+      artisan.documentVerification = {
+        profilePhoto: documentVerification.profilePhoto || false,
+        gstCertificate: documentVerification.gstCertificate || false,
+        aadhaarProof: documentVerification.aadhaarProof || false,
+        craftVideo: documentVerification.craftVideo || false,
+        productPhotos: documentVerification.productPhotos || false,
+        bankDetails: documentVerification.bankDetails || false
+      }
+    }
 
     await artisan.save()
 
@@ -2364,7 +2376,8 @@ router.post('/sellers/:id/approve', requireAuth, requireAdmin, async (req, res) 
         _id: artisan._id,
         name: artisan.name,
         approvalStatus: artisan.approvalStatus,
-        approvedAt: artisan.approvedAt
+        approvedAt: artisan.approvedAt,
+        documentVerification: artisan.documentVerification
       }
     })
   } catch (error) {

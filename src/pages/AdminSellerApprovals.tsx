@@ -21,23 +21,38 @@ import {
   CheckCircle,
   XCircle,
   Star,
-  MapPin
+  MapPin,
+  User,
+  Building2,
+  Phone,
+  Truck
 } from 'lucide-react';
 
 interface SellerApplication {
   _id: string;
   name: string;
+  bio?: string;
+  experience?: number;
   businessInfo: {
     businessName: string;
     sellerType: string;
+    gstNumber?: string;
+    panNumber?: string;
     contact: {
       email: string;
       phone: string;
+      address?: {
+        village?: string;
+        district?: string;
+        state?: string;
+        pincode?: string;
+      };
     };
   };
   location: {
     city: string;
     state: string;
+    country?: string;
   };
   specialties: string[];
   productInfo?: {
@@ -55,22 +70,28 @@ interface SellerApplication {
     craftVideo?: string;
   };
   logistics?: {
-    pickupAddress: {
-      street: string;
-      city: string;
-      state: string;
-      pincode: string;
+    pickupAddress?: {
+      sameAsMain?: boolean;
+      address?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
     };
-    dispatchTime: string;
+    dispatchTime?: string;
+    packagingType?: string;
   };
   payment?: {
     upiId?: string;
+    paymentFrequency?: string;
     bankDetails?: {
-      accountNumber: string;
-      ifscCode: string;
-      accountHolderName: string;
+      accountNumber?: string;
+      ifscCode?: string;
+      accountHolderName?: string;
+      bankName?: string;
     };
   };
+  avatar?: string;
   verification?: {
     emailVerified: boolean;
     phoneVerified: boolean;
@@ -98,6 +119,14 @@ export function AdminSellerApprovals() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('pending');
+  const [documentVerification, setDocumentVerification] = useState({
+    profilePhoto: false,
+    gstCertificate: false,
+    aadhaarProof: false,
+    craftVideo: false,
+    productPhotos: false,
+    bankDetails: false,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<SellerApplication | null>(null);
@@ -193,7 +222,10 @@ export function AdminSellerApprovals() {
       const endpoint = modalData.type === 'approve' ? 'approve' : 'reject';
       
       const body = modalData.type === 'approve' 
-        ? { approvalNotes: modalData.notes }
+        ? { 
+            approvalNotes: modalData.notes,
+            documentVerification: documentVerification
+          }
         : { rejectionReason: modalData.rejectionReason, approvalNotes: modalData.notes };
 
       const response = await fetch(`/api/admin/sellers/${modalData.application._id}/${endpoint}`, {
@@ -464,25 +496,104 @@ export function AdminSellerApprovals() {
           {/* Application Details View */}
           {selectedApplication && !modalData.application && (
             <div className="space-y-6">
+              {/* Personal Information */}
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold mb-2">Personal Information</h3>
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Personal Information
+                  </h3>
                   <div className="space-y-2 text-sm">
                     <p><strong>Name:</strong> {selectedApplication.name}</p>
                     <p><strong>Email:</strong> {selectedApplication.userId.email}</p>
-                    <p><strong>Location:</strong> {selectedApplication.location.city}, {selectedApplication.location.state}</p>
+                    <p><strong>Bio:</strong> {selectedApplication.bio || 'N/A'}</p>
+                    <p><strong>Experience:</strong> {selectedApplication.experience || 0} years</p>
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Business Information</h3>
+                
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Business Information
+                  </h3>
                   <div className="space-y-2 text-sm">
                     <p><strong>Business Name:</strong> {selectedApplication.businessInfo.businessName}</p>
                     <p><strong>Seller Type:</strong> {selectedApplication.businessInfo.sellerType?.toUpperCase()}</p>
-                    <p><strong>Phone:</strong> {selectedApplication.businessInfo.contact.phone}</p>
-                    <p><strong>Business Email:</strong> {selectedApplication.businessInfo.contact.email}</p>
+                    {selectedApplication.businessInfo.gstNumber && (
+                      <p><strong>GST Number:</strong> {selectedApplication.businessInfo.gstNumber}</p>
+                    )}
+                    {selectedApplication.businessInfo.panNumber && (
+                      <p><strong>PAN Number:</strong> {selectedApplication.businessInfo.panNumber}</p>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Contact Information */}
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Phone:</strong> {selectedApplication.businessInfo.contact.phone}</p>
+                    <p><strong>Business Email:</strong> {selectedApplication.businessInfo.contact.email}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Address:</strong></p>
+                    <p className="ml-2">
+                      {selectedApplication.businessInfo.contact.address?.village || 'N/A'}<br />
+                      {selectedApplication.businessInfo.contact.address?.district && `${selectedApplication.businessInfo.contact.address.district}, `}
+                      {selectedApplication.businessInfo.contact.address?.state}<br />
+                      {selectedApplication.businessInfo.contact.address?.pincode && `PIN: ${selectedApplication.businessInfo.contact.address.pincode}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Location & Specialties
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2 text-sm">
+                    <p><strong>City:</strong> {selectedApplication.location.city}</p>
+                    <p><strong>State:</strong> {selectedApplication.location.state}</p>
+                    <p><strong>Country:</strong> {selectedApplication.location.country || 'India'}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-2 text-sm">Specialties:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedApplication.specialties.map((specialty, index) => (
+                        <Badge key={index} variant="outline">
+                          {specialty}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logistics Information */}
+              {selectedApplication.logistics && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    Logistics Information
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Pickup Address Same as Main:</strong> {selectedApplication.logistics.pickupAddress?.sameAsMain ? 'Yes' : 'No'}</p>
+                    {!selectedApplication.logistics.pickupAddress?.sameAsMain && selectedApplication.logistics.pickupAddress?.address && (
+                      <p><strong>Pickup Address:</strong> {selectedApplication.logistics.pickupAddress.address}</p>
+                    )}
+                    <p><strong>Dispatch Time:</strong> {selectedApplication.logistics.dispatchTime || 'N/A'}</p>
+                    <p><strong>Packaging Type:</strong> {selectedApplication.logistics.packagingType || 'N/A'}</p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h3 className="font-semibold mb-2">Specialties</h3>
@@ -498,7 +609,23 @@ export function AdminSellerApprovals() {
               {/* Product Information */}
               {selectedApplication.productInfo && (
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-2">Product Information</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Product Information</h3>
+                    <label className="flex items-center gap-1 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={documentVerification.productPhotos}
+                        onChange={(e) => setDocumentVerification({
+                          ...documentVerification,
+                          productPhotos: e.target.checked
+                        })}
+                        className="form-checkbox"
+                      />
+                      <span className={documentVerification.productPhotos ? "text-green-600 font-medium" : "text-gray-600"}>
+                        {documentVerification.productPhotos ? "✓ Photos Verified" : "Photos Not Verified"}
+                      </span>
+                    </label>
+                  </div>
                   <div className="space-y-2 text-sm">
                     <p><strong>Description:</strong> {selectedApplication.productInfo.description}</p>
                     <p><strong>Price Range:</strong> ₹{selectedApplication.productInfo.priceRange.min} - ₹{selectedApplication.productInfo.priceRange.max}</p>
@@ -535,44 +662,160 @@ export function AdminSellerApprovals() {
               {selectedApplication.documents && (
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-2">Submitted Documents</h3>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-4">
                     {selectedApplication.documents.gstCertificate && (
-                      <div>
-                        <strong>GST Certificate:</strong>
-                        <a 
-                          href={selectedApplication.documents.gstCertificate} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-2 text-blue-600 hover:underline"
-                        >
-                          View Document
-                        </a>
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">GST Certificate:</strong>
+                            <label className="flex items-center gap-1 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={documentVerification.gstCertificate}
+                                onChange={(e) => setDocumentVerification({
+                                  ...documentVerification,
+                                  gstCertificate: e.target.checked
+                                })}
+                                className="form-checkbox"
+                              />
+                              <span className={documentVerification.gstCertificate ? "text-green-600 font-medium" : "text-gray-600"}>
+                                {documentVerification.gstCertificate ? "✓ Verified" : "Not Verified"}
+                              </span>
+                            </label>
+                          </div>
+                          <a 
+                            href={selectedApplication.documents.gstCertificate} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Open Full Size
+                          </a>
+                        </div>
+                        {selectedApplication.documents.gstCertificate.startsWith('data:image') ? (
+                          <img 
+                            src={selectedApplication.documents.gstCertificate} 
+                            alt="GST Certificate" 
+                            className="w-full max-h-64 object-contain rounded border bg-white"
+                          />
+                        ) : (
+                          <iframe 
+                            src={selectedApplication.documents.gstCertificate} 
+                            className="w-full h-64 rounded border bg-white"
+                            title="GST Certificate"
+                          />
+                        )}
                       </div>
                     )}
                     {selectedApplication.documents.aadhaarProof && (
-                      <div>
-                        <strong>Aadhaar Proof:</strong>
-                        <a 
-                          href={selectedApplication.documents.aadhaarProof} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-2 text-blue-600 hover:underline"
-                        >
-                          View Document
-                        </a>
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Aadhaar Proof:</strong>
+                            <label className="flex items-center gap-1 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={documentVerification.aadhaarProof}
+                                onChange={(e) => setDocumentVerification({
+                                  ...documentVerification,
+                                  aadhaarProof: e.target.checked
+                                })}
+                                className="form-checkbox"
+                              />
+                              <span className={documentVerification.aadhaarProof ? "text-green-600 font-medium" : "text-gray-600"}>
+                                {documentVerification.aadhaarProof ? "✓ Verified" : "Not Verified"}
+                              </span>
+                            </label>
+                          </div>
+                          <a 
+                            href={selectedApplication.documents.aadhaarProof} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Open Full Size
+                          </a>
+                        </div>
+                        {selectedApplication.documents.aadhaarProof.startsWith('data:image') ? (
+                          <img 
+                            src={selectedApplication.documents.aadhaarProof} 
+                            alt="Aadhaar Proof" 
+                            className="w-full max-h-64 object-contain rounded border bg-white"
+                          />
+                        ) : (
+                          <iframe 
+                            src={selectedApplication.documents.aadhaarProof} 
+                            className="w-full h-64 rounded border bg-white"
+                            title="Aadhaar Proof"
+                          />
+                        )}
                       </div>
                     )}
                     {selectedApplication.documents.craftVideo && (
-                      <div>
-                        <strong>Craft Video:</strong>
-                        <a 
-                          href={selectedApplication.documents.craftVideo} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-2 text-blue-600 hover:underline"
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Craft Video:</strong>
+                            <label className="flex items-center gap-1 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={documentVerification.craftVideo}
+                                onChange={(e) => setDocumentVerification({
+                                  ...documentVerification,
+                                  craftVideo: e.target.checked
+                                })}
+                                className="form-checkbox"
+                              />
+                              <span className={documentVerification.craftVideo ? "text-green-600 font-medium" : "text-gray-600"}>
+                                {documentVerification.craftVideo ? "✓ Verified" : "Not Verified"}
+                              </span>
+                            </label>
+                          </div>
+                          <a 
+                            href={selectedApplication.documents.craftVideo} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Open Full Size
+                          </a>
+                        </div>
+                        <video 
+                          src={selectedApplication.documents.craftVideo} 
+                          controls 
+                          className="w-full max-h-64 rounded border bg-black"
                         >
-                          View Video
-                        </a>
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    )}
+                    {selectedApplication.avatar && (
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <strong className="text-sm">Profile Photo:</strong>
+                          <label className="flex items-center gap-1 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={documentVerification.profilePhoto}
+                              onChange={(e) => setDocumentVerification({
+                                ...documentVerification,
+                                profilePhoto: e.target.checked
+                              })}
+                              className="form-checkbox"
+                            />
+                            <span className={documentVerification.profilePhoto ? "text-green-600 font-medium" : "text-gray-600"}>
+                              {documentVerification.profilePhoto ? "✓ Verified" : "Not Verified"}
+                            </span>
+                          </label>
+                        </div>
+                        <img 
+                          src={selectedApplication.avatar} 
+                          alt="Profile" 
+                          className="w-32 h-32 object-cover rounded-full mx-auto border-2 border-gray-200"
+                        />
                       </div>
                     )}
                   </div>
@@ -599,19 +842,52 @@ export function AdminSellerApprovals() {
 
               {/* Payment Information */}
               {selectedApplication.payment && (
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-2">Payment Details</h3>
-                  <div className="space-y-2 text-sm">
-                    {selectedApplication.payment.upiId && (
-                      <p><strong>UPI ID:</strong> {selectedApplication.payment.upiId}</p>
-                    )}
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      Payment Details
+                    </h3>
+                    <label className="flex items-center gap-1 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={documentVerification.bankDetails}
+                        onChange={(e) => setDocumentVerification({
+                          ...documentVerification,
+                          bankDetails: e.target.checked
+                        })}
+                        className="form-checkbox"
+                      />
+                      <span className={documentVerification.bankDetails ? "text-green-600 font-medium" : "text-gray-600"}>
+                        {documentVerification.bankDetails ? "✓ Bank Details Verified" : "Not Verified"}
+                      </span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2 text-sm">
+                      {selectedApplication.payment.upiId && (
+                        <p><strong>UPI ID:</strong> {selectedApplication.payment.upiId}</p>
+                      )}
+                      {selectedApplication.payment.paymentFrequency && (
+                        <p><strong>Payment Frequency:</strong> {selectedApplication.payment.paymentFrequency}</p>
+                      )}
+                    </div>
                     {selectedApplication.payment.bankDetails && (
-                      <div>
+                      <div className="space-y-2 text-sm">
                         <strong>Bank Account Details:</strong>
-                        <div className="ml-4 mt-1 space-y-1">
-                          <p>Account Holder: {selectedApplication.payment.bankDetails.accountHolderName}</p>
-                          <p>Account Number: {selectedApplication.payment.bankDetails.accountNumber}</p>
-                          <p>IFSC Code: {selectedApplication.payment.bankDetails.ifscCode}</p>
+                        <div className="ml-2 mt-1 space-y-1">
+                          {selectedApplication.payment.bankDetails.accountHolderName && (
+                            <p>Account Holder: {selectedApplication.payment.bankDetails.accountHolderName}</p>
+                          )}
+                          {selectedApplication.payment.bankDetails.accountNumber && (
+                            <p>Account Number: {selectedApplication.payment.bankDetails.accountNumber}</p>
+                          )}
+                          {selectedApplication.payment.bankDetails.ifscCode && (
+                            <p>IFSC Code: {selectedApplication.payment.bankDetails.ifscCode}</p>
+                          )}
+                          {selectedApplication.payment.bankDetails.bankName && (
+                            <p>Bank Name: {selectedApplication.payment.bankDetails.bankName}</p>
+                          )}
                         </div>
                       </div>
                     )}

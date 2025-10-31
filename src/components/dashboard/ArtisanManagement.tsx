@@ -25,6 +25,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 interface Artisan {
   _id: string;
   name: string;
+  email: string;
   bio: string;
   location: {
     city: string;
@@ -41,9 +42,73 @@ interface Artisan {
   verification: {
     isVerified: boolean;
     verifiedAt?: Date;
+    documentType?: string;
+    documentNumber?: string;
+    bankDetails?: {
+      accountNumber?: string;
+      ifscCode?: string;
+      bankName?: string;
+    };
   };
+  businessInfo?: {
+    businessName?: string;
+    sellerType?: string;
+    gstNumber?: string;
+    panNumber?: string;
+    contact?: {
+      email?: string;
+      phone?: string;
+      address?: {
+        village?: string;
+        district?: string;
+        state?: string;
+        pincode?: string;
+      };
+    };
+  };
+  productInfo?: {
+    description?: string;
+    materials?: string;
+    priceRange?: {
+      min: number;
+      max: number;
+    };
+    stockQuantity?: number;
+    photos?: string[];
+  };
+  documents?: {
+    gstCertificate?: string;
+    aadhaarProof?: string;
+    craftVideo?: string;
+  };
+  logistics?: {
+    pickupAddress?: {
+      sameAsMain?: boolean;
+      address?: string;
+    };
+    dispatchTime?: string;
+    packagingType?: string;
+  };
+  payment?: {
+    upiId?: string;
+    paymentFrequency?: string;
+  };
+  documentVerification?: {
+    profilePhoto: boolean;
+    gstCertificate: boolean;
+    aadhaarProof: boolean;
+    craftVideo: boolean;
+    productPhotos: boolean;
+    bankDetails: boolean;
+  };
+  approvalStatus?: string;
+  approvalNotes?: string;
+  approvedAt?: Date;
+  approvedBy?: string;
   isActive: boolean;
   joinedDate: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export function ArtisanManagement() {
@@ -55,6 +120,7 @@ export function ArtisanManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingArtisan, setEditingArtisan] = useState<Artisan | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -737,15 +803,96 @@ export function ArtisanManagement() {
                   {artisan.specialties.map((specialty, index) => (
                     <Badge key={index} variant="outline">
                       {specialty}
-                    </Badge>
+                </Badge>
                   ))}
                 </div>
+                
+                {/* Document Verification Status */}
+                {artisan.documentVerification && artisan.approvalStatus === 'approved' && (
+                  <div className="border-t pt-3 mt-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Document Verification:</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.profilePhoto ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.profilePhoto ? "text-green-600" : "text-gray-500"}>
+                          Profile Photo
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.gstCertificate ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.gstCertificate ? "text-green-600" : "text-gray-500"}>
+                          GST Certificate
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.aadhaarProof ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.aadhaarProof ? "text-green-600" : "text-gray-500"}>
+                          Aadhaar Proof
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.craftVideo ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.craftVideo ? "text-green-600" : "text-gray-500"}>
+                          Craft Video
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.productPhotos ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.productPhotos ? "text-green-600" : "text-gray-500"}>
+                          Product Photos
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {artisan.documentVerification.bankDetails ? (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                        )}
+                        <span className={artisan.documentVerification.bankDetails ? "text-green-600" : "text-gray-500"}>
+                          Bank Details
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>{artisan.experience} years experience</span>
                   <span>{artisan.totalProducts} products</span>
                   <span>Rating: {artisan.rating}/5</span>
                 </div>
                 <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingArtisan(artisan);
+                      setIsViewDialogOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1076,6 +1223,323 @@ export function ArtisanManagement() {
               Update Artisan
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Full Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={(open) => {
+        setIsViewDialogOpen(open);
+        if (!open) {
+          setEditingArtisan(null);
+        }
+      }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Artisan Full Details</DialogTitle>
+            <DialogDescription>
+              Complete information and verification status
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingArtisan && (
+            <div className="space-y-4">
+              {/* Personal Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Personal Information</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-semibold text-muted-foreground">Name</p>
+                    <p>{editingArtisan.name}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground">Email</p>
+                    <p>{editingArtisan.email}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground">Experience</p>
+                    <p>{editingArtisan.experience} years</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground">Rating</p>
+                    <p>{editingArtisan.rating}/5 ({editingArtisan.totalRatings} ratings)</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="font-semibold text-muted-foreground">Bio</p>
+                    <p>{editingArtisan.bio || 'N/A'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Business Information */}
+              {editingArtisan.businessInfo && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Business Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-semibold text-muted-foreground">Business Name</p>
+                      <p>{editingArtisan.businessInfo.businessName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground">Seller Type</p>
+                      <p>{editingArtisan.businessInfo.sellerType?.toUpperCase() || 'N/A'}</p>
+                    </div>
+                    {editingArtisan.businessInfo.gstNumber && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">GST Number</p>
+                        <p>{editingArtisan.businessInfo.gstNumber}</p>
+                      </div>
+                    )}
+                    {editingArtisan.businessInfo.panNumber && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">PAN Number</p>
+                        <p>{editingArtisan.businessInfo.panNumber}</p>
+                      </div>
+                    )}
+                    {editingArtisan.businessInfo.contact && (
+                      <>
+                        <div>
+                          <p className="font-semibold text-muted-foreground">Contact Phone</p>
+                          <p>{editingArtisan.businessInfo.contact.phone || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-muted-foreground">Contact Email</p>
+                          <p>{editingArtisan.businessInfo.contact.email || 'N/A'}</p>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Location */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Location & Specialties</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="font-semibold text-muted-foreground">City</p>
+                      <p>{editingArtisan.location.city}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground">State</p>
+                      <p>{editingArtisan.location.state}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground">Country</p>
+                      <p>{editingArtisan.location.country || 'India'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground mb-2">Specialties</p>
+                    <div className="flex flex-wrap gap-2">
+                      {editingArtisan.specialties.map((specialty, index) => (
+                        <Badge key={index} variant="outline">{specialty}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Product Information */}
+              {editingArtisan.productInfo && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Product Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="col-span-2">
+                      <p className="font-semibold text-muted-foreground">Description</p>
+                      <p>{editingArtisan.productInfo.description || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-muted-foreground">Materials</p>
+                      <p>{editingArtisan.productInfo.materials || 'N/A'}</p>
+                    </div>
+                    {editingArtisan.productInfo.priceRange && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Price Range</p>
+                        <p>₹{editingArtisan.productInfo.priceRange.min} - ₹{editingArtisan.productInfo.priceRange.max}</p>
+                      </div>
+                    )}
+                    {editingArtisan.productInfo.stockQuantity && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Stock Quantity</p>
+                        <p>{editingArtisan.productInfo.stockQuantity}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Bank Details */}
+              {editingArtisan.verification?.bankDetails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      Bank Details
+                      {editingArtisan.documentVerification?.bankDetails && (
+                        <Badge variant="default" className="ml-2">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    {editingArtisan.verification.bankDetails.accountNumber && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Account Number</p>
+                        <p>{editingArtisan.verification.bankDetails.accountNumber}</p>
+                      </div>
+                    )}
+                    {editingArtisan.verification.bankDetails.ifscCode && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">IFSC Code</p>
+                        <p>{editingArtisan.verification.bankDetails.ifscCode}</p>
+                      </div>
+                    )}
+                    {editingArtisan.verification.bankDetails.bankName && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Bank Name</p>
+                        <p>{editingArtisan.verification.bankDetails.bankName}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payment Information */}
+              {editingArtisan.payment && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Payment Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    {editingArtisan.payment.upiId && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">UPI ID</p>
+                        <p>{editingArtisan.payment.upiId}</p>
+                      </div>
+                    )}
+                    {editingArtisan.payment.paymentFrequency && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Payment Frequency</p>
+                        <p>{editingArtisan.payment.paymentFrequency}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Document Verification Status */}
+              {editingArtisan.documentVerification && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Document Verification Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.profilePhoto ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.profilePhoto ? "text-green-600" : "text-gray-500"}>
+                          Profile Photo
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.gstCertificate ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.gstCertificate ? "text-green-600" : "text-gray-500"}>
+                          GST Certificate
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.aadhaarProof ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.aadhaarProof ? "text-green-600" : "text-gray-500"}>
+                          Aadhaar Proof
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.craftVideo ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.craftVideo ? "text-green-600" : "text-gray-500"}>
+                          Craft Video
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.productPhotos ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.productPhotos ? "text-green-600" : "text-gray-500"}>
+                          Product Photos
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingArtisan.documentVerification.bankDetails ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className={editingArtisan.documentVerification.bankDetails ? "text-green-600" : "text-gray-500"}>
+                          Bank Details
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Approval Information */}
+              {editingArtisan.approvalStatus && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Approval Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-semibold text-muted-foreground">Status</p>
+                      <Badge variant={editingArtisan.approvalStatus === 'approved' ? 'default' : 'secondary'}>
+                        {editingArtisan.approvalStatus}
+                      </Badge>
+                    </div>
+                    {editingArtisan.approvedAt && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Approved At</p>
+                        <p>{new Date(editingArtisan.approvedAt).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    {editingArtisan.approvalNotes && (
+                      <div className="col-span-2">
+                        <p className="font-semibold text-muted-foreground">Approval Notes</p>
+                        <p>{editingArtisan.approvalNotes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

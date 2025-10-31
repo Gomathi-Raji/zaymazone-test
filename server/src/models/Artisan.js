@@ -91,6 +91,15 @@ const artisanSchema = new mongoose.Schema({
 	rejectionReason: { type: String, trim: true },
 	approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 	approvedAt: { type: Date },
+	// Document verification tracking
+	documentVerification: {
+		profilePhoto: { type: Boolean, default: false },
+		gstCertificate: { type: Boolean, default: false },
+		aadhaarProof: { type: Boolean, default: false },
+		craftVideo: { type: Boolean, default: false },
+		productPhotos: { type: Boolean, default: false },
+		bankDetails: { type: Boolean, default: false }
+	},
 	joinedDate: { type: Date, default: Date.now }
 }, { timestamps: true })
 
