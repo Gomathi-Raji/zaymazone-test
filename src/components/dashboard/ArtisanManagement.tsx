@@ -17,11 +17,16 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  FileText,
+  Truck,
+  Package as PackageIcon,
+  ZoomIn
 } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from '@/components/ImageUpload';
+import { DocumentPreview } from '@/components/admin/DocumentPreview';
 
 interface Artisan {
   _id: string;
@@ -124,6 +129,7 @@ export function ArtisanManagement() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
   const [editingArtisan, setEditingArtisan] = useState<Artisan | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [verificationData, setVerificationData] = useState({
     profilePhoto: false,
     gstCertificate: false,
@@ -752,6 +758,7 @@ export function ArtisanManagement() {
                       checked={formData.isVerified}
                       onChange={(e) => setFormData({ ...formData, isVerified: e.target.checked })}
                       className="rounded"
+                      aria-label="Verified Artisan"
                     />
                     <Label htmlFor="is-verified">Verified Artisan</Label>
                   </div>
@@ -762,6 +769,7 @@ export function ArtisanManagement() {
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                       className="rounded"
+                      aria-label="Active Account"
                     />
                     <Label htmlFor="is-active">Active Account</Label>
                   </div>
@@ -1269,6 +1277,7 @@ export function ArtisanManagement() {
                     checked={formData.isVerified}
                     onChange={(e) => setFormData({ ...formData, isVerified: e.target.checked })}
                     className="rounded"
+                    aria-label="Verified Artisan"
                   />
                   <Label htmlFor="edit-is-verified">Verified Artisan</Label>
                 </div>
@@ -1279,6 +1288,7 @@ export function ArtisanManagement() {
                     checked={formData.isActive}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     className="rounded"
+                    aria-label="Active Account"
                   />
                   <Label htmlFor="edit-is-active">Active Account</Label>
                 </div>
@@ -1419,25 +1429,100 @@ export function ArtisanManagement() {
                   <CardHeader>
                     <CardTitle className="text-lg">Product Information</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="col-span-2">
-                      <p className="font-semibold text-muted-foreground">Description</p>
-                      <p>{editingArtisan.productInfo.description || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-muted-foreground">Materials</p>
-                      <p>{editingArtisan.productInfo.materials || 'N/A'}</p>
-                    </div>
-                    {editingArtisan.productInfo.priceRange && (
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="col-span-2">
+                        <p className="font-semibold text-muted-foreground">Description</p>
+                        <p>{editingArtisan.productInfo.description || 'N/A'}</p>
+                      </div>
                       <div>
-                        <p className="font-semibold text-muted-foreground">Price Range</p>
-                        <p>₹{editingArtisan.productInfo.priceRange.min} - ₹{editingArtisan.productInfo.priceRange.max}</p>
+                        <p className="font-semibold text-muted-foreground">Materials</p>
+                        <p>{editingArtisan.productInfo.materials || 'N/A'}</p>
+                      </div>
+                      {editingArtisan.productInfo.priceRange && (
+                        <div>
+                          <p className="font-semibold text-muted-foreground">Price Range</p>
+                          <p>₹{editingArtisan.productInfo.priceRange.min} - ₹{editingArtisan.productInfo.priceRange.max}</p>
+                        </div>
+                      )}
+                      {editingArtisan.productInfo.stockQuantity && (
+                        <div>
+                          <p className="font-semibold text-muted-foreground">Stock Quantity</p>
+                          <p>{editingArtisan.productInfo.stockQuantity}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Product Photos */}
+                    {editingArtisan.productInfo.photos && editingArtisan.productInfo.photos.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="font-semibold text-muted-foreground">Product Photos</p>
+                          {editingArtisan.documentVerification?.productPhotos && (
+                            <Badge variant="default" className="ml-2">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-4 gap-3">
+                          {editingArtisan.productInfo.photos.map((photo, index) => (
+                            <div 
+                              key={index}
+                              className="relative group cursor-pointer border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                              onClick={() => setPreviewDocument({ url: photo, type: 'image' })}
+                            >
+                              <img 
+                                src={photo} 
+                                alt={`Product ${index + 1}`} 
+                                className="w-full h-24 object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <ZoomIn className="w-6 h-6 text-white" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {editingArtisan.productInfo.stockQuantity && (
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Logistics Information */}
+              {editingArtisan.logistics && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Truck className="w-5 h-5" />
+                      Logistics & Shipping
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    {editingArtisan.logistics.pickupAddress && (
+                      <>
+                        <div>
+                          <p className="font-semibold text-muted-foreground">Pickup Address Same as Main</p>
+                          <p>{editingArtisan.logistics.pickupAddress.sameAsMain ? 'Yes' : 'No'}</p>
+                        </div>
+                        {!editingArtisan.logistics.pickupAddress.sameAsMain && editingArtisan.logistics.pickupAddress.address && (
+                          <div className="col-span-2">
+                            <p className="font-semibold text-muted-foreground">Pickup Address</p>
+                            <p>{editingArtisan.logistics.pickupAddress.address}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {editingArtisan.logistics.dispatchTime && (
                       <div>
-                        <p className="font-semibold text-muted-foreground">Stock Quantity</p>
-                        <p>{editingArtisan.productInfo.stockQuantity}</p>
+                        <p className="font-semibold text-muted-foreground">Average Dispatch Time</p>
+                        <Badge variant="outline">{editingArtisan.logistics.dispatchTime} days</Badge>
+                      </div>
+                    )}
+                    {editingArtisan.logistics.packagingType && (
+                      <div>
+                        <p className="font-semibold text-muted-foreground">Packaging Type</p>
+                        <Badge variant="outline" className="capitalize">{editingArtisan.logistics.packagingType}</Badge>
                       </div>
                     )}
                   </CardContent>
@@ -1497,7 +1582,160 @@ export function ArtisanManagement() {
                     {editingArtisan.payment.paymentFrequency && (
                       <div>
                         <p className="font-semibold text-muted-foreground">Payment Frequency</p>
-                        <p>{editingArtisan.payment.paymentFrequency}</p>
+                        <p className="capitalize">{editingArtisan.payment.paymentFrequency}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Submitted Documents */}
+              {editingArtisan.documents && (Object.keys(editingArtisan.documents).some(key => editingArtisan.documents?.[key as keyof typeof editingArtisan.documents]) || editingArtisan.avatar) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Submitted Documents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Profile Photo */}
+                    {editingArtisan.avatar && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Profile Photo</strong>
+                            {editingArtisan.documentVerification?.profilePhoto && (
+                              <Badge variant="default">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewDocument({ url: editingArtisan.avatar!, type: 'image' })}
+                            className="h-8"
+                          >
+                            <ZoomIn className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                        </div>
+                        <img 
+                          src={editingArtisan.avatar} 
+                          alt="Profile" 
+                          className="w-32 h-32 object-cover rounded-full mx-auto border-2 border-gray-200"
+                        />
+                      </div>
+                    )}
+
+                    {/* GST Certificate */}
+                    {editingArtisan.documents.gstCertificate && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">GST Certificate</strong>
+                            {editingArtisan.documentVerification?.gstCertificate && (
+                              <Badge variant="default">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewDocument({ url: editingArtisan.documents!.gstCertificate!, type: 'image' })}
+                            className="h-8"
+                          >
+                            <ZoomIn className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                        </div>
+                        {editingArtisan.documents.gstCertificate.startsWith('data:image') || editingArtisan.documents.gstCertificate.includes('.jpg') || editingArtisan.documents.gstCertificate.includes('.png') ? (
+                          <img 
+                            src={editingArtisan.documents.gstCertificate} 
+                            alt="GST Certificate" 
+                            className="w-full max-h-48 object-contain rounded border bg-white"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center p-8 border rounded bg-gray-50">
+                            <FileText className="w-12 h-12 text-gray-400" />
+                            <span className="ml-3 text-sm text-gray-600">PDF Document</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Aadhaar Proof */}
+                    {editingArtisan.documents.aadhaarProof && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Aadhaar Proof</strong>
+                            {editingArtisan.documentVerification?.aadhaarProof && (
+                              <Badge variant="default">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewDocument({ url: editingArtisan.documents!.aadhaarProof!, type: 'image' })}
+                            className="h-8"
+                          >
+                            <ZoomIn className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                        </div>
+                        {editingArtisan.documents.aadhaarProof.startsWith('data:image') || editingArtisan.documents.aadhaarProof.includes('.jpg') || editingArtisan.documents.aadhaarProof.includes('.png') ? (
+                          <img 
+                            src={editingArtisan.documents.aadhaarProof} 
+                            alt="Aadhaar Proof" 
+                            className="w-full max-h-48 object-contain rounded border bg-white"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center p-8 border rounded bg-gray-50">
+                            <FileText className="w-12 h-12 text-gray-400" />
+                            <span className="ml-3 text-sm text-gray-600">PDF Document</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Craft Video */}
+                    {editingArtisan.documents.craftVideo && (
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Craft Video</strong>
+                            {editingArtisan.documentVerification?.craftVideo && (
+                              <Badge variant="default">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewDocument({ url: editingArtisan.documents!.craftVideo!, type: 'video' })}
+                            className="h-8"
+                          >
+                            <ZoomIn className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                        </div>
+                        <video 
+                          src={editingArtisan.documents.craftVideo} 
+                          controls 
+                          className="w-full max-h-64 rounded border bg-black"
+                        >
+                          Your browser does not support the video tag.
+                        </video>
                       </div>
                     )}
                   </CardContent>
@@ -1832,6 +2070,15 @@ export function ArtisanManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Document Preview Modal */}
+      {previewDocument && (
+        <DocumentPreview
+          url={previewDocument.url}
+          type={previewDocument.type}
+          onClose={() => setPreviewDocument(null)}
+        />
+      )}
     </div>
   );
 }

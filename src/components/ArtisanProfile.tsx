@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Star, Award, Package, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
+import { VerificationBadge } from "./VerificationBadge";
 
 interface ArtisanProfileProps {
   artisan: {
@@ -20,6 +21,7 @@ interface ArtisanProfileProps {
     achievements: string[];
     joinedYear?: string;
     specialties?: string[];
+    isVerified?: boolean;
   };
 }
 
@@ -56,8 +58,11 @@ export const ArtisanProfile = ({ artisan }: ArtisanProfileProps) => {
 
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-xl">{artisan.name}</CardTitle>
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-xl">{artisan.name}</CardTitle>
+              {artisan.isVerified && <VerificationBadge isVerified={true} variant="icon-only" />}
+            </div>
             <CardDescription className="font-medium text-primary">
               {artisan.specialty}
             </CardDescription>

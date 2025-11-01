@@ -53,19 +53,19 @@ export default function SellerOnboarding() {
       pincode: ""
     },
     yearsOfExperience: "",
-    profilePhoto: null,
-    productPhotos: [],
+    profilePhoto: null as File | null,
+    productPhotos: [] as File[],
 
     // Step 2: Seller Type & Verification
     sellerType: "", // "gst" or "non-gst"
     gstNumber: "",
-    gstCertificate: null,
+    gstCertificate: null as File | null,
     aadhaarNumber: "",
-    aadhaarProof: null,
+    aadhaarProof: null as File | null,
     panNumber: "",
     
     // Step 3: Product Details
-    categories: [],
+    categories: [] as string[],
     productDescription: "",
     materials: "",
     priceRange: {
@@ -91,7 +91,7 @@ export default function SellerOnboarding() {
     
     // Step 6: Seller Story
     story: "",
-    craftVideo: null
+    craftVideo: null as File | null
   });
 
   const { errors, validateStep } = useFormValidation(formData);
@@ -670,6 +670,7 @@ export default function SellerOnboarding() {
                               checked={formData.sellerType === "non-gst"}
                               onChange={(e) => setFormData({...formData, sellerType: e.target.value})}
                               className="form-radio"
+                              aria-label="Non-GST Seller"
                             />
                             <Label htmlFor="non-gst">
                               <span className="font-medium">Non-GST Seller (Small Artisan)</span>
@@ -685,6 +686,7 @@ export default function SellerOnboarding() {
                               checked={formData.sellerType === "gst"}
                               onChange={(e) => setFormData({...formData, sellerType: e.target.value})}
                               className="form-radio"
+                              aria-label="GST-Registered Seller"
                             />
                             <Label htmlFor="gst">
                               <span className="font-medium">GST-Registered Seller</span>
@@ -709,16 +711,6 @@ export default function SellerOnboarding() {
                             <Label>Aadhaar Card *</Label>
                             <div 
                               className={`border-2 border-dashed ${errors.aadhaarProof ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
-                              onClick={() => document.getElementById('aadhaarProof')?.click()}
-                              role="button"
-                              tabIndex={0}
-                              aria-label="Upload Aadhaar card"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  document.getElementById('aadhaarProof')?.click();
-                                }
-                              }}
                             >
                               {formData.aadhaarProof ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -776,16 +768,6 @@ export default function SellerOnboarding() {
                             <Label>GST Certificate *</Label>
                             <div 
                               className={`border-2 border-dashed ${errors.gstCertificate ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
-                              onClick={() => document.getElementById('gstCertificate')?.click()}
-                              role="button"
-                              tabIndex={0}
-                              aria-label="Upload GST certificate"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  document.getElementById('gstCertificate')?.click();
-                                }
-                              }}
                             >
                               {formData.gstCertificate ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -922,8 +904,10 @@ export default function SellerOnboarding() {
                           {[0, 1, 2, 3].map((index) => {
                             const hasImage = formData.productPhotos[index];
                             return (
-                              <div key={index} 
-                                className={`relative border-2 border-dashed ${errors.productPhotos ? 'border-red-500' : 'border-muted'} rounded-lg p-4 hover:border-primary transition-colors`}
+                              <label 
+                                key={index} 
+                                htmlFor={`productPhoto-${index}`}
+                                className={`relative block border-2 border-dashed ${errors.productPhotos ? 'border-red-500' : 'border-muted'} rounded-lg p-4 hover:border-primary transition-colors cursor-pointer`}
                               >
                                 {hasImage ? (
                                   <div className="relative aspect-square">
@@ -936,6 +920,7 @@ export default function SellerOnboarding() {
                                       type="button"
                                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
                                       onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         const newPhotos = [...formData.productPhotos];
                                         newPhotos.splice(index, 1);
@@ -947,17 +932,7 @@ export default function SellerOnboarding() {
                                   </div>
                                 ) : (
                                   <div
-                                    className="aspect-square flex flex-col items-center justify-center cursor-pointer"
-                                    onClick={() => document.getElementById(`productPhoto${index}`)?.click()}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Upload product photo ${index + 1}`}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        document.getElementById(`productPhoto${index}`)?.click();
-                                      }
-                                    }}
+                                    className="aspect-square flex flex-col items-center justify-center"
                                   >
                                     <Upload className="w-8 h-8 text-muted-foreground mb-2" />
                                     <p className="text-sm font-medium">Upload Product {index + 1}</p>
@@ -966,7 +941,7 @@ export default function SellerOnboarding() {
                                 )}
                                 <input
                                   type="file"
-                                  id={`productPhoto${index}`}
+                                  id={`productPhoto-${index}`}
                                   accept="image/jpeg,image/png,image/jpg"
                                   className="hidden"
                                   onChange={(e) => {
@@ -988,7 +963,7 @@ export default function SellerOnboarding() {
                                   }}
                                   aria-label={`Product photo ${index + 1} upload`}
                                 />
-                              </div>
+                              </label>
                             );
                           })}
                         </div>
@@ -1022,6 +997,7 @@ export default function SellerOnboarding() {
                               pickupAddress: { ...formData.pickupAddress, sameAsMain: e.target.checked }
                             })}
                             className="form-checkbox"
+                            aria-label="Pickup address same as main address"
                           />
                           <Label htmlFor="sameAddress">Pickup address same as main address</Label>
                         </div>
@@ -1050,14 +1026,15 @@ export default function SellerOnboarding() {
                             <div key={option.value} className="flex items-center space-x-2">
                               <input
                                 type="radio"
-                                id={option.value}
+                                id={`dispatch-${option.value}`}
                                 name="dispatchTime"
                                 value={option.value}
                                 checked={formData.dispatchTime === option.value}
                                 onChange={(e) => setFormData({...formData, dispatchTime: e.target.value})}
                                 className="form-radio"
+                                aria-label={option.label}
                               />
-                              <Label htmlFor={option.value}>{option.label}</Label>
+                              <Label htmlFor={`dispatch-${option.value}`}>{option.label}</Label>
                             </div>
                           ))}
                         </div>
@@ -1070,14 +1047,15 @@ export default function SellerOnboarding() {
                             <div key={option.value} className="flex items-center space-x-2">
                               <input
                                 type="radio"
-                                id={option.value}
+                                id={`packaging-${option.value}`}
                                 name="packagingType"
                                 value={option.value}
                                 checked={formData.packagingType === option.value}
                                 onChange={(e) => setFormData({...formData, packagingType: e.target.value})}
                                 className="form-radio"
+                                aria-label={option.label}
                               />
-                              <Label htmlFor={option.value}>{option.label}</Label>
+                              <Label htmlFor={`packaging-${option.value}`}>{option.label}</Label>
                             </div>
                           ))}
                         </div>
@@ -1163,6 +1141,7 @@ export default function SellerOnboarding() {
                               checked={formData.paymentFrequency === "weekly"}
                               onChange={(e) => setFormData({...formData, paymentFrequency: e.target.value})}
                               className="form-radio"
+                              aria-label="Weekly payment frequency"
                             />
                             <Label htmlFor="weekly">Weekly</Label>
                           </div>
@@ -1175,6 +1154,7 @@ export default function SellerOnboarding() {
                               checked={formData.paymentFrequency === "monthly"}
                               onChange={(e) => setFormData({...formData, paymentFrequency: e.target.value})}
                               className="form-radio"
+                              aria-label="Monthly payment frequency"
                             />
                             <Label htmlFor="monthly">Monthly</Label>
                           </div>
@@ -1225,6 +1205,7 @@ export default function SellerOnboarding() {
                               type="checkbox"
                               id="declaration1"
                               className="form-checkbox mt-1"
+                              aria-label="I confirm that all details provided are true and correct"
                             />
                             <Label htmlFor="declaration1" className="text-sm">
                               I confirm that all details provided are true and correct.
@@ -1235,6 +1216,7 @@ export default function SellerOnboarding() {
                               type="checkbox"
                               id="declaration2"
                               className="form-checkbox mt-1"
+                              aria-label="I agree to follow the Zaymazone Seller Compliance Policy"
                             />
                             <Label htmlFor="declaration2" className="text-sm">
                               I agree to follow the Zaymazone Seller Compliance Policy.
@@ -1245,6 +1227,7 @@ export default function SellerOnboarding() {
                               type="checkbox"
                               id="declaration3"
                               className="form-checkbox mt-1"
+                              aria-label="I understand that fake or misleading information may result in account suspension"
                             />
                             <Label htmlFor="declaration3" className="text-sm">
                               I understand that fake or misleading information may result in account suspension.

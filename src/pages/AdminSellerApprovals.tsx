@@ -25,7 +25,8 @@ import {
   User,
   Building2,
   Phone,
-  Truck
+  Truck,
+  FileText
 } from 'lucide-react';
 
 interface SellerApplication {
@@ -830,9 +831,9 @@ export function AdminSellerApprovals() {
                     <div>
                       <strong>Pickup Address:</strong>
                       <p className="ml-4 mt-1">
-                        {selectedApplication.logistics.pickupAddress.street}<br />
-                        {selectedApplication.logistics.pickupAddress.city}, {selectedApplication.logistics.pickupAddress.state}<br />
-                        PIN: {selectedApplication.logistics.pickupAddress.pincode}
+                        {selectedApplication.logistics.pickupAddress?.street}<br />
+                        {selectedApplication.logistics.pickupAddress?.city}, {selectedApplication.logistics.pickupAddress?.state}<br />
+                        PIN: {selectedApplication.logistics.pickupAddress?.pincode}
                       </p>
                     </div>
                     <p><strong>Dispatch Time:</strong> {selectedApplication.logistics.dispatchTime}</p>
