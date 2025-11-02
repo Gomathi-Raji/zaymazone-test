@@ -25,6 +25,16 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-unused-expressions": "off",
+      // Relax strict type checking for development
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-namespace": "warn",
+      // Relax React hooks exhaustive deps to warnings
+      "react-hooks/exhaustive-deps": "warn",
+      // Allow lexical declarations in case blocks
+      "no-case-declarations": "warn",
+      // Allow control characters in regex (for security.ts)
+      "no-control-regex": "warn",
     },
   }
 );

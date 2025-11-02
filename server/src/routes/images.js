@@ -23,12 +23,23 @@ router.options('*', (req, res) => res.sendStatus(200))
 const storage = multer.memoryStorage()
 const upload = multer({ 
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit (increased for videos and documents)
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    // Accept images, documents (PDF, DOC), and videos
+    const allowedMimeTypes = [
+      'image/',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'video/'
+    ];
+    
+    const isAllowed = allowedMimeTypes.some(type => file.mimetype.startsWith(type));
+    
+    if (isAllowed) {
       cb(null, true)
     } else {
-      cb(new Error('Only image files are allowed'))
+      cb(new Error('Only image, document (PDF/DOC), and video files are allowed'))
     }
   }
 })
@@ -37,7 +48,7 @@ const upload = multer({
 router.post('/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' })
+      return res.status(400).json({ error: 'No file provided' })
     }
 
     const { category = 'other' } = req.body

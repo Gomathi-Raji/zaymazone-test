@@ -899,6 +899,7 @@ export function SellerOnboardingForm() {
                     maxImages={1}
                     singleMode={true}
                     category="documents"
+                    fileType="document"
                   />
                 </div>
                 <div>
@@ -909,6 +910,7 @@ export function SellerOnboardingForm() {
                     maxImages={1}
                     singleMode={true}
                     category="documents"
+                    fileType="document"
                   />
                 </div>
                 <div>
@@ -919,6 +921,7 @@ export function SellerOnboardingForm() {
                     maxImages={1}
                     singleMode={true}
                     category="videos"
+                    fileType="video"
                   />
                 </div>
               </div>

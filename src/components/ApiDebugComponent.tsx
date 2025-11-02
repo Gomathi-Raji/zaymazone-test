@@ -4,12 +4,13 @@ import { useProducts } from '@/hooks/useProducts';
 // Development only - debug component for testing API responses
 // Remove or disable in production builds
 const ApiDebugComponent = () => {
+  // Always call hooks at the top level (React Hooks rule)
+  const { data: productsData, isLoading, error } = useProducts({ limit: 1 });
+
   // Only show in development mode
   if (import.meta.env.PROD) {
     return null;
   }
-
-  const { data: productsData, isLoading, error } = useProducts({ limit: 1 });
 
   if (import.meta.env.DEV) {
     console.log('Products hook result:', { productsData, isLoading, error });

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { DocumentPreview } from '@/components/admin/DocumentPreview';
 import { 
   Plus, 
   Eye, 
@@ -26,7 +27,8 @@ import {
   Building2,
   Phone,
   Truck,
-  FileText
+  FileText,
+  ZoomIn
 } from 'lucide-react';
 
 interface SellerApplication {
@@ -128,6 +130,7 @@ export function AdminSellerApprovals() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [statusFilter, setStatusFilter] = useState('pending');
+  const [previewDocument, setPreviewDocument] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [documentVerification, setDocumentVerification] = useState({
     profilePhoto: false,
     gstCertificate: false,
@@ -653,12 +656,20 @@ export function AdminSellerApprovals() {
                         <strong>Product Photos:</strong>
                         <div className="grid grid-cols-3 gap-2 mt-2">
                           {selectedApplication.productInfo.photos.map((photo, index) => (
-                            <img 
-                              key={index} 
-                              src={photo} 
-                              alt={`Product ${index + 1}`} 
-                              className="w-full h-32 object-cover rounded border"
-                            />
+                            <div 
+                              key={index}
+                              className="relative group cursor-pointer"
+                              onClick={() => setPreviewDocument({ url: photo, type: 'image' })}
+                            >
+                              <img 
+                                src={photo} 
+                                alt={`Product ${index + 1}`} 
+                                className="w-full h-32 object-cover rounded border hover:opacity-80 transition-opacity"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center rounded">
+                                <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -692,15 +703,27 @@ export function AdminSellerApprovals() {
                               </span>
                             </label>
                           </div>
-                          <a 
-                            href={selectedApplication.documents.gstCertificate} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                          >
-                            <FileText className="w-4 h-4" />
-                            Open Full Size
-                          </a>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewDocument({ url: selectedApplication.documents.gstCertificate!, type: 'image' })}
+                              className="flex items-center gap-1"
+                            >
+                              <ZoomIn className="w-4 h-4" />
+                              Preview
+                            </Button>
+                            <a 
+                              href={selectedApplication.documents.gstCertificate} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Open Full Size
+                            </a>
+                          </div>
                         </div>
                         {selectedApplication.documents.gstCertificate.startsWith('data:image') ? (
                           <img 
@@ -737,15 +760,27 @@ export function AdminSellerApprovals() {
                               </span>
                             </label>
                           </div>
-                          <a 
-                            href={selectedApplication.documents.aadhaarProof} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                          >
-                            <FileText className="w-4 h-4" />
-                            Open Full Size
-                          </a>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewDocument({ url: selectedApplication.documents.aadhaarProof!, type: 'image' })}
+                              className="flex items-center gap-1"
+                            >
+                              <ZoomIn className="w-4 h-4" />
+                              Preview
+                            </Button>
+                            <a 
+                              href={selectedApplication.documents.aadhaarProof} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Open Full Size
+                            </a>
+                          </div>
                         </div>
                         {selectedApplication.documents.aadhaarProof.startsWith('data:image') ? (
                           <img 
@@ -782,15 +817,27 @@ export function AdminSellerApprovals() {
                               </span>
                             </label>
                           </div>
-                          <a 
-                            href={selectedApplication.documents.craftVideo} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm flex items-center gap-1"
-                          >
-                            <FileText className="w-4 h-4" />
-                            Open Full Size
-                          </a>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPreviewDocument({ url: selectedApplication.documents.craftVideo!, type: 'video' })}
+                              className="flex items-center gap-1"
+                            >
+                              <ZoomIn className="w-4 h-4" />
+                              Preview
+                            </Button>
+                            <a 
+                              href={selectedApplication.documents.craftVideo} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Open Full Size
+                            </a>
+                          </div>
                         </div>
                         <video 
                           src={selectedApplication.documents.craftVideo} 
@@ -804,21 +851,33 @@ export function AdminSellerApprovals() {
                     {selectedApplication.avatar && (
                       <div className="border rounded-lg p-4 bg-gray-50">
                         <div className="flex items-center justify-between mb-2">
-                          <strong className="text-sm">Profile Photo:</strong>
-                          <label className="flex items-center gap-1 text-sm cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={documentVerification.profilePhoto}
-                              onChange={(e) => setDocumentVerification({
-                                ...documentVerification,
-                                profilePhoto: e.target.checked
-                              })}
-                              className="form-checkbox"
-                            />
-                            <span className={documentVerification.profilePhoto ? "text-green-600 font-medium" : "text-gray-600"}>
-                              {documentVerification.profilePhoto ? "✓ Verified" : "Not Verified"}
-                            </span>
-                          </label>
+                          <div className="flex items-center gap-2">
+                            <strong className="text-sm">Profile Photo:</strong>
+                            <label className="flex items-center gap-1 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={documentVerification.profilePhoto}
+                                onChange={(e) => setDocumentVerification({
+                                  ...documentVerification,
+                                  profilePhoto: e.target.checked
+                                })}
+                                className="form-checkbox"
+                              />
+                              <span className={documentVerification.profilePhoto ? "text-green-600 font-medium" : "text-gray-600"}>
+                                {documentVerification.profilePhoto ? "✓ Verified" : "Not Verified"}
+                              </span>
+                            </label>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPreviewDocument({ url: selectedApplication.avatar!, type: 'image' })}
+                            className="flex items-center gap-1"
+                          >
+                            <ZoomIn className="w-4 h-4" />
+                            Preview
+                          </Button>
                         </div>
                         <img 
                           src={selectedApplication.avatar} 
@@ -1025,6 +1084,15 @@ export function AdminSellerApprovals() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Document Preview Modal */}
+      {previewDocument && (
+        <DocumentPreview
+          url={previewDocument.url}
+          type={previewDocument.type}
+          onClose={() => setPreviewDocument(null)}
+        />
+      )}
     </div>
   );
 }

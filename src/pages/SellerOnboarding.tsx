@@ -711,6 +711,16 @@ export default function SellerOnboarding() {
                             <Label>Aadhaar Card *</Label>
                             <div 
                               className={`border-2 border-dashed ${errors.aadhaarProof ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
+                              onClick={() => document.getElementById('aadhaarProof')?.click()}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Upload Aadhaar card"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  document.getElementById('aadhaarProof')?.click();
+                                }
+                              }}
                             >
                               {formData.aadhaarProof ? (
                                 <div className="flex items-center justify-center space-x-2">
@@ -768,6 +778,16 @@ export default function SellerOnboarding() {
                             <Label>GST Certificate *</Label>
                             <div 
                               className={`border-2 border-dashed ${errors.gstCertificate ? 'border-red-500' : 'border-muted'} rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer mt-2`}
+                              onClick={() => document.getElementById('gstCertificate')?.click()}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Upload GST certificate"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  document.getElementById('gstCertificate')?.click();
+                                }
+                              }}
                             >
                               {formData.gstCertificate ? (
                                 <div className="flex items-center justify-center space-x-2">
