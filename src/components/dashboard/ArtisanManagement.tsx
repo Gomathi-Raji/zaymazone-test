@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,13 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from '@/components/ImageUpload';
 import { DocumentPreview } from '@/components/admin/DocumentPreview';
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
 interface Artisan {
   _id: string;
   name: string;
@@ -45,6 +52,19 @@ interface Artisan {
   rating: number;
   totalRatings: number;
   totalProducts: number;
+  userId?: string;
+  phone?: string;
+  website?: string;
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+  businessDetails?: {
+    businessName?: string;
+    gstNumber?: string;
+    businessType?: string;
+  };
   verification: {
     isVerified: boolean;
     verifiedAt?: Date;
@@ -120,7 +140,7 @@ interface Artisan {
 export function ArtisanManagement() {
   const queryClient = useQueryClient();
   const [artisans, setArtisans] = useState<Artisan[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -167,21 +187,16 @@ export function ArtisanManagement() {
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadArtisans();
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const response = await adminService.getUsers();
       setUsers(response.users || []);
     } catch (error) {
       console.error('Error loading users:', error);
     }
-  };
+  }, []);
 
-  const loadArtisans = async () => {
+  const loadArtisans = useCallback(async () => {
     try {
       setLoading(true);
       const response = await adminService.getArtisans({
@@ -199,7 +214,12 @@ export function ArtisanManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, statusFilter, toast]);
+
+  useEffect(() => {
+    loadArtisans();
+    loadUsers();
+  }, [loadArtisans, loadUsers]);
 
   const handleSearch = () => {
     loadArtisans();
@@ -426,19 +446,19 @@ export function ArtisanManagement() {
       coverImage: artisan.coverImage ? [artisan.coverImage] : [],
       specialties: artisan.specialties.join(', '),
       experience: artisan.experience?.toString() || '0',
-      userId: (artisan as any).userId || "",
-      phone: (artisan as any).phone || "",
-      email: (artisan as any).email || "",
-      website: (artisan as any).website || "",
+      userId: artisan.userId || "",
+      phone: artisan.phone || "",
+      email: artisan.email || "",
+      website: artisan.website || "",
       socialMedia: {
-        instagram: (artisan as any).socialMedia?.instagram || "",
-        facebook: (artisan as any).socialMedia?.facebook || "",
-        twitter: (artisan as any).socialMedia?.twitter || ""
+        instagram: artisan.socialMedia?.instagram || "",
+        facebook: artisan.socialMedia?.facebook || "",
+        twitter: artisan.socialMedia?.twitter || ""
       },
       businessDetails: {
-        businessName: (artisan as any).businessDetails?.businessName || "",
-        gstNumber: (artisan as any).businessDetails?.gstNumber || "",
-        businessType: (artisan as any).businessDetails?.businessType || ""
+        businessName: artisan.businessDetails?.businessName || "",
+        gstNumber: artisan.businessDetails?.gstNumber || "",
+        businessType: artisan.businessDetails?.businessType || ""
       },
       isVerified: artisan.verification?.isVerified || false,
       isActive: artisan.isActive

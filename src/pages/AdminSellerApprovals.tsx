@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -114,11 +114,19 @@ interface ApprovalModalData {
   rejectionReason: string;
 }
 
+interface Pagination {
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export function AdminSellerApprovals() {
   const [applications, setApplications] = useState<SellerApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<any>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [documentVerification, setDocumentVerification] = useState({
     profilePhoto: false,
@@ -140,11 +148,7 @@ export function AdminSellerApprovals() {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchApplications();
-  }, [page, statusFilter]);
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
@@ -178,7 +182,11 @@ export function AdminSellerApprovals() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, toast]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
 
   const handleViewDetails = (application: SellerApplication) => {
     setSelectedApplication(application);
