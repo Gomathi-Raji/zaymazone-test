@@ -1,7 +1,8 @@
 const BASE_URL = '/api/seller';
 
 const getToken = () => {
-  return localStorage.getItem('admin_token') || 
+  return localStorage.getItem('token') || 
+         localStorage.getItem('admin_token') || 
          localStorage.getItem('auth_token') || 
          localStorage.getItem('firebase_id_token') || 
          '';
