@@ -172,14 +172,16 @@ router.post('/products', authenticateToken, async (req, res) => {
 			materials,
 			colors,
 			tags,
-			stockCount: parseInt(stockCount) || 0,
-			inStock: parseInt(stockCount) > 0,
+			stock: parseInt(req.body.stock || stockCount) || 0,
+			inStock: parseInt(req.body.stock || stockCount) > 0,
 			dimensions,
 			weight,
 			shippingTime,
 			isHandmade: isHandmade !== false,
-			featured: featured === true,
-			isActive: true
+			isFeatured: req.body.isFeatured === true,
+			isActive: false, // Artisan products start as inactive
+			approvalStatus: 'pending', // Require admin approval
+			videos: req.body.videos || []
 		})
 
 		await product.save()
