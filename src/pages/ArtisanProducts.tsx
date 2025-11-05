@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ImageUpload';
+import { VideoManager } from '@/components/VideoManager';
 import { useToast } from '@/hooks/use-toast';
 import { useSellerProducts } from '@/hooks/useSeller';
 import { sellerService } from '@/services/sellerService';
@@ -36,7 +37,8 @@ const ArtisanProducts = () => {
     tags: '',
     shippingTime: '',
     isHandmade: true,
-    images: []
+    images: [],
+    videos: []
   });
   const { toast } = useToast();
   const { products, pagination, loading, error } = useSellerProducts(page);
@@ -63,7 +65,8 @@ const ArtisanProducts = () => {
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
         isHandmade: formData.isHandmade,
         shippingTime: formData.shippingTime || undefined,
-        images: formData.images
+        images: formData.images,
+        videos: formData.videos
       };
       if (editingId) {
         await sellerService.updateProduct(editingId, productData);
@@ -98,7 +101,8 @@ const ArtisanProducts = () => {
       tags: product.tags?.join(', ') || '',
       shippingTime: product.shippingTime || '',
       isHandmade: product.isHandmade !== false,
-      images: product.images
+      images: product.images,
+      videos: product.videos || []
     });
     setIsModalOpen(true);
   };
@@ -130,7 +134,8 @@ const ArtisanProducts = () => {
       tags: '',
       shippingTime: '',
       isHandmade: true,
-      images: []
+      images: [],
+      videos: []
     });
   };
 
@@ -347,6 +352,15 @@ const ArtisanProducts = () => {
                           onImagesChange={(images) => setFormData({ ...formData, images })}
                           maxImages={5}
                           category="products"
+                        />
+                      </div>
+
+                      {/* Product Videos */}
+                      <h3 className="text-lg font-semibold border-b pb-2">Product Videos</h3>
+                      <div>
+                        <VideoManager
+                          videos={formData.videos}
+                          onChange={(videos) => setFormData({ ...formData, videos })}
                         />
                       </div>
                       <div className="flex gap-2 justify-end">
