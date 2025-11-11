@@ -715,7 +715,7 @@ export function AdminSellerApprovals() {
                               Preview
                             </Button>
                             <a 
-                              href={selectedApplication.documents.gstCertificate} 
+                              href={selectedApplication.documents?.gstCertificate} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline text-sm flex items-center gap-1"
@@ -772,7 +772,7 @@ export function AdminSellerApprovals() {
                               Preview
                             </Button>
                             <a 
-                              href={selectedApplication.documents.aadhaarProof} 
+                              href={selectedApplication.documents?.aadhaarProof} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline text-sm flex items-center gap-1"
@@ -829,7 +829,7 @@ export function AdminSellerApprovals() {
                               Preview
                             </Button>
                             <a 
-                              href={selectedApplication.documents.craftVideo} 
+                              href={selectedApplication.documents?.craftVideo} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline text-sm flex items-center gap-1"

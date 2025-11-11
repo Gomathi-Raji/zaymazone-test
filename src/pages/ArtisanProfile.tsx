@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,7 +57,12 @@ interface ArtisanProfile {
   stockQuantity: number;
   productPhotos: string[];
   shippingDetails: {
-    pickupAddress: any;
+    pickupAddress?: {
+      sameAsMain?: boolean;
+      address?: string;
+      street?: string;
+      city?: string;
+    };
     dispatchTime: string;
     packagingType: string;
   };
@@ -113,9 +118,9 @@ const ArtisanProfileView = () => {
     if (user) {
       loadProfile();
     }
-  }, [user]);
+  }, [user, loadProfile]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiRequest('/api/artisans/profile', {
@@ -146,7 +151,7 @@ const ArtisanProfileView = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleSaveProfile = async () => {
     try {
@@ -590,13 +595,14 @@ const ArtisanProfileView = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground mb-2 block">Pickup Address</Label>
+                  <Label htmlFor="sameAsMain" className="text-sm font-medium text-muted-foreground mb-2 block">Pickup Address</Label>
                   {editing ? (
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
                           id="sameAsMain"
+                          aria-label="Same as main address"
                           checked={editData.shippingDetails.pickupAddress.sameAsMain}
                           onChange={(e) => setEditData({
                             ...editData,
@@ -632,9 +638,9 @@ const ArtisanProfileView = () => {
                     </div>
                   ) : (
                     <p className="text-base">
-                      {profile.shippingDetails.pickupAddress.sameAsMain 
+                      {profile.shippingDetails.pickupAddress?.sameAsMain 
                         ? 'Same as main address' 
-                        : profile.shippingDetails.pickupAddress.address || 'Not specified'}
+                        : profile.shippingDetails.pickupAddress?.address || 'Not specified'}
                     </p>
                   )}
                   <Badge variant="secondary" className="mt-2">Editable</Badge>

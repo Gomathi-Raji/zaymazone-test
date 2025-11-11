@@ -203,30 +203,30 @@ export function SellerOnboardingForm() {
     }
   };
 
-  const updateFormData = (field: keyof OnboardingData, value: any) => {
+  const updateFormData = (field: keyof OnboardingData, value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const updateNestedFormData = (section: keyof OnboardingData, field: string, value: any) => {
+  const updateNestedFormData = (section: keyof OnboardingData, field: string, value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...(prev[section] as any),
+        ...(prev[section] as any), // eslint-disable-line @typescript-eslint/no-explicit-any
         [field]: value
       }
     }));
   };
 
-  const updateDoubleNestedFormData = (section: keyof OnboardingData, subsection: string, field: string, value: any) => {
+  const updateDoubleNestedFormData = (section: keyof OnboardingData, subsection: string, field: string, value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...(prev[section] as any),
+        ...(prev[section] as any), // eslint-disable-line @typescript-eslint/no-explicit-any
         [subsection]: {
-          ...((prev[section] as any)[subsection] || {}),
+          ...((prev[section] as any)[subsection] || {}), // eslint-disable-line @typescript-eslint/no-explicit-any
           [field]: value
         }
       }
@@ -246,30 +246,34 @@ export function SellerOnboardingForm() {
     switch (step) {
       case 1:
         return !!(formData.name && formData.location.city && formData.location.state);
-      case 2:
+      case 2: {
         const hasBasicBusiness = !!(formData.businessInfo.businessName && 
                                    formData.businessInfo.contact.email && 
                                    formData.businessInfo.contact.phone);
         const hasValidPAN = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.businessInfo.panNumber);
         const hasValidAadhaar = /^\d{12}$/.test(formData.businessInfo.aadhaarNumber);
         const hasValidGST = formData.businessInfo.sellerType !== 'gst' || 
-                           (formData.businessInfo.gstNumber && 
-                            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.businessInfo.gstNumber.toUpperCase()));
+                           (formData.businessInfo.gstNumber ? 
+                            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.businessInfo.gstNumber.toUpperCase()) : 
+                            false);
         return hasBasicBusiness && hasValidPAN && hasValidAadhaar && hasValidGST;
+      }
       case 3:
         return !!(formData.productInfo.description && formData.productInfo.materials && formData.specialties.length > 0);
       case 4:
         return !!(formData.logistics.dispatchTime && formData.logistics.packagingType);
-      case 5:
+      case 5: {
         const hasAadhaarProof = !!formData.documents.aadhaarProof;
         const hasGSTProof = formData.businessInfo.sellerType !== 'gst' || !!formData.documents.gstCertificate;
         return hasAadhaarProof && hasGSTProof;
-      case 6:
+      }
+      case 6: {
         // Use regex-only validation for bank details
         const hasValidAccount = formData.businessInfo.accountNumber ? /^\d{9,18}$/.test(formData.businessInfo.accountNumber) : true;
         const hasValidIFSC = formData.businessInfo.ifscCode ? /^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.businessInfo.ifscCode) : true;
         const hasUPI = !!formData.payment.upiId;
         return hasValidAccount && hasValidIFSC && hasUPI;
+      }
       default:
         return true;
     }
