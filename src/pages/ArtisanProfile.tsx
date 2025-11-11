@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,145 +8,134 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import {
   User,
   MapPin,
   Phone,
   Mail,
-  Calendar,
-  Award,
-  Star,
+  Store,
   Package,
-  ShoppingCart,
-  DollarSign,
-  Eye,
+  Truck,
+  CreditCard,
   Edit,
   Save,
   X,
   Upload,
-  Camera,
-  Briefcase,
-  GraduationCap,
-  Heart,
-  Globe
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  Building,
+  Hash,
+  IdCard
 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/api';
 
 interface ArtisanProfile {
   _id: string;
-  name: string;
+  fullName: string;
   email: string;
-  phone?: string;
-  avatar?: string;
-  bio?: string;
-  location?: {
-    city: string;
-    state: string;
-    country: string;
+  mobileNumber: string;
+  profilePic: string;
+  shopName: string;
+  sellerType: 'gst' | 'non-gst';
+  village: string;
+  district: string;
+  state: string;
+  pincode: string;
+  gstNumber: string;
+  panNumber: string;
+  aadhaarNumber: string;
+  productCategories: string[];
+  productDescription: string;
+  materials: string;
+  priceRange: { min: number; max: number };
+  stockQuantity: number;
+  productPhotos: string[];
+  shippingDetails: {
+    pickupAddress: any;
+    dispatchTime: string;
+    packagingType: string;
   };
-  specialization: string[];
+  bankDetails: {
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+  };
+  upiId: string;
+  paymentFrequency: string;
+  bio: string;
   experience: number;
-  languages: string[];
-  socialLinks?: {
-    website?: string;
-    instagram?: string;
-    facebook?: string;
-  };
-  businessInfo?: {
-    businessName?: string;
-    gstNumber?: string;
-    panNumber?: string;
-    bankDetails?: {
-      accountNumber?: string;
-      ifscCode?: string;
-      bankName?: string;
-    };
-  };
-  certifications: Array<{
-    name: string;
-    issuer: string;
-    year: number;
-  }>;
-  skills: string[];
-  workExperience: Array<{
-    role: string;
-    organization: string;
-    duration: string;
-    description: string;
-  }>;
-  education: Array<{
-    degree: string;
-    institution: string;
-    year: number;
-  }>;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  isActive: boolean;
   stats: {
     totalProducts: number;
-    totalOrders: number;
-    totalRevenue: number;
+    totalSales: number;
     averageRating: number;
     totalReviews: number;
+  };
+  pendingChanges?: {
+    hasChanges: boolean;
+    changedAt?: string;
+    changedFields: string[];
   };
   createdAt: string;
   updatedAt: string;
 }
 
-const ArtisanProfile = () => {
+const ArtisanProfileView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState<ArtisanProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('personal');
 
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    bio: '',
-    city: '',
-    state: '',
-    country: '',
-    specialization: [] as string[],
-    experience: '',
-    languages: [] as string[],
-    website: '',
-    instagram: '',
-    facebook: '',
-    businessName: '',
-    gstNumber: '',
-    panNumber: '',
-    skills: [] as string[]
+  // Editable fields only
+  const [editData, setEditData] = useState({
+    profilePic: '',
+    mobileNumber: '',
+    email: '',
+    shippingDetails: {
+      pickupAddress: { sameAsMain: true, address: '' },
+      dispatchTime: '',
+      packagingType: ''
+    }
   });
 
-  const loadProfile = useCallback(async () => {
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
     try {
-      const response = await api.getArtisanProfile();
+      setLoading(true);
+      const response = await apiRequest('/api/artisans/profile', {
+        method: 'GET',
+        auth: true
+      }) as ArtisanProfile;
+      
       setProfile(response);
-      // Initialize form data
-      if (response) {
-        setFormData({
-          name: response.name || '',
-          phone: response.phone || '',
-          bio: response.bio || '',
-          city: response.location?.city || '',
-          state: response.location?.state || '',
-          country: response.location?.country || '',
-          specialization: response.specialization || [],
-          experience: response.experience?.toString() || '',
-          languages: response.languages || [],
-          website: response.socialLinks?.website || '',
-          instagram: response.socialLinks?.instagram || '',
-          facebook: response.socialLinks?.facebook || '',
-          businessName: response.businessInfo?.businessName || '',
-          gstNumber: response.businessInfo?.gstNumber || '',
-          panNumber: response.businessInfo?.panNumber || '',
-          skills: response.skills || []
-        });
-      }
+      
+      // Initialize editable fields
+      setEditData({
+        profilePic: response.profilePic || '',
+        mobileNumber: response.mobileNumber || '',
+        email: response.email || '',
+        shippingDetails: response.shippingDetails || {
+          pickupAddress: { sameAsMain: true, address: '' },
+          dispatchTime: '',
+          packagingType: ''
+        }
+      });
     } catch (error) {
       console.error('Failed to load profile:', error);
       toast({
@@ -157,41 +146,22 @@ const ArtisanProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    if (user) {
-      loadProfile();
-    }
-  }, [user, loadProfile]);
+  };
 
   const handleSaveProfile = async () => {
     try {
-      const updatedData = {
-        ...formData,
-        experience: parseInt(formData.experience) || 0,
-        location: {
-          city: formData.city,
-          state: formData.state,
-          country: formData.country
-        },
-        socialLinks: {
-          website: formData.website,
-          instagram: formData.instagram,
-          facebook: formData.facebook
-        },
-        businessInfo: {
-          businessName: formData.businessName,
-          gstNumber: formData.gstNumber,
-          panNumber: formData.panNumber
-        }
-      };
-
-      await api.updateArtisanProfile(updatedData);
+      setSaving(true);
+      await apiRequest('/api/artisans/profile', {
+        method: 'PUT',
+        body: editData,
+        auth: true
+      });
+      
       toast({
         title: "Success",
         description: "Profile updated successfully.",
       });
+      
       setEditing(false);
       loadProfile();
     } catch (error) {
@@ -201,18 +171,24 @@ const ArtisanProfile = () => {
         description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-    }).format(amount);
   };
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      default:
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+    }
   };
 
   if (loading) {
@@ -230,29 +206,84 @@ const ArtisanProfile = () => {
     );
   }
 
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <XCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-xl font-semibold mb-2">Profile Not Found</p>
+            <p className="text-muted-foreground">Please complete your artisan registration first.</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Recent Changes Info - Visible to admin in dashboard */}
+        {profile.pendingChanges?.hasChanges && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-start">
+              <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-500 mt-0.5 mr-3 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                  Profile Updated Successfully
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                  Your changes have been saved. Admin will be notified of the updates.
+                </p>
+                {profile.pendingChanges.changedAt && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Last updated: {new Date(profile.pendingChanges.changedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-center space-x-6">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={profile?.avatar} alt={profile?.name} />
-              <AvatarFallback className="text-2xl">
-                {profile?.name ? getInitials(profile.name) : 'A'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{profile?.name || 'Artisan'}</h1>
-              <p className="text-muted-foreground mb-2">{profile?.email}</p>
-              {profile?.location && (
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {profile.location.city}, {profile.location.state}, {profile.location.country}
-                </div>
+            <div className="relative">
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={editing ? editData.profilePic : profile.profilePic} alt={profile.fullName} />
+                <AvatarFallback className="text-2xl">
+                  {getInitials(profile.fullName)}
+                </AvatarFallback>
+              </Avatar>
+              {editing && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0"
+                  onClick={() => {
+                    // In a real app, this would open a file picker
+                    const url = prompt('Enter profile picture URL:');
+                    if (url) setEditData({ ...editData, profilePic: url });
+                  }}
+                >
+                  <Upload className="w-4 h-4" />
+                </Button>
               )}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">{profile.fullName}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <p className="text-muted-foreground">{profile.shopName}</p>
+                {getStatusBadge(profile.approvalStatus)}
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 mr-1" />
+                {profile.village}, {profile.district}, {profile.state} - {profile.pincode}
+              </div>
             </div>
           </div>
           <div className="flex space-x-2">
@@ -263,13 +294,26 @@ const ArtisanProfile = () => {
               </Button>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setEditing(false)}>
+                <Button variant="outline" onClick={() => {
+                  setEditing(false);
+                  // Reset edit data
+                  setEditData({
+                    profilePic: profile.profilePic || '',
+                    mobileNumber: profile.mobileNumber || '',
+                    email: profile.email || '',
+                    shippingDetails: profile.shippingDetails || {
+                      pickupAddress: { sameAsMain: true, address: '' },
+                      dispatchTime: '',
+                      packagingType: ''
+                    }
+                  });
+                }}>
                   <X className="w-4 h-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSaveProfile}>
+                <Button onClick={handleSaveProfile} disabled={saving}>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </>
             )}
@@ -277,13 +321,13 @@ const ArtisanProfile = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Products</p>
-                  <p className="text-2xl font-bold">{profile?.stats?.totalProducts || 0}</p>
+                  <p className="text-2xl font-bold">{profile.stats.totalProducts}</p>
                 </div>
                 <Package className="w-8 h-8 text-blue-600" />
               </div>
@@ -294,22 +338,10 @@ const ArtisanProfile = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Orders</p>
-                  <p className="text-2xl font-bold">{profile?.stats?.totalOrders || 0}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
+                  <p className="text-2xl font-bold">₹{profile.stats.totalSales.toLocaleString()}</p>
                 </div>
-                <ShoppingCart className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Revenue</p>
-                  <p className="text-2xl font-bold">{formatCurrency(profile?.stats?.totalRevenue || 0)}</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-purple-600" />
+                <CreditCard className="w-8 h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -319,9 +351,9 @@ const ArtisanProfile = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Rating</p>
-                  <p className="text-2xl font-bold">{profile?.stats?.averageRating?.toFixed(1) || '0.0'}</p>
+                  <p className="text-2xl font-bold">{profile.stats.averageRating.toFixed(1)}</p>
                 </div>
-                <Star className="w-8 h-8 text-yellow-600" />
+                <CheckCircle className="w-8 h-8 text-yellow-600" />
               </div>
             </CardContent>
           </Card>
@@ -331,452 +363,374 @@ const ArtisanProfile = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Reviews</p>
-                  <p className="text-2xl font-bold">{profile?.stats?.totalReviews || 0}</p>
+                  <p className="text-2xl font-bold">{profile.stats.totalReviews}</p>
                 </div>
-                <Eye className="w-8 h-8 text-indigo-600" />
+                <FileText className="w-8 h-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="business">Business</TabsTrigger>
-            <TabsTrigger value="experience">Experience</TabsTrigger>
-            <TabsTrigger value="social">Social</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="personal">Personal Info</TabsTrigger>
+            <TabsTrigger value="business">Business Details</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="shipping">Shipping</TabsTrigger>
+            <TabsTrigger value="banking">Banking</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <User className="w-5 h-5 mr-2" />
-                    Personal Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editing ? (
-                    <>
-                      <div>
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          value={formData.bio}
-                          onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                          rows={3}
-                          placeholder="Tell customers about yourself and your craft..."
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center space-x-3">
-                        <Mail className="w-5 h-5 text-muted-foreground" />
-                        <span>{profile?.email}</span>
-                      </div>
-                      {profile?.phone && (
-                        <div className="flex items-center space-x-3">
-                          <Phone className="w-5 h-5 text-muted-foreground" />
-                          <span>{profile.phone}</span>
-                        </div>
-                      )}
-                      {profile?.bio && (
-                        <div>
-                          <p className="text-sm font-medium mb-2">Bio</p>
-                          <p className="text-sm text-muted-foreground">{profile.bio}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Location & Skills */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Location & Skills
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editing ? (
-                    <>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label htmlFor="city">City</Label>
-                          <Input
-                            id="city"
-                            value={formData.city}
-                            onChange={(e) => setFormData({...formData, city: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="state">State</Label>
-                          <Input
-                            id="state"
-                            value={formData.state}
-                            onChange={(e) => setFormData({...formData, state: e.target.value})}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="country">Country</Label>
-                          <Input
-                            id="country"
-                            value={formData.country}
-                            onChange={(e) => setFormData({...formData, country: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="experience">Years of Experience</Label>
-                        <Input
-                          id="experience"
-                          type="number"
-                          value={formData.experience}
-                          onChange={(e) => setFormData({...formData, experience: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="languages">Languages (comma separated)</Label>
-                        <Input
-                          id="languages"
-                          value={formData.languages.join(', ')}
-                          onChange={(e) => setFormData({...formData, languages: e.target.value.split(',').map(l => l.trim()).filter(l => l)})}
-                          placeholder="English, Hindi, Gujarati"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {profile?.location && (
-                        <div className="flex items-center space-x-3">
-                          <MapPin className="w-5 h-5 text-muted-foreground" />
-                          <span>{profile.location.city}, {profile.location.state}, {profile.location.country}</span>
-                        </div>
-                      )}
-                      {profile?.experience && (
-                        <div className="flex items-center space-x-3">
-                          <Award className="w-5 h-5 text-muted-foreground" />
-                          <span>{profile.experience} years of experience</span>
-                        </div>
-                      )}
-                      {profile?.languages && profile.languages.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-2">Languages</p>
-                          <div className="flex flex-wrap gap-2">
-                            {profile.languages.map((lang, index) => (
-                              <Badge key={index} variant="secondary">{lang}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Specializations & Skills */}
+          {/* Personal Information Tab */}
+          <TabsContent value="personal" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Specializations & Skills</CardTitle>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>Your basic personal details</CardDescription>
               </CardHeader>
-              <CardContent>
-                {editing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Specializations</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {['textiles', 'pottery', 'jewelry', 'metalwork', 'woodwork', 'painting', 'weaving', 'embroidery'].map(spec => (
-                          <Badge
-                            key={spec}
-                            variant={formData.specialization.includes(spec) ? "default" : "outline"}
-                            className="cursor-pointer"
-                            onClick={() => {
-                              const newSpecs = formData.specialization.includes(spec)
-                                ? formData.specialization.filter(s => s !== spec)
-                                : [...formData.specialization, spec];
-                              setFormData({...formData, specialization: newSpecs});
-                            }}
-                          >
-                            {spec}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="skills">Skills (comma separated)</Label>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">Full Name</Label>
+                    <p className="text-base font-medium">{profile.fullName}</p>
+                    <Badge variant="outline" className="mt-1">Non-Editable</Badge>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">Email Address</Label>
+                    {editing ? (
                       <Input
-                        id="skills"
-                        value={formData.skills.join(', ')}
-                        onChange={(e) => setFormData({...formData, skills: e.target.value.split(',').map(s => s.trim()).filter(s => s)})}
-                        placeholder="block printing, natural dyes, hand weaving"
+                        type="email"
+                        value={editData.email}
+                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                       />
+                    ) : (
+                      <div className="flex items-center">
+                        <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <p className="text-base">{profile.email}</p>
+                      </div>
+                    )}
+                    <Badge variant="secondary" className="mt-1">Editable</Badge>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">Mobile Number</Label>
+                    {editing ? (
+                      <Input
+                        type="tel"
+                        value={editData.mobileNumber}
+                        onChange={(e) => setEditData({ ...editData, mobileNumber: e.target.value })}
+                      />
+                    ) : (
+                      <div className="flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <p className="text-base">{profile.mobileNumber}</p>
+                      </div>
+                    )}
+                    <Badge variant="secondary" className="mt-1">Editable</Badge>
+                  </div>
+                </div>
+
+                <Separator className="my-6" />
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground mb-2 block">Address Details</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Village/Town</p>
+                      <p className="text-base font-medium">{profile.village || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">District</p>
+                      <p className="text-base font-medium">{profile.district || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">State</p>
+                      <p className="text-base font-medium">{profile.state || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pincode</p>
+                      <p className="text-base font-medium">{profile.pincode || 'Not specified'}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {profile?.specialization && profile.specialization.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Specializations</p>
-                        <div className="flex flex-wrap gap-2">
-                          {profile.specialization.map((spec, index) => (
-                            <Badge key={index} variant="default">{spec}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {profile?.skills && profile.skills.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Skills</p>
-                        <div className="flex flex-wrap gap-2">
-                          {profile.skills.map((skill, index) => (
-                            <Badge key={index} variant="secondary">{skill}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  <Badge variant="outline" className="mt-2">Non-Editable</Badge>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Business Details Tab */}
           <TabsContent value="business" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Briefcase className="w-5 h-5 mr-2" />
+                  <Store className="w-5 h-5 mr-2" />
                   Business Information
                 </CardTitle>
+                <CardDescription>Your shop and business details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {editing ? (
-                  <>
-                    <div>
-                      <Label htmlFor="businessName">Business Name</Label>
-                      <Input
-                        id="businessName"
-                        value={formData.businessName}
-                        onChange={(e) => setFormData({...formData, businessName: e.target.value})}
-                        placeholder="Your business or brand name"
-                      />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Shop Name</Label>
+                    <div className="flex items-center mt-1">
+                      <Store className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <p className="text-base font-medium">{profile.shopName}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <Badge variant="outline" className="mt-1">Non-Editable</Badge>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Seller Type</Label>
+                    <div className="mt-1">
+                      <Badge variant={profile.sellerType === 'gst' ? 'default' : 'secondary'}>
+                        {profile.sellerType === 'gst' ? 'GST Registered' : 'Non-GST Seller'}
+                      </Badge>
+                    </div>
+                    <Badge variant="outline" className="mt-1">Non-Editable</Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {profile.sellerType === 'gst' ? (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center">
+                      <FileText className="w-4 h-4 mr-2" />
+                      GST Registered Seller Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <Label htmlFor="gstNumber">GST Number</Label>
-                        <Input
-                          id="gstNumber"
-                          value={formData.gstNumber}
-                          onChange={(e) => setFormData({...formData, gstNumber: e.target.value})}
-                          placeholder="22AAAAA0000A1Z5"
-                        />
+                        <Label className="text-sm font-medium text-muted-foreground mb-1 block">GST Number</Label>
+                        <div className="flex items-center">
+                          <Hash className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <p className="text-base font-mono">{profile.gstNumber || 'Not provided'}</p>
+                        </div>
                       </div>
                       <div>
-                        <Label htmlFor="panNumber">PAN Number</Label>
-                        <Input
-                          id="panNumber"
-                          value={formData.panNumber}
-                          onChange={(e) => setFormData({...formData, panNumber: e.target.value})}
-                          placeholder="AAAAA0000A"
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {profile?.businessInfo?.businessName && (
-                      <div className="flex items-center space-x-3">
-                        <Briefcase className="w-5 h-5 text-muted-foreground" />
-                        <span>{profile.businessInfo.businessName}</span>
-                      </div>
-                    )}
-                    {profile?.businessInfo?.gstNumber && (
-                      <div className="flex items-center space-x-3">
-                        <Award className="w-5 h-5 text-muted-foreground" />
-                        <span>GST: {profile.businessInfo.gstNumber}</span>
-                      </div>
-                    )}
-                    {profile?.businessInfo?.panNumber && (
-                      <div className="flex items-center space-x-3">
-                        <Award className="w-5 h-5 text-muted-foreground" />
-                        <span>PAN: {profile.businessInfo.panNumber}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="experience" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Work Experience */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Briefcase className="w-5 h-5 mr-2" />
-                    Work Experience
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {profile?.workExperience && profile.workExperience.length > 0 ? (
-                    <div className="space-y-4">
-                      {profile.workExperience.map((exp, index) => (
-                        <div key={index} className="border-l-2 border-orange-200 pl-4">
-                          <h4 className="font-medium">{exp.role}</h4>
-                          <p className="text-sm text-muted-foreground">{exp.organization}</p>
-                          <p className="text-xs text-muted-foreground">{exp.duration}</p>
-                          <p className="text-sm mt-2">{exp.description}</p>
+                        <Label className="text-sm font-medium text-muted-foreground mb-1 block">PAN Number</Label>
+                        <div className="flex items-center">
+                          <IdCard className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <p className="text-base font-mono">{profile.panNumber || 'Not provided'}</p>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No work experience added yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Education */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <GraduationCap className="w-5 h-5 mr-2" />
-                    Education
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {profile?.education && profile.education.length > 0 ? (
-                    <div className="space-y-4">
-                      {profile.education.map((edu, index) => (
-                        <div key={index} className="border-l-2 border-blue-200 pl-4">
-                          <h4 className="font-medium">{edu.degree}</h4>
-                          <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                          <p className="text-xs text-muted-foreground">{edu.year}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No education details added yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Certifications */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Award className="w-5 h-5 mr-2" />
-                  Certifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {profile?.certifications && profile.certifications.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {profile.certifications.map((cert, index) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <h4 className="font-medium">{cert.name}</h4>
-                        <p className="text-sm text-muted-foreground">{cert.issuer}</p>
-                        <p className="text-xs text-muted-foreground">{cert.year}</p>
                       </div>
-                    ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">Document images are not displayed for security reasons</p>
+                    <Badge variant="outline" className="mt-2">Non-Editable</Badge>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">No certifications added yet.</p>
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Non-GST Seller Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground mb-1 block">Aadhaar Number</Label>
+                        <div className="flex items-center">
+                          <IdCard className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <p className="text-base font-mono">{profile.aadhaarNumber || 'Not provided'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground mb-1 block">PAN Number</Label>
+                        <div className="flex items-center">
+                          <IdCard className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <p className="text-base font-mono">{profile.panNumber || 'Not provided'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">Document images are not displayed for security reasons</p>
+                    <Badge variant="outline" className="mt-2">Non-Editable</Badge>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="social" className="space-y-6">
+          {/* Products Tab */}
+          <TabsContent value="products" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Globe className="w-5 h-5 mr-2" />
-                  Social Links & Online Presence
+                  <Package className="w-5 h-5 mr-2" />
+                  Product Details
                 </CardTitle>
+                <CardDescription>Your product categories</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {editing ? (
-                  <>
-                    <div>
-                      <Label htmlFor="website">Website</Label>
-                      <Input
-                        id="website"
-                        type="url"
-                        value={formData.website}
-                        onChange={(e) => setFormData({...formData, website: e.target.value})}
-                        placeholder="https://yourwebsite.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="instagram">Instagram</Label>
-                      <Input
-                        id="instagram"
-                        value={formData.instagram}
-                        onChange={(e) => setFormData({...formData, instagram: e.target.value})}
-                        placeholder="@yourhandle or https://instagram.com/yourhandle"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="facebook">Facebook</Label>
-                      <Input
-                        id="facebook"
-                        value={formData.facebook}
-                        onChange={(e) => setFormData({...formData, facebook: e.target.value})}
-                        placeholder="https://facebook.com/yourpage"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {profile?.socialLinks?.website && (
-                      <div className="flex items-center space-x-3">
-                        <Globe className="w-5 h-5 text-muted-foreground" />
-                        <a href={profile.socialLinks.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {profile.socialLinks.website}
-                        </a>
-                      </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Product Categories</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.productCategories && profile.productCategories.length > 0 ? (
+                      profile.productCategories.map((category, index) => (
+                        <Badge key={index} variant="default">{category}</Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">No categories specified</p>
                     )}
-                    {profile?.socialLinks?.instagram && (
-                      <div className="flex items-center space-x-3">
-                        <Heart className="w-5 h-5 text-muted-foreground" />
-                        <a href={profile.socialLinks.instagram.startsWith('http') ? profile.socialLinks.instagram : `https://instagram.com/${profile.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {profile.socialLinks.instagram}
-                        </a>
+                  </div>
+                  <Badge variant="outline" className="mt-2">Non-Editable</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Shipping Tab */}
+          <TabsContent value="shipping" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Truck className="w-5 h-5 mr-2" />
+                  Shipping & Delivery Details
+                </CardTitle>
+                <CardDescription>Manage your shipping preferences</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground mb-2 block">Pickup Address</Label>
+                  {editing ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="sameAsMain"
+                          checked={editData.shippingDetails.pickupAddress.sameAsMain}
+                          onChange={(e) => setEditData({
+                            ...editData,
+                            shippingDetails: {
+                              ...editData.shippingDetails,
+                              pickupAddress: {
+                                ...editData.shippingDetails.pickupAddress,
+                                sameAsMain: e.target.checked
+                              }
+                            }
+                          })}
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor="sameAsMain" className="cursor-pointer">Same as main address</Label>
                       </div>
-                    )}
-                    {profile?.socialLinks?.facebook && (
-                      <div className="flex items-center space-x-3">
-                        <Globe className="w-5 h-5 text-muted-foreground" />
-                        <a href={profile.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {profile.socialLinks.facebook}
-                        </a>
-                      </div>
-                    )}
-                  </>
-                )}
+                      {!editData.shippingDetails.pickupAddress.sameAsMain && (
+                        <Textarea
+                          value={editData.shippingDetails.pickupAddress.address}
+                          onChange={(e) => setEditData({
+                            ...editData,
+                            shippingDetails: {
+                              ...editData.shippingDetails,
+                              pickupAddress: {
+                                ...editData.shippingDetails.pickupAddress,
+                                address: e.target.value
+                              }
+                            }
+                          })}
+                          placeholder="Enter pickup address"
+                          rows={3}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-base">
+                      {profile.shippingDetails.pickupAddress.sameAsMain 
+                        ? 'Same as main address' 
+                        : profile.shippingDetails.pickupAddress.address || 'Not specified'}
+                    </p>
+                  )}
+                  <Badge variant="secondary" className="mt-2">Editable</Badge>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground mb-2 block">Dispatch Time</Label>
+                  {editing ? (
+                    <Input
+                      value={editData.shippingDetails.dispatchTime}
+                      onChange={(e) => setEditData({
+                        ...editData,
+                        shippingDetails: {
+                          ...editData.shippingDetails,
+                          dispatchTime: e.target.value
+                        }
+                      })}
+                      placeholder="e.g., 2-3 business days"
+                    />
+                  ) : (
+                    <p className="text-base">{profile.shippingDetails.dispatchTime || 'Not specified'}</p>
+                  )}
+                  <Badge variant="secondary" className="mt-2">Editable</Badge>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground mb-2 block">Packaging Type</Label>
+                  {editing ? (
+                    <Input
+                      value={editData.shippingDetails.packagingType}
+                      onChange={(e) => setEditData({
+                        ...editData,
+                        shippingDetails: {
+                          ...editData.shippingDetails,
+                          packagingType: e.target.value
+                        }
+                      })}
+                      placeholder="e.g., Eco-friendly packaging"
+                    />
+                  ) : (
+                    <p className="text-base">{profile.shippingDetails.packagingType || 'Not specified'}</p>
+                  )}
+                  <Badge variant="secondary" className="mt-2">Editable</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Banking Tab */}
+          <TabsContent value="banking" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Banking Details
+                </CardTitle>
+                <CardDescription>Your payment and banking information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">Bank Name</Label>
+                    <div className="flex items-center">
+                      <Building className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <p className="text-base">{profile.bankDetails.bankName || 'Not provided'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">Account Number</Label>
+                    <p className="text-base font-mono">
+                      {profile.bankDetails.accountNumber 
+                        ? `****${profile.bankDetails.accountNumber.slice(-4)}` 
+                        : 'Not provided'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">IFSC Code</Label>
+                    <p className="text-base font-mono">{profile.bankDetails.ifscCode || 'Not provided'}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground mb-1 block">UPI ID</Label>
+                    <p className="text-base">{profile.upiId || 'Not provided'}</p>
+                  </div>
+                </div>
+
+                <Badge variant="outline">All bank details are Non-Editable</Badge>
+
+                <Separator />
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground mb-1 block">Payment Frequency</Label>
+                  <p className="text-base">{profile.paymentFrequency || 'Not specified'}</p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -788,4 +742,4 @@ const ArtisanProfile = () => {
   );
 };
 
-export default ArtisanProfile;
+export default ArtisanProfileView;

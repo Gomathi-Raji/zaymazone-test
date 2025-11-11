@@ -49,7 +49,8 @@ const FIREBASE_TOKEN_KEY = "firebase_id_token";
 
 export function getAuthToken(): string | null {
 	try {
-		return localStorage.getItem(TOKEN_KEY);
+		// Check both 'auth_token' and 'token' for backward compatibility
+		return localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token');
 	} catch {
 		return null;
 	}

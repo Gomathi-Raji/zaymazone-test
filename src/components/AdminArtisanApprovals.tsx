@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Eye, MoreHorizontal } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, Eye, MoreHorizontal, Bell } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +59,12 @@ interface Artisan {
     firebaseUID: string;
     createdAt: string;
   };
+  pendingChanges?: {
+    hasChanges: boolean;
+    changedAt?: string;
+    changedFields: string[];
+    changes?: any;
+  };
 }
 
 interface PaginationState {
@@ -90,13 +96,16 @@ export function AdminArtisanApprovals() {
     setIsLoading(true);
     try {
       const response = await apiRequest(
-        `/admin-approvals/pending-artisans?status=${status}&page=${page}&limit=${pagination.limit}`,
+        `/api/admin-approvals/pending-artisans?status=${status}&page=${page}&limit=${pagination.limit}`,
         {
           method: 'GET',
+          auth: true
         }
       ) as any;
 
       if (response?.success) {
+        console.log('Fetched artisans:', response.artisans);
+        console.log('Artisans with pending changes:', response.artisans.filter((a: any) => a.pendingChanges?.hasChanges));
         setArtisans(response.artisans || []);
         setPagination({
           page: response.page,
@@ -127,12 +136,13 @@ export function AdminArtisanApprovals() {
     setIsProcessing(true);
     try {
       const response = await apiRequest(
-        `/admin-approvals/approve-artisan/${selectedArtisan._id}`,
+        `/api/admin-approvals/approve-artisan/${selectedArtisan._id}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({
+          body: {
             approvalNotes: actionReason,
-          }),
+          },
+          auth: true
         }
       ) as { success: boolean; message: string };
 
@@ -170,12 +180,13 @@ export function AdminArtisanApprovals() {
     setIsProcessing(true);
     try {
       const response = await apiRequest(
-        `/admin-approvals/reject-artisan/${selectedArtisan._id}`,
+        `/api/admin-approvals/reject-artisan/${selectedArtisan._id}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({
+          body: {
             rejectionReason: actionReason,
-          }),
+          },
+          auth: true
         }
       ) as { success: boolean; message: string };
 
@@ -369,9 +380,31 @@ export function AdminArtisanApprovals() {
                     </TableHeader>
                     <TableBody>
                       {artisans.map((artisan) => (
-                        <TableRow key={artisan._id}>
-                          <TableCell className="font-medium">{artisan.name}</TableCell>
-                          <TableCell>{artisan.businessInfo?.businessName || 'N/A'}</TableCell>
+                        <TableRow 
+                          key={artisan._id}
+                          className={artisan.pendingChanges?.hasChanges ? 'bg-orange-50 dark:bg-orange-950/20 border-l-4 border-l-orange-500' : ''}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {artisan.name}
+                              {artisan.pendingChanges?.hasChanges && (
+                                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                                  <Bell className="w-3 h-3 mr-1" />
+                                  Changed
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              {artisan.businessInfo?.businessName || 'N/A'}
+                              {artisan.pendingChanges?.hasChanges && (
+                                <p className="text-xs text-orange-600 mt-1">
+                                  Modified: {artisan.pendingChanges.changedFields.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-sm">
                             {artisan.approvedAt
                               ? new Date(artisan.approvedAt).toLocaleDateString()
@@ -483,6 +516,28 @@ export function AdminArtisanApprovals() {
           {selectedArtisan && (
             <ScrollArea className="h-[400px] pr-4">
               <div className="space-y-6">
+                {/* Pending Changes Alert */}
+                {selectedArtisan.pendingChanges?.hasChanges && (
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <Bell className="w-5 h-5 text-orange-600 dark:text-orange-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-200 mb-1">
+                          Artisan Changed Details After Approval
+                        </h3>
+                        <p className="text-sm text-orange-700 dark:text-orange-300 mb-2">
+                          Changed fields: <span className="font-medium">{selectedArtisan.pendingChanges.changedFields.join(', ')}</span>
+                        </p>
+                        {selectedArtisan.pendingChanges.changedAt && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            Changed on: {new Date(selectedArtisan.pendingChanges.changedAt).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Basic Information */}
                 <div>
                   <h3 className="font-semibold mb-3">Basic Information</h3>

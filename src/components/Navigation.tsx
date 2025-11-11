@@ -40,7 +40,7 @@ export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { scrollY } = useScroll();
 
@@ -293,7 +293,7 @@ export const Navigation = () => {
                       { to: "/sustainability", label: "Sustainability", icon: <Sparkles className="h-4 w-4" /> },
                       { to: "/start-selling", label: "Start Selling", icon: <Crown className="h-4 w-4" /> },
                       ...(isAuthenticated ? [
-                        { to: "/profile", label: "My Profile", icon: <User className="h-4 w-4" /> },
+                        { to: user?.role === 'artisan' ? '/artisan/profile' : '/profile', label: "My Profile", icon: <User className="h-4 w-4" /> },
                         { to: "/orders", label: "My Orders", icon: <ShoppingBag className="h-4 w-4" /> },
                         { to: "/wishlist", label: "Wishlist", icon: <Heart className="h-4 w-4" /> },
                       ] : []),

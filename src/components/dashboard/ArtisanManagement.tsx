@@ -21,7 +21,8 @@ import {
   FileText,
   Truck,
   Package as PackageIcon,
-  ZoomIn
+  ZoomIn,
+  Bell
 } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import { useToast } from "@/hooks/use-toast";
@@ -135,6 +136,12 @@ interface Artisan {
   joinedDate: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  pendingChanges?: {
+    hasChanges: boolean;
+    changedAt?: string;
+    changedFields: string[];
+    changes?: any;
+  };
 }
 
 export function ArtisanManagement() {
@@ -837,7 +844,10 @@ export function ArtisanManagement() {
       {/* Artisans List */}
       <div className="grid gap-6">
         {artisans.map((artisan) => (
-          <Card key={artisan._id}>
+          <Card 
+            key={artisan._id}
+            className={artisan.pendingChanges?.hasChanges ? 'bg-orange-50 dark:bg-orange-950/20 border-l-4 border-l-orange-500' : ''}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
@@ -862,9 +872,20 @@ export function ArtisanManagement() {
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500" />
                       )}
+                      {artisan.pendingChanges?.hasChanges && (
+                        <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300 ml-2">
+                          <Bell className="w-3 h-3 mr-1" />
+                          Changed
+                        </Badge>
+                      )}
                     </CardTitle>
                     <CardDescription>
                       {artisan.location.city}, {artisan.location.state}
+                      {artisan.pendingChanges?.hasChanges && (
+                        <span className="block text-xs text-orange-600 mt-1">
+                          Modified: {artisan.pendingChanges.changedFields.join(', ')}
+                        </span>
+                      )}
                     </CardDescription>
                   </div>
                 </div>

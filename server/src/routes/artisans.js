@@ -12,30 +12,18 @@ const upsertSchema = z.object({
 	socials: z.record(z.string(), z.string().url()).optional().default({}),
 })
 
-// Artisan profile schema for updates
+// Artisan profile schema for updates - only editable fields
 const artisanProfileUpdateSchema = z.object({
-	name: z.string().min(1).max(200).optional(),
-	bio: z.string().max(1000).optional(),
-	location: z.object({
-		city: z.string().min(1).max(100),
-		state: z.string().min(1).max(100),
-		country: z.string().default('India')
-	}).optional(),
-	specialties: z.array(z.string()).optional(),
-	experience: z.number().min(0).optional(),
-	socials: z.object({
-		instagram: z.string().optional(),
-		facebook: z.string().optional(),
-		website: z.string().url().optional()
-	}).optional(),
-	verification: z.object({
-		documentType: z.enum(['aadhar', 'pan', 'license']).optional(),
-		documentNumber: z.string().optional(),
-		bankDetails: z.object({
-			accountNumber: z.string().optional(),
-			ifscCode: z.string().optional(),
-			bankName: z.string().optional()
-		}).optional()
+	profilePic: z.string().optional(),
+	mobileNumber: z.string().optional(),
+	email: z.string().email().optional(),
+	shippingDetails: z.object({
+		pickupAddress: z.object({
+			sameAsMain: z.boolean(),
+			address: z.string().optional()
+		}).optional(),
+		dispatchTime: z.string().optional(),
+		packagingType: z.string().optional()
 	}).optional()
 }).partial()
 
@@ -51,40 +39,63 @@ router.get('/', async (_req, res) => {
 // Get current user's artisan profile
 router.get('/profile', authenticateToken, async (req, res) => {
 	try {
-		const artisan = await Artisan.findOne({ userId: req.user._id }).lean()
+		// Find artisan by email from authenticated user
+		const artisan = await Artisan.findOne({ 
+			email: req.user.email,
+			approvalStatus: 'approved' 
+		}).lean()
+		
 		if (!artisan) {
 			return res.status(404).json({ error: 'Artisan profile not found' })
 		}
 
-		// Transform to match frontend interface
+		// Transform to match frontend interface with all registration details
 		const profile = {
 			_id: artisan._id.toString(),
-			name: artisan.name,
-			email: req.user.email, // From user object
-			phone: req.user.phone || '',
-			avatar: artisan.avatar || '',
-			bio: artisan.bio || '',
-			location: artisan.location,
-			specialization: artisan.specialties || [],
-			experience: artisan.experience || 0,
-			languages: [], // Not in model yet
-			socialLinks: artisan.socials || {},
-			businessInfo: {
-				businessName: '', // Not in model yet
-				gstNumber: '', // Not in model yet
-				panNumber: '', // Not in model yet
-				bankDetails: artisan.verification?.bankDetails || {}
+			fullName: artisan.name,
+			email: artisan.email,
+			mobileNumber: artisan.businessInfo?.contact?.phone || '',
+			profilePic: artisan.avatar || '',
+			shopName: artisan.businessInfo?.businessName || '',
+			sellerType: artisan.businessInfo?.sellerType || 'non-gst',
+			village: artisan.businessInfo?.contact?.address?.village || '',
+			district: artisan.businessInfo?.contact?.address?.district || '',
+			state: artisan.businessInfo?.contact?.address?.state || artisan.location?.state || '',
+			pincode: artisan.businessInfo?.contact?.address?.pincode || '',
+			gstNumber: artisan.businessInfo?.gstNumber || '',
+			panNumber: artisan.businessInfo?.panNumber || '',
+			aadhaarNumber: artisan.verification?.documentNumber || '',
+			productCategories: artisan.specialties || [],
+			productDescription: artisan.productInfo?.description || '',
+			materials: artisan.productInfo?.materials || '',
+			priceRange: artisan.productInfo?.priceRange || { min: 0, max: 0 },
+			stockQuantity: artisan.productInfo?.stockQuantity || 0,
+			productPhotos: artisan.productInfo?.photos || [],
+			shippingDetails: {
+				pickupAddress: artisan.logistics?.pickupAddress || { sameAsMain: true, address: '' },
+				dispatchTime: artisan.logistics?.dispatchTime || '',
+				packagingType: artisan.logistics?.packagingType || ''
 			},
-			certifications: [], // Not in model yet
-			skills: [], // Not in model yet
-			workExperience: [], // Not in model yet
-			education: [], // Not in model yet
+			bankDetails: {
+				accountNumber: artisan.verification?.bankDetails?.accountNumber || '',
+				ifscCode: artisan.verification?.bankDetails?.ifscCode || '',
+				bankName: artisan.verification?.bankDetails?.bankName || ''
+			},
+			upiId: artisan.payment?.upiId || '',
+			paymentFrequency: artisan.payment?.paymentFrequency || '',
+			bio: artisan.bio || '',
+			experience: artisan.experience || 0,
+			approvalStatus: artisan.approvalStatus || 'pending',
+			isActive: artisan.isActive,
 			stats: {
 				totalProducts: artisan.totalProducts || 0,
-				totalOrders: 0, // Would need to calculate from orders
-				totalRevenue: artisan.totalSales || 0,
+				totalSales: artisan.totalSales || 0,
 				averageRating: artisan.rating || 0,
 				totalReviews: artisan.totalRatings || 0
+			},
+			pendingChanges: artisan.pendingChanges || {
+				hasChanges: false,
+				changedFields: []
 			},
 			createdAt: artisan.createdAt?.toISOString() || artisan.joinedDate?.toISOString(),
 			updatedAt: artisan.updatedAt?.toISOString() || artisan.joinedDate?.toISOString()
@@ -97,7 +108,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 	}
 })
 
-// Update current user's artisan profile
+// Update current user's artisan profile - only editable fields
 router.put('/profile', authenticateToken, async (req, res) => {
 	try {
 		const parsed = artisanProfileUpdateSchema.safeParse(req.body)
@@ -107,20 +118,62 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
 		const updateData = parsed.data
 
-		// Transform frontend fields to match database schema
-		const dbUpdate = {
-			...(updateData.name && { name: updateData.name }),
-			...(updateData.bio && { bio: updateData.bio }),
-			...(updateData.location && { location: updateData.location }),
-			...(updateData.specialties && { specialties: updateData.specialties }),
-			...(updateData.experience !== undefined && { experience: updateData.experience }),
-			...(updateData.socials && { socials: updateData.socials }),
-			...(updateData.verification && { verification: updateData.verification })
+		// Build update object for only editable fields
+		const dbUpdate = {}
+		const changedFields = []
+		const pendingChangesData = {}
+		
+		if (updateData.profilePic !== undefined) {
+			dbUpdate.avatar = updateData.profilePic
+			changedFields.push('profilePic')
+			pendingChangesData.profilePic = updateData.profilePic
+		}
+		
+		if (updateData.email !== undefined) {
+			dbUpdate.email = updateData.email
+			changedFields.push('email')
+			pendingChangesData.email = updateData.email
+		}
+		
+		if (updateData.mobileNumber !== undefined) {
+			dbUpdate['businessInfo.contact.phone'] = updateData.mobileNumber
+			changedFields.push('mobileNumber')
+			pendingChangesData.mobileNumber = updateData.mobileNumber
+		}
+		
+		if (updateData.shippingDetails) {
+			if (updateData.shippingDetails.pickupAddress !== undefined) {
+				dbUpdate['logistics.pickupAddress'] = updateData.shippingDetails.pickupAddress
+				changedFields.push('shippingDetails.pickupAddress')
+				pendingChangesData.shippingPickupAddress = updateData.shippingDetails.pickupAddress
+			}
+			if (updateData.shippingDetails.dispatchTime !== undefined) {
+				dbUpdate['logistics.dispatchTime'] = updateData.shippingDetails.dispatchTime
+				changedFields.push('shippingDetails.dispatchTime')
+				pendingChangesData.shippingDispatchTime = updateData.shippingDetails.dispatchTime
+			}
+			if (updateData.shippingDetails.packagingType !== undefined) {
+				dbUpdate['logistics.packagingType'] = updateData.shippingDetails.packagingType
+				changedFields.push('shippingDetails.packagingType')
+				pendingChangesData.shippingPackagingType = updateData.shippingDetails.packagingType
+			}
+		}
+
+		// Add change tracking for admin notification (no approval needed)
+		if (changedFields.length > 0) {
+			dbUpdate['pendingChanges.hasChanges'] = true
+			dbUpdate['pendingChanges.changedAt'] = new Date()
+			dbUpdate['pendingChanges.changedFields'] = changedFields
+			dbUpdate['pendingChanges.changes'] = pendingChangesData
+			console.log('🔔 Setting pending changes:', { changedFields, pendingChangesData })
 		}
 
 		const updatedArtisan = await Artisan.findOneAndUpdate(
-			{ userId: req.user._id },
-			dbUpdate,
+			{ 
+				email: req.user.email,
+				approvalStatus: 'approved' 
+			},
+			{ $set: dbUpdate },
 			{ new: true, runValidators: true }
 		)
 
@@ -128,7 +181,12 @@ router.put('/profile', authenticateToken, async (req, res) => {
 			return res.status(404).json({ error: 'Artisan profile not found' })
 		}
 
-		res.json({ message: 'Profile updated successfully' })
+		console.log('✅ Artisan updated. Pending changes:', updatedArtisan.pendingChanges)
+
+		res.json({ 
+			message: 'Profile updated successfully.',
+			changesTracked: changedFields.length > 0
+		})
 	} catch (error) {
 		console.error('Error updating artisan profile:', error)
 		res.status(500).json({ error: 'Failed to update artisan profile' })
