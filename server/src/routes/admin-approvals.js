@@ -48,7 +48,8 @@ router.get('/pending-artisans', requireAuth, requireAdmin, async (req, res) => {
 router.get('/artisan-details/:artisanId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const artisan = await Artisan.findById(req.params.artisanId)
-      .populate('userId', 'email firebaseUID createdAt');
+      .populate('userId', 'email firebaseUID createdAt')
+      .populate('pendingChanges.reviewedBy', 'name email');
 
     if (!artisan) {
       return res.status(404).json({
@@ -57,10 +58,15 @@ router.get('/artisan-details/:artisanId', requireAuth, requireAdmin, async (req,
       });
     }
 
-    res.json({
+    // Add a flag to highlight if there are pending changes
+    const response = {
       success: true,
-      artisan
-    });
+      artisan,
+      hasPendingChanges: artisan.pendingChanges?.hasChanges || false,
+      pendingChangesInfo: artisan.pendingChanges || null
+    };
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching artisan details:', error);
     res.status(500).json({
@@ -517,6 +523,46 @@ router.patch('/reject-blog/:blogId', requireAuth, requireAdmin, async (req, res)
     res.status(500).json({
       success: false,
       message: 'Failed to reject blog',
+      error: error.message
+    });
+  }
+});
+
+// ==================== ARTISAN PROFILE CHANGE NOTIFICATION ====================
+
+// PATCH - Clear artisan change notification flag
+router.patch('/clear-artisan-changes/:artisanId', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const artisan = await Artisan.findById(req.params.artisanId);
+
+    if (!artisan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Artisan not found'
+      });
+    }
+
+    if (!artisan.pendingChanges?.hasChanges) {
+      return res.status(400).json({
+        success: false,
+        message: 'No changes to clear'
+      });
+    }
+
+    // Clear the change notification flag
+    artisan.pendingChanges.hasChanges = false;
+    await artisan.save();
+
+    res.json({
+      success: true,
+      message: 'Change notification cleared successfully',
+      artisan
+    });
+  } catch (error) {
+    console.error('Error clearing artisan changes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear artisan changes',
       error: error.message
     });
   }

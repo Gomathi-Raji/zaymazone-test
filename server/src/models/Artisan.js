@@ -100,6 +100,13 @@ const artisanSchema = new mongoose.Schema({
 		productPhotos: { type: Boolean, default: false },
 		bankDetails: { type: Boolean, default: false }
 	},
+	// Track changes made by artisan after approval (for admin notification only)
+	pendingChanges: {
+		hasChanges: { type: Boolean, default: false },
+		changedAt: { type: Date },
+		changedFields: [{ type: String }], // Array of field names that were changed
+		changes: { type: mongoose.Schema.Types.Mixed } // Store the new values for reference
+	},
 	joinedDate: { type: Date, default: Date.now }
 }, { timestamps: true })
 

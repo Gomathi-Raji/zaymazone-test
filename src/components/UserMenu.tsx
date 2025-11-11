@@ -34,6 +34,10 @@ export const UserMenu = () => {
     return user?.role === 'artisan' ? '/artisan-dashboard' : '/dashboard';
   };
 
+  const getProfileLink = () => {
+    return user?.role === 'artisan' ? '/artisan/profile' : '/profile';
+  };
+
   return (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -118,7 +122,7 @@ export const UserMenu = () => {
         )}
 
         <DropdownMenuItem className="cursor-pointer py-3 px-2 rounded-lg hover:bg-primary/5 transition-colors" asChild>
-          <Link to="/profile">
+          <Link to={getProfileLink()}>
             <User className="mr-3 h-4 w-4 text-primary" />
             <span>Profile</span>
           </Link>
